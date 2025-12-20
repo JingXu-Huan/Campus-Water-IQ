@@ -7,6 +7,7 @@
       <list>
         <option value="$PROJECT_DIR$/pom.xml" />
         <option value="$PROJECT_DIR$/IoT-service/pom.xml" />
+        <option value="$PROJECT_DIR$/IoT-device/pom.xml" />
       </list>
     </option>
   </component>

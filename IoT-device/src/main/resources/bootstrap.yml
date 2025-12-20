@@ -1,6 +1,6 @@
 spring:
   application:
-    name: IoT-service
+    name: IoT-device
   profiles:
     active: dev
   cloud:
@@ -13,9 +13,6 @@ spring:
         username: nacos
         password: nacos
         shared-configs:
-          - data-id: IoT-service.yml
-            group: DEFAULT_GROUP
-            refresh: true
           - data-id: IoT-device.yml
             group: DEFAULT_GROUP
             refresh: true

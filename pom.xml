@@ -31,6 +31,7 @@
         <Mybatis-version>3.5.14</Mybatis-version>
         <spring-cloud.version>2022.0.0</spring-cloud.version>
         <spring-cloud-alibaba.version>2022.0.0.0</spring-cloud-alibaba.version>
+        <RocketMQ.version>2.3.4</RocketMQ.version>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
     </properties>
 
@@ -63,6 +64,11 @@
                 <artifactId>lombok</artifactId>
                 <version>1.18.32</version>
                 <optional>true</optional>
+            </dependency>
+            <dependency>
+                <groupId>org.apache.rocketmq</groupId>
+                <artifactId>rocketmq-spring-boot-starter</artifactId>
+                <version>${RocketMQ.version}</version>
             </dependency>
         </dependencies>
     </dependencyManagement>

@@ -1,0 +1,24 @@
+spring:
+  application:
+    name: IoT-service
+  profiles:
+    active: dev
+  cloud:
+    nacos:
+      config:
+        server-addr: 101.42.157.163:8848
+        namespace: 085ed7bf-0e3f-42ff-a2fe-992272b746ae
+        group: DEFAULT_GROUP
+        file-extension: yml
+        username: nacos
+        password: nacos
+        shared-configs:
+          - data-id: IoT-service.yml
+            group: DEFAULT_GROUP
+            refresh: true
+      discovery:
+        server-addr: 101.42.157.163:8848
+        namespace: 085ed7bf-0e3f-42ff-a2fe-992272b746ae
+        group: DEFAULT_GROUP
+        username: nacos
+        password: nacos

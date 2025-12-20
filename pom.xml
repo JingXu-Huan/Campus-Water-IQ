@@ -6,11 +6,11 @@
 
     <modelVersion>4.0.0</modelVersion>
 
-    <!-- ===== Spring Boot 父依赖（核心）===== -->
+    <!-- ===== Spring Boot 父依赖 ===== -->
     <parent>
         <groupId>org.springframework.boot</groupId>
         <artifactId>spring-boot-starter-parent</artifactId>
-        <version>3.0.4</version>
+        <version>3.2.2</version>
         <relativePath/>
     </parent>
 
@@ -23,19 +23,50 @@
     <!-- ===== 子模块 ===== -->
     <modules>
         <module>IoT-service</module>
+        <module>IoT-device</module>
     </modules>
 
     <!-- ===== 全局属性 ===== -->
     <properties>
         <java.version>21</java.version>
-        <Mybatis-version>3.5.14</Mybatis-version>
+        <spring-boot.version>3.2.2</spring-boot.version>
+        <mybatis.version>3.5.14</mybatis.version>
         <spring-cloud.version>2022.0.0</spring-cloud.version>
         <spring-cloud-alibaba.version>2022.0.0.0</spring-cloud-alibaba.version>
-        <RocketMQ.version>2.3.4</RocketMQ.version>
+        <rocketmq.version>2.3.4</rocketmq.version>
+        <knife4j.version>4.4.0</knife4j.version>
+        <hutool.version>5.8.23</hutool.version>
+        <dubbo.version>3.2.3</dubbo.version>
+        <lombok.version>1.18.32</lombok.version>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
     </properties>
+    <dependencies>
+        <!-- MyBatis-Plus -->
+        <dependency>
+            <groupId>com.baomidou</groupId>
+            <artifactId>mybatis-plus-spring-boot3-starter</artifactId>
+            <version>${mybatis.version}</version>
+            <!-- 中文注释: MyBatis-Plus 集成 Spring Boot -->
+        </dependency>
+        <!-- Lombok -->
+        <dependency>
+            <groupId>org.projectlombok</groupId>
+            <artifactId>lombok</artifactId>
+            <version>${lombok.version}</version>
+            <scope>provided</scope>
+            <!-- 中文注释: Lombok 注解简化 Java 开发 -->
+        </dependency>
 
-    <!-- ===== 依赖版本统一管理（只管版本，不引入依赖）===== -->
+        <!-- Hutool 工具类库 -->
+        <dependency>
+            <groupId>cn.hutool</groupId>
+            <artifactId>hutool-all</artifactId>
+            <version>${hutool.version}</version>
+            <!-- 中文注释: Hutool 工具类集合 -->
+        </dependency>
+
+    </dependencies>
+    <!-- ===== 依赖版本统一管理 ===== -->
     <dependencyManagement>
         <dependencies>
             <!-- Spring Cloud BOM -->
@@ -45,7 +76,9 @@
                 <version>${spring-cloud.version}</version>
                 <type>pom</type>
                 <scope>import</scope>
+                <!-- 中文注释: Spring Cloud 统一依赖管理 -->
             </dependency>
+
             <!-- Spring Cloud Alibaba BOM -->
             <dependency>
                 <groupId>com.alibaba.cloud</groupId>
@@ -53,22 +86,103 @@
                 <version>${spring-cloud-alibaba.version}</version>
                 <type>pom</type>
                 <scope>import</scope>
+                <!-- 中文注释: Spring Cloud Alibaba 统一依赖管理 -->
             </dependency>
+
+            <!-- Spring Boot 核心依赖 -->
             <dependency>
-                <groupId>com.baomidou</groupId>
-                <artifactId>mybatis-plus-spring-boot3-starter</artifactId>
-                <version>${Mybatis-version}</version>
+                <groupId>org.springframework.boot</groupId>
+                <artifactId>spring-boot-starter</artifactId>
+                <version>${spring-boot.version}</version>
+                <!-- 中文注释: Spring Boot 核心启动器 -->
             </dependency>
+
+            <!-- Web 开发 -->
             <dependency>
-                <groupId>org.projectlombok</groupId>
-                <artifactId>lombok</artifactId>
-                <version>1.18.32</version>
-                <optional>true</optional>
+                <groupId>org.springframework.boot</groupId>
+                <artifactId>spring-boot-starter-web</artifactId>
+                <version>${spring-boot.version}</version>
+                <!-- 中文注释: Web 开发依赖，包含 Spring MVC 和 Tomcat -->
             </dependency>
+
+            <!-- Redis -->
+            <dependency>
+                <groupId>org.springframework.boot</groupId>
+                <artifactId>spring-boot-starter-data-redis</artifactId>
+                <version>${spring-boot.version}</version>
+                <!-- 中文注释: Redis 数据访问 -->
+            </dependency>
+
+            <!-- RabbitMQ -->
+            <dependency>
+                <groupId>org.springframework.boot</groupId>
+                <artifactId>spring-boot-starter-amqp</artifactId>
+                <version>${spring-boot.version}</version>
+                <!-- 中文注释: RabbitMQ 消息队列集成 -->
+            </dependency>
+
+            <!-- RocketMQ -->
             <dependency>
                 <groupId>org.apache.rocketmq</groupId>
                 <artifactId>rocketmq-spring-boot-starter</artifactId>
-                <version>${RocketMQ.version}</version>
+                <version>${rocketmq.version}</version>
+                <!-- 中文注释: RocketMQ 消息队列 Spring Boot 启动器 -->
+            </dependency>
+
+            <!-- Nacos 注册中心 & 配置中心 -->
+            <dependency>
+                <groupId>com.alibaba.cloud</groupId>
+                <artifactId>spring-cloud-starter-alibaba-nacos-discovery</artifactId>
+                <version>${spring-cloud-alibaba.version}</version>
+                <!-- 中文注释: Nacos 服务注册与发现 -->
+            </dependency>
+            <dependency>
+                <groupId>com.alibaba.cloud</groupId>
+                <artifactId>spring-cloud-starter-alibaba-nacos-config</artifactId>
+                <version>${spring-cloud-alibaba.version}</version>
+                <!-- 中文注释: Nacos 配置管理 -->
+            </dependency>
+
+            <!-- OpenFeign -->
+            <dependency>
+                <groupId>org.springframework.cloud</groupId>
+                <artifactId>spring-cloud-starter-openfeign</artifactId>
+                <version>${spring-cloud.version}</version>
+                <!-- 中文注释: OpenFeign 用于服务间调用 -->
+            </dependency>
+
+            <!-- Knife4j (Swagger增强) -->
+            <dependency>
+                <groupId>com.github.xiaoymin</groupId>
+                <artifactId>knife4j-openapi3-jakarta-spring-boot-starter</artifactId>
+                <version>${knife4j.version}</version>
+                <!-- 中文注释: API 文档增强工具 Knife4j -->
+            </dependency>
+
+
+            <!-- Dubbo -->
+            <dependency>
+                <groupId>org.apache.dubbo</groupId>
+                <artifactId>dubbo-spring-boot-starter</artifactId>
+                <version>${dubbo.version}</version>
+                <!-- 中文注释: Dubbo RPC 框架 Spring Boot 集成 -->
+            </dependency>
+
+            <!-- Spring Boot Actuator -->
+            <dependency>
+                <groupId>org.springframework.boot</groupId>
+                <artifactId>spring-boot-starter-actuator</artifactId>
+                <version>${spring-boot.version}</version>
+                <!-- 中文注释: 应用监控与管理 -->
+            </dependency>
+
+            <!-- 测试依赖 -->
+            <dependency>
+                <groupId>org.springframework.boot</groupId>
+                <artifactId>spring-boot-starter-test</artifactId>
+                <version>${spring-boot.version}</version>
+                <scope>test</scope>
+                <!-- 中文注释: 单元测试和集成测试工具 -->
             </dependency>
         </dependencies>
     </dependencyManagement>
@@ -77,7 +191,7 @@
     <build>
         <pluginManagement>
             <plugins>
-                <!-- Java 编译版本 -->
+                <!-- Java 编译 -->
                 <plugin>
                     <groupId>org.apache.maven.plugins</groupId>
                     <artifactId>maven-compiler-plugin</artifactId>
@@ -86,11 +200,14 @@
                         <source>${java.version}</source>
                         <target>${java.version}</target>
                     </configuration>
+                    <!-- 中文注释: Java 编译插件 -->
                 </plugin>
+
                 <!-- Spring Boot 打包插件 -->
                 <plugin>
                     <groupId>org.springframework.boot</groupId>
                     <artifactId>spring-boot-maven-plugin</artifactId>
+                    <!-- 中文注释: Spring Boot 可执行包打包插件 -->
                 </plugin>
             </plugins>
         </pluginManagement>

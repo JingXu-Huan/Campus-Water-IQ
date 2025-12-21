@@ -6,7 +6,7 @@
 
     <modelVersion>4.0.0</modelVersion>
 
-    <!-- 父工程 -->
+    <!-- 父工程 1 -->
     <parent>
         <groupId>com.ncwu</groupId>
         <artifactId>Campus-Water-IQ</artifactId>

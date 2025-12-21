@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project version="4">
+  <component name="DataSourcePerFileMappings">
+    <file url="file://$APPLICATION_CONFIG_DIR$/consoles/db/a3bcc8b0-6ba6-4758-b9d6-8725d2fa3bd9/console.sql" value="a3bcc8b0-6ba6-4758-b9d6-8725d2fa3bd9" />
+    <file url="file://$APPLICATION_CONFIG_DIR$/consoles/db/a3bcc8b0-6ba6-4758-b9d6-8725d2fa3bd9/console_1.sql" value="a3bcc8b0-6ba6-4758-b9d6-8725d2fa3bd9" />
+    <file url="file://$APPLICATION_CONFIG_DIR$/consoles/db/a3bcc8b0-6ba6-4758-b9d6-8725d2fa3bd9/console_2.sql" value="a3bcc8b0-6ba6-4758-b9d6-8725d2fa3bd9" />
+    <file url="file://$PROJECT_DIR$/IoT-device/virtual_device.sql" value="a3bcc8b0-6ba6-4758-b9d6-8725d2fa3bd9" />
+  </component>
+</project>

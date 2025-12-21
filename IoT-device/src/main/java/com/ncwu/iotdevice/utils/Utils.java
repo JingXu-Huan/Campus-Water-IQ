@@ -1,7 +1,7 @@
 package com.ncwu.iotdevice.utils;
 
 
-import com.ncwu.iotdevice.Bo.DeviceIdList;
+import com.ncwu.iotdevice.domain.Bo.DeviceIdList;
 import com.ncwu.iotdevice.exception.DeviceRegisterException;
 import org.springframework.data.redis.core.StringRedisTemplate;
 
@@ -38,17 +38,17 @@ public class Utils {
         List<String> meterDeviceIds = new ArrayList<>();
         List<String> waterQualityDeviceIds = new ArrayList<>();
         for (int b = 1; b <= buildings; b++) {
+            // 每栋楼 1 台水质传感器
+            String sensorId = String.format("2%02d00001", b);
+            waterQualityDeviceIds.add(sensorId);
             for (int f = 1; f <= floors; f++) {
-                // 每层 1 台水质传感器
-                String sensorId = String.format("2%02d%02d001", b, f);
-                waterQualityDeviceIds.add(sensorId);
-                // 每个房间 1 块水表
                 for (int r = 1; r <= rooms; r++) {
                     String meterId = String.format("1%02d%02d%03d", b, f, r);
                     meterDeviceIds.add(meterId);
                 }
             }
         }
+
         try {
             redisTemplate.opsForSet().add("device:meter", meterDeviceIds.toArray(new String[0]));
             redisTemplate.opsForSet().add("device:sensor", waterQualityDeviceIds.toArray(new String[0]));
@@ -56,7 +56,7 @@ public class Utils {
         } catch (Exception e) {
             throw new DeviceRegisterException("注册失败");
         }
-        return new DeviceIdList(meterDeviceIds,waterQualityDeviceIds);
+        return new DeviceIdList(meterDeviceIds, waterQualityDeviceIds);
     }
 
     /**

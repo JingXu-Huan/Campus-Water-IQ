@@ -13,10 +13,10 @@ spring:
         username: nacos
         password: nacos
         shared-configs:
-          - data-id: IoT-service.yml
+          - data-id: shared-redis-config.yml
             group: DEFAULT_GROUP
             refresh: true
-          - data-id: IoT-device.yml
+          - data-id: shared-mysql-config.yml
             group: DEFAULT_GROUP
             refresh: true
       discovery:

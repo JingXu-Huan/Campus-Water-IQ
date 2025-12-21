@@ -9,6 +9,7 @@
         <option value="$PROJECT_DIR$/IoT-service/pom.xml" />
         <option value="$PROJECT_DIR$/IoT-device/pom.xml" />
         <option value="$PROJECT_DIR$/water-gateway/pom.xml" />
+        <option value="$PROJECT_DIR$/warning-service/pom.xml" />
       </list>
     </option>
   </component>

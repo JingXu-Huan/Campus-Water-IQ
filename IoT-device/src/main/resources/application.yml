@@ -1,5 +1,3 @@
 spring:
   application:
     name: iot-device
-server:
-  port: 8087

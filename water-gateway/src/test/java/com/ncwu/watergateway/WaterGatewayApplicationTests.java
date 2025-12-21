@@ -1,0 +1,13 @@
+package com.ncwu.watergateway;
+
+import org.junit.jupiter.api.Test;
+import org.springframework.boot.test.context.SpringBootTest;
+
+@SpringBootTest
+class WaterGatewayApplicationTests {
+
+    @Test
+    void contextLoads() {
+    }
+
+}

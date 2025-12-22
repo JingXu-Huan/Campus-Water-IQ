@@ -1,6 +1,6 @@
 spring:
   application:
-    name: Auth-service
+    name: prediction-service
   profiles:
     active: dev
   cloud:
@@ -16,13 +16,7 @@ spring:
           - data-id: shared-mysql-config.yml
             group: DEFAULT_GROUP
             refresh: true
-          - data-id: shared-rocketmq-config.yml
-            group: DEFAULT_GROUP
-            refresh: true
-          - data-id: shared-redis-config.yml
-            group: DEFAULT_GROUP
-            refresh: true
-          - data-id: auth-service.yml
+          - data-id: prediction-service.yml
             group: DEFAULT_GROUP
             refresh: true
       discovery:

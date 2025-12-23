@@ -53,7 +53,7 @@ public class Utils {
         }
 
         try {
-            redisTemplate.opsForHash().putAll("meterUsages", meterMap);
+            redisTemplate.opsForHash().putAll("meter:total_usage", meterMap);
             redisTemplate.opsForSet().add("device:meter", meterDeviceIds.toArray(new String[0]));
             redisTemplate.opsForSet().add("device:sensor", waterQualityDeviceIds.toArray(new String[0]));
         } catch (Exception e) {
@@ -69,7 +69,7 @@ public class Utils {
         try {
             redisTemplate.delete("device:meter");
             redisTemplate.delete("device:sensor");
-            redisTemplate.delete("meterUsages");
+            redisTemplate.delete("meter:total_usage");
         } catch (Exception e) {
             throw new DeviceRegisterException("移除设备失败");
         }

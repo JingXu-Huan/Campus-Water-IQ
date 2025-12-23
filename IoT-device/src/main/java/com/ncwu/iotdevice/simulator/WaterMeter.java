@@ -1,7 +1,11 @@
 package com.ncwu.iotdevice.simulator;
 
-import cn.hutool.core.date.DateTime;
 import cn.hutool.core.lang.UUID;
+
+import java.util.concurrent.Executors;
+import java.util.concurrent.ExecutorService;
+
+import com.baomidou.mybatisplus.core.conditions.update.LambdaUpdateWrapper;
 import com.ncwu.iotdevice.Constants.DeviceStatus;
 import com.ncwu.iotdevice.domain.Bo.DeviceIdList;
 import com.ncwu.iotdevice.domain.Bo.MeterDataBo;
@@ -9,6 +13,7 @@ import com.ncwu.iotdevice.domain.entity.VirtualDevice;
 import com.ncwu.iotdevice.enums.SwitchModes;
 import com.ncwu.iotdevice.exception.DeviceRegisterException;
 import com.ncwu.iotdevice.exception.MessageSendException;
+import com.ncwu.iotdevice.mapper.DeviceMapper;
 import com.ncwu.iotdevice.service.VirtualDeviceService;
 import com.ncwu.iotdevice.utils.Utils;
 import jakarta.annotation.PreDestroy;
@@ -35,6 +40,8 @@ import java.util.concurrent.*;
 public class WaterMeter {
     // 线程池大小建议根据设备规模调整，对于 1000 个以内的设备，20-50 个线程足够，因为大多在等待
     private final ScheduledExecutorService scheduler = Executors.newScheduledThreadPool(20);
+    ExecutorService pool = Executors.newFixedThreadPool(5);
+
 
     // 存储每个设备的调度句柄，用于精准停止模拟
     private final Map<String, ScheduledFuture<?>> deviceTasks = new ConcurrentHashMap<>();
@@ -50,6 +57,7 @@ public class WaterMeter {
 
     private final StringRedisTemplate redisTemplate;
     private final VirtualDeviceService virtualDeviceService;
+    private final DeviceMapper deviceMapper;
 
     @PreDestroy
     public void destroy() {
@@ -58,6 +66,7 @@ public class WaterMeter {
         // 确保应用关闭之后清空 redis 中所有数据
         Utils.clearRedisData(redisTemplate);
         scheduler.shutdown();
+
     }
 
     /**
@@ -91,8 +100,15 @@ public class WaterMeter {
                 future.cancel(false);
             }
         });
+        pool.submit(() -> {
+            LambdaUpdateWrapper<VirtualDevice> offline = new LambdaUpdateWrapper<VirtualDevice>()
+                    .eq(VirtualDevice::getStatus, "online")
+                    .set(VirtualDevice::getStatus, "offline");
+            deviceMapper.update(offline);
+        });
         deviceTasks.clear();
         log.info("已停止所有模拟数据上报任务");
+
     }
 
     /**
@@ -100,13 +116,22 @@ public class WaterMeter {
      */
     public void singleStopSimulation(List<String> ids) {
         if (ids == null || ids.isEmpty()) return;
-
+        if (ids.size() >= 1000) {
+            return;
+        }
         ids.forEach(id -> {
             ScheduledFuture<?> future = deviceTasks.get(id);
             if (future != null) {
                 future.cancel(false);
                 deviceTasks.remove(id);
             }
+
+        });
+        pool.submit(() -> {
+            LambdaUpdateWrapper<VirtualDevice> offline = new LambdaUpdateWrapper<VirtualDevice>()
+                    .in(VirtualDevice::getDeviceCode, ids)
+                    .set(VirtualDevice::getStatus, "offline");
+            deviceMapper.update(offline);
         });
     }
 
@@ -188,8 +213,8 @@ public class WaterMeter {
 
     private void sendData(MeterDataBo dataBo) throws MessageSendException {
         // 模拟发送，实际可接入消息队列
-        log.debug("上报数据: {}", dataBo);
-        System.out.println(dataBo);
+//        log.debug("上报数据: {}", dataBo);
+//        System.out.println(dataBo);
     }
 
     private static void build(List<String> deviceIds, List<VirtualDevice> virtualDeviceList, int type) {
@@ -204,6 +229,7 @@ public class WaterMeter {
             virtualDevice.setBuildingNo(id.substring(1, 3));
             virtualDevice.setFloorNo(id.substring(3, 5));
             virtualDevice.setRoomNo(id.substring(5, 8));
+            virtualDevice.setStatus("online");
             virtualDeviceList.add(virtualDevice);
         });
     }

@@ -32,7 +32,9 @@
     <!-- ===== 全局属性 ===== -->
     <properties>
         <java.version>21</java.version>
+        <ollama.version>1.1.2</ollama.version>
         <spring-boot.version>3.2.2</spring-boot.version>
+        <druid.version>1.2.20</druid.version>
         <mybatis.version>3.5.14</mybatis.version>
         <spring-cloud.version>2023.0.3</spring-cloud.version>
         <spring-cloud-alibaba.version>2022.0.0.0</spring-cloud-alibaba.version>
@@ -44,7 +46,10 @@
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
     </properties>
     <dependencies>
-
+        <dependency>
+            <groupId>org.springframework.cloud</groupId>
+            <artifactId>spring-cloud-starter-bootstrap</artifactId>
+        </dependency>
         <!-- MyBatis-Plus 集成 Spring Boot -->
         <dependency>
             <groupId>com.baomidou</groupId>
@@ -58,14 +63,29 @@
             <version>${lombok.version}</version>
             <scope>provided</scope>
         </dependency>
-
         <!-- Hutool 工具类集合 -->
         <dependency>
             <groupId>cn.hutool</groupId>
             <artifactId>hutool-all</artifactId>
             <version>${hutool.version}</version>
         </dependency>
-
+        <dependency>
+            <groupId>com.alibaba</groupId>
+            <artifactId>druid-spring-boot-3-starter</artifactId>
+            <version>${druid.version}</version>
+        </dependency>
+        <!-- Nacos 服务注册与发现 -->
+        <dependency>
+            <groupId>com.alibaba.cloud</groupId>
+            <artifactId>spring-cloud-starter-alibaba-nacos-discovery</artifactId>
+            <version>${spring-cloud-alibaba.version}</version>
+        </dependency>
+        <!-- Nacos 配置管理 -->
+        <dependency>
+            <groupId>com.alibaba.cloud</groupId>
+            <artifactId>spring-cloud-starter-alibaba-nacos-config</artifactId>
+            <version>${spring-cloud-alibaba.version}</version>
+        </dependency>
     </dependencies>
     <!-- ===== 依赖版本统一管理 ===== -->
     <dependencyManagement>
@@ -73,7 +93,7 @@
             <dependency>
                 <groupId>org.springframework.ai</groupId>
                 <artifactId>spring-ai-bom</artifactId>
-                <version>1.1.2</version>
+                <version>${ollama.version}</version>
                 <type>pom</type>
                 <scope>import</scope>
             </dependency>
@@ -85,7 +105,6 @@
                 <type>pom</type>
                 <scope>import</scope>
             </dependency>
-
             <!-- Spring Cloud Alibaba 统一依赖管理 -->
             <dependency>
                 <groupId>com.alibaba.cloud</groupId>
@@ -94,7 +113,6 @@
                 <type>pom</type>
                 <scope>import</scope>
             </dependency>
-
             <!-- Spring Boot 核心启动器 -->
             <dependency>
                 <groupId>org.springframework.boot</groupId>
@@ -108,7 +126,6 @@
                 <artifactId>spring-boot-starter-web</artifactId>
                 <version>${spring-boot.version}</version>
             </dependency>
-
             <!-- Redis 数据访问 -->
             <dependency>
                 <groupId>org.springframework.boot</groupId>
@@ -129,20 +146,6 @@
                 <artifactId>rocketmq-spring-boot-starter</artifactId>
                 <version>${rocketmq.version}</version>
             </dependency>
-
-            <!-- Nacos 服务注册与发现 -->
-            <dependency>
-                <groupId>com.alibaba.cloud</groupId>
-                <artifactId>spring-cloud-starter-alibaba-nacos-discovery</artifactId>
-                <version>${spring-cloud-alibaba.version}</version>
-            </dependency>
-            <!-- Nacos 配置管理 -->
-            <dependency>
-                <groupId>com.alibaba.cloud</groupId>
-                <artifactId>spring-cloud-starter-alibaba-nacos-config</artifactId>
-                <version>${spring-cloud-alibaba.version}</version>
-            </dependency>
-
             <!-- OpenFeign 用于服务间调用 -->
             <dependency>
                 <groupId>org.springframework.cloud</groupId>
@@ -165,21 +168,18 @@
                 <artifactId>knife4j-openapi3-jakarta-spring-boot-starter</artifactId>
                 <version>${knife4j.version}</version>
             </dependency>
-
             <!-- Dubbo RPC 框架 Spring Boot 集成 -->
             <dependency>
                 <groupId>org.apache.dubbo</groupId>
                 <artifactId>dubbo-spring-boot-starter</artifactId>
                 <version>${dubbo.version}</version>
             </dependency>
-
             <!-- 应用监控与管理 -->
             <dependency>
                 <groupId>org.springframework.boot</groupId>
                 <artifactId>spring-boot-starter-actuator</artifactId>
                 <version>${spring-boot.version}</version>
             </dependency>
-
             <!-- 单元测试和集成测试工具 -->
             <dependency>
                 <groupId>org.springframework.boot</groupId>

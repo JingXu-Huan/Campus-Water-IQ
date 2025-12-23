@@ -27,6 +27,7 @@
         <module>water-gateway</module>
         <module>warning-service</module>
         <module>prediction-service</module>
+        <module>auth-service</module>
     </modules>
 
     <!-- ===== 全局属性 ===== -->

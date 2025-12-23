@@ -6,7 +6,9 @@ import com.ncwu.iotdevice.exception.DeviceRegisterException;
 import org.springframework.data.redis.core.StringRedisTemplate;
 
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
 /**
  * @author jingxu
@@ -34,7 +36,7 @@ public class Utils {
         if (buildings <= 0 || floors <= 0 || rooms <= 0) {
             throw new DeviceRegisterException("楼宇、楼层、房间数量必须大于 0");
         }
-
+        Map<String, String> meterMap = new HashMap<>();
         List<String> meterDeviceIds = new ArrayList<>();
         List<String> waterQualityDeviceIds = new ArrayList<>();
         for (int b = 1; b <= buildings; b++) {
@@ -44,15 +46,16 @@ public class Utils {
             for (int f = 1; f <= floors; f++) {
                 for (int r = 1; r <= rooms; r++) {
                     String meterId = String.format("1%02d%02d%03d", b, f, r);
+                    meterMap.put(meterId, "0");
                     meterDeviceIds.add(meterId);
                 }
             }
         }
 
         try {
+            redisTemplate.opsForHash().putAll("meterUsages", meterMap);
             redisTemplate.opsForSet().add("device:meter", meterDeviceIds.toArray(new String[0]));
             redisTemplate.opsForSet().add("device:sensor", waterQualityDeviceIds.toArray(new String[0]));
-
         } catch (Exception e) {
             throw new DeviceRegisterException("注册失败");
         }
@@ -66,6 +69,7 @@ public class Utils {
         try {
             redisTemplate.delete("device:meter");
             redisTemplate.delete("device:sensor");
+            redisTemplate.delete("meterUsages");
         } catch (Exception e) {
             throw new DeviceRegisterException("移除设备失败");
         }

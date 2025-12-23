@@ -4,6 +4,7 @@ package com.ncwu.iotdevice.domain.Bo;
 import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
+import lombok.ToString;
 
 import java.time.LocalDateTime;
 
@@ -13,6 +14,7 @@ import java.time.LocalDateTime;
  * @since 2025/12/23
  */
 @Data
+@ToString
 @AllArgsConstructor
 @NoArgsConstructor
 public class MeterDataBo {

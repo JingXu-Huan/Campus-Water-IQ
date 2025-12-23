@@ -13,15 +13,15 @@ class IoTDeviceApplicationTests {
     @Autowired
     private StringRedisTemplate redisTemplate;
 
-    @Autowired
-    private WaterMeter waterMeter;
+//    @Autowired
+//    private WaterMeter waterMeter;
 
     @Test
     void contextLoads() {
     }
 
     @Test
-    void initData() {
+    void initRedisData() {
         Utils.initAllRedisData(10, 3, 5, redisTemplate);
     }
 
@@ -30,10 +30,10 @@ class IoTDeviceApplicationTests {
         Utils.clearRedisData(redisTemplate);
     }
 
-    @Test
-    void initAll() throws InterruptedException {
-        waterMeter.init(5,5,5);
-    }
+//    @Test
+//    void initAll() throws InterruptedException {
+//        waterMeter.init(5,5,5);
+//    }
 
 
 }

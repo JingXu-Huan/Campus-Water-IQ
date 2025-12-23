@@ -4,6 +4,7 @@ package com.ncwu.iotdevice.service;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import com.ncwu.iotdevice.domain.entity.VirtualDevice;
 import com.ncwu.iotdevice.mapper.DeviceMapper;
+import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 
 /**
@@ -12,5 +13,8 @@ import org.springframework.stereotype.Service;
  * @since 2025/12/21
  */
 @Service
+@RequiredArgsConstructor
 public class VirtualDeviceServiceImpl extends ServiceImpl<DeviceMapper, VirtualDevice> implements VirtualDeviceService{
+
+
 }

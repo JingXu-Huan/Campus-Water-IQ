@@ -33,6 +33,7 @@
     <!-- ===== 全局属性 ===== -->
     <properties>
         <java.version>21</java.version>
+        <guava.version>33.5.0-jre</guava.version>
         <ollama.version>1.1.2</ollama.version>
         <spring-boot.version>3.2.2</spring-boot.version>
         <druid.version>1.2.20</druid.version>
@@ -187,6 +188,12 @@
                 <artifactId>spring-boot-starter-test</artifactId>
                 <version>${spring-boot.version}</version>
                 <scope>test</scope>
+            </dependency>
+            <!--布隆过滤器-->
+            <dependency>
+                <groupId>com.google.guava</groupId>
+                <artifactId>guava</artifactId>
+                <version>${guava.version}</version>
             </dependency>
         </dependencies>
     </dependencyManagement>

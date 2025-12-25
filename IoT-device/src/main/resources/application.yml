@@ -1,5 +1,3 @@
 spring:
   application:
     name: iot-device
-  aop:
-    proxy-target-class: true

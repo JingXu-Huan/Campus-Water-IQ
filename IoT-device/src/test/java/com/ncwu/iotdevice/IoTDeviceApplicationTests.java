@@ -22,7 +22,7 @@ class IoTDeviceApplicationTests {
 
     @Test
     void clear() {
-        Utils.clearRedisData(redisTemplate);
+//        Utils.clearRedisData(redisTemplate);
     }
 
 

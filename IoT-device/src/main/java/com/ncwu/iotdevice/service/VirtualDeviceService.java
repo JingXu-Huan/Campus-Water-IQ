@@ -6,6 +6,7 @@ import com.ncwu.common.VO.Result;
 import com.ncwu.iotdevice.domain.entity.VirtualDevice;
 
 import java.util.List;
+import java.util.Map;
 
 /**
  * @author jingxu
@@ -26,4 +27,8 @@ public interface VirtualDeviceService extends IService<VirtualDevice> {
     String isInit();
 
     String getCurrentMode();
+
+    Result<String> singleStopSimulation(List<String> ids);
+
+    Result<Map<String, String>> checkDeviceStatus(List<String> ids);
 }

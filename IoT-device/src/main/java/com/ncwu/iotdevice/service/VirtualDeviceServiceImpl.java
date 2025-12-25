@@ -10,21 +10,21 @@ import com.ncwu.iotdevice.domain.Bo.DeviceIdList;
 import com.ncwu.iotdevice.domain.Bo.MeterDataBo;
 import com.ncwu.iotdevice.domain.entity.VirtualDevice;
 import com.ncwu.iotdevice.enums.SwitchModes;
-import com.ncwu.iotdevice.exception.DeviceRegisterException;
 import com.ncwu.iotdevice.exception.MessageSendException;
 import com.ncwu.iotdevice.mapper.DeviceMapper;
 import com.ncwu.iotdevice.utils.Utils;
 import jakarta.annotation.PreDestroy;
-import lombok.Data;
-import lombok.EqualsAndHashCode;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.aop.framework.AopContext;
 import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.stereotype.Service;
 
 import java.time.LocalDateTime;
 import java.util.*;
 import java.util.concurrent.*;
+import java.util.function.Function;
+import java.util.stream.Collectors;
 
 /**
  * @author jingxu
@@ -37,6 +37,7 @@ import java.util.concurrent.*;
 @RequiredArgsConstructor
 public class VirtualDeviceServiceImpl extends ServiceImpl<DeviceMapper, VirtualDevice> implements VirtualDeviceService {
 
+    String prefix = "cache:meter:status:";
     // 线程池大小建议根据设备规模调整，对于 1000 个以内的设备，20-50 个线程足够，因为大多在等待
     private final ScheduledExecutorService scheduler = Executors.newScheduledThreadPool(20);
 
@@ -57,7 +58,6 @@ public class VirtualDeviceServiceImpl extends ServiceImpl<DeviceMapper, VirtualD
 
     private final StringRedisTemplate redisTemplate;
     private final DeviceMapper deviceMapper;
-//    private final VirtualDeviceService virtualDeviceService;
 
     /**
      * 停止模拟时调用，优雅关闭资源
@@ -67,7 +67,7 @@ public class VirtualDeviceServiceImpl extends ServiceImpl<DeviceMapper, VirtualD
         // 确保应用关闭时停止所有调度
         stopSimulation();
         // 确保应用关闭之后清空 redis 中所有数据
-        Utils.clearRedisData(redisTemplate);
+        Utils.clearRedisData(redisTemplate, deviceMapper);
         scheduler.shutdown();
     }
 
@@ -88,6 +88,13 @@ public class VirtualDeviceServiceImpl extends ServiceImpl<DeviceMapper, VirtualD
         this.isRunning = true;
         Set<String> ids = redisTemplate.opsForSet().members("device:meter");
         if (ids != null && !ids.isEmpty()) {
+            pool.submit(() -> {
+                this.lambdaUpdate().in(VirtualDevice::getDeviceCode, ids)
+                        .eq(VirtualDevice::getStatus, "offline")
+                        .set(VirtualDevice::getStatus, "online").update();
+            });
+            //删除缓存
+            ids.forEach(id -> redisTemplate.delete(prefix + id));
             // 每一个设备开启一个独立的递归流
             ids.forEach(this::scheduleNextReport);
             log.info("成功开启 {} 台设备的模拟数据流", ids.size());
@@ -107,6 +114,13 @@ public class VirtualDeviceServiceImpl extends ServiceImpl<DeviceMapper, VirtualD
         }
         this.isRunning = true;
         if (ids != null && !ids.isEmpty()) {
+            pool.submit(() -> {
+                this.lambdaUpdate().in(VirtualDevice::getDeviceCode, ids)
+                        .eq(VirtualDevice::getStatus, "offline")
+                        .set(VirtualDevice::getStatus, "online").update();
+            });
+            //删除缓存
+            ids.forEach(id -> redisTemplate.delete(prefix + id));
             // 每一个设备开启一个独立的递归流
             ids.forEach(this::scheduleNextReport);
             log.info("成功开启 {} 台设备的模拟数据流", ids.size());
@@ -135,6 +149,9 @@ public class VirtualDeviceServiceImpl extends ServiceImpl<DeviceMapper, VirtualD
                     .set(VirtualDevice::getStatus, "offline");
             deviceMapper.update(offline);
         });
+        //删缓存
+        Set<String> keys = redisTemplate.keys(prefix + "*");
+        redisTemplate.delete(keys);
         deviceTasks.clear();
         log.info("已停止所有模拟数据上报任务");
         return Result.ok("已停止所有模拟数据上报任务");
@@ -143,10 +160,12 @@ public class VirtualDeviceServiceImpl extends ServiceImpl<DeviceMapper, VirtualD
     /**
      * 前端入口：单设备或者批量设备停止模拟
      */
-    public void singleStopSimulation(List<String> ids) {
-        if (ids == null || ids.isEmpty()) return;
-        if (ids.size() >= 1000) {
-            return;
+    public Result<String> singleStopSimulation(List<String> ids) {
+        if (ids == null || ids.isEmpty()) {
+            return Result.fail(null, "设备列表为空");
+        }
+        if (ids.size() >= 10000) {
+            return Result.fail(null, "设备列表太多");
         }
         ids.forEach(id -> {
             ScheduledFuture<?> future = deviceTasks.get(id);
@@ -162,7 +181,36 @@ public class VirtualDeviceServiceImpl extends ServiceImpl<DeviceMapper, VirtualD
                     .eq(VirtualDevice::getStatus, "online")
                     .set(VirtualDevice::getStatus, "offline");
             deviceMapper.update(offline);
+            //删除缓存
+            ids.forEach(id -> redisTemplate.delete(prefix + id));
         });
+        return Result.ok(null, 200, "设备停止成功");
+    }
+
+    @Override
+    public Result<Map<String, String>> checkDeviceStatus(List<String> ids) {
+        HashMap<String, String> map = new HashMap<>();
+        //这个 map 标记哪些元素存在于 redis
+        Map<String, String> map1 = ids.stream()
+                .collect(Collectors.toMap(Function.identity(), id -> "UNKNOWN"));
+        Iterator<Map.Entry<String, String>> it = map1.entrySet().iterator();
+        while (it.hasNext()) {
+            Map.Entry<String, String> entry = it.next();
+            String status = redisTemplate.opsForValue().get(entry.getKey());
+            if (status != null) {
+                map.put(entry.getKey(), status);
+                it.remove();
+            }
+        }
+        int offset = new Random().nextInt(120 + 1);
+
+        map1.forEach((k, v) -> {
+            String status = this.lambdaQuery().eq(VirtualDevice::getDeviceCode, k).one().getStatus();
+            map.put(k, status);
+            //加偏移量，防止缓存雪崩
+            redisTemplate.opsForValue().set(prefix + k, status, 300 + offset, TimeUnit.SECONDS);
+        });
+        return Result.ok(map);
     }
 
     /**
@@ -218,7 +266,7 @@ public class VirtualDeviceServiceImpl extends ServiceImpl<DeviceMapper, VirtualD
      * 初始化设备并入库（逻辑保持原样）
      */
     public Result<String> init(int buildings, int floors, int rooms) throws InterruptedException {
-        Utils.clearRedisData(redisTemplate);
+        Utils.clearRedisData(redisTemplate, deviceMapper);
         DeviceIdList deviceIdList = Utils.initAllRedisData(buildings, floors, rooms, redisTemplate);
 
         List<String> meterDeviceIds = deviceIdList.getMeterDeviceIds();
@@ -231,8 +279,9 @@ public class VirtualDeviceServiceImpl extends ServiceImpl<DeviceMapper, VirtualD
         build(waterQualityDeviceIds, waterList, 2);
 
         ExecutorService executor = Executors.newFixedThreadPool(2);
-        executor.submit(() -> this.saveBatch(meterList, 2000));
-        executor.submit(() -> this.saveBatch(waterList, 2000));
+        VirtualDeviceServiceImpl proxy = (VirtualDeviceServiceImpl) AopContext.currentProxy();
+        executor.submit(() -> proxy.saveBatch(meterList, 2000));
+        executor.submit(() -> proxy.saveBatch(waterList, 2000));
         executor.shutdown();
         executor.awaitTermination(10, TimeUnit.MINUTES);
         isInit = true;

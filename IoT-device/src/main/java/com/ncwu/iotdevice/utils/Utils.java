@@ -3,7 +3,10 @@ package com.ncwu.iotdevice.utils;
 
 import com.ncwu.iotdevice.domain.Bo.DeviceIdList;
 import com.ncwu.iotdevice.exception.DeviceRegisterException;
+import com.ncwu.iotdevice.mapper.DeviceMapper;
+import lombok.RequiredArgsConstructor;
 import org.springframework.data.redis.core.StringRedisTemplate;
+import org.springframework.stereotype.Component;
 
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -15,11 +18,10 @@ import java.util.Map;
  * @version 1.0.0
  * @since 2025/12/21
  */
+@Component
+@RequiredArgsConstructor
 public class Utils {
 
-    public static void main(String[] args) {
-
-    }
 
     /**
      * 此方法用于向 redis中初始化设备 id
@@ -65,11 +67,12 @@ public class Utils {
     /**
      * 方法清除 redis 中对应的 set 集合
      */
-    public static void clearRedisData(StringRedisTemplate redisTemplate) {
+    public static void clearRedisData(StringRedisTemplate redisTemplate , DeviceMapper deviceMapper) {
         try {
             redisTemplate.delete("device:meter");
             redisTemplate.delete("device:sensor");
             redisTemplate.delete("meter:total_usage");
+            deviceMapper.delete(null);
         } catch (Exception e) {
             throw new DeviceRegisterException("移除设备失败");
         }

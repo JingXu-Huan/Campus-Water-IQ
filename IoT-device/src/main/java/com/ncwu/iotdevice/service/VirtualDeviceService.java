@@ -2,7 +2,10 @@ package com.ncwu.iotdevice.service;
 
 
 import com.baomidou.mybatisplus.extension.service.IService;
+import com.ncwu.common.VO.Result;
 import com.ncwu.iotdevice.domain.entity.VirtualDevice;
+
+import java.util.List;
 
 /**
  * @author jingxu
@@ -10,4 +13,17 @@ import com.ncwu.iotdevice.domain.entity.VirtualDevice;
  * @since 2025/12/21
  */
 public interface VirtualDeviceService extends IService<VirtualDevice> {
+    Result<String> start();
+
+    Result<String> startList(List<String> ids);
+
+    Result<String> stopSimulation();
+
+    Result<String> init(int buildings, int floors, int rooms) throws InterruptedException;
+
+    String isRunning();
+
+    String isInit();
+
+    String getCurrentMode();
 }

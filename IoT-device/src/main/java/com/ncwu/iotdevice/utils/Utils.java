@@ -5,13 +5,12 @@ import com.ncwu.iotdevice.domain.Bo.DeviceIdList;
 import com.ncwu.iotdevice.exception.DeviceRegisterException;
 import com.ncwu.iotdevice.mapper.DeviceMapper;
 import lombok.RequiredArgsConstructor;
+import org.springframework.data.redis.core.Cursor;
+import org.springframework.data.redis.core.ScanOptions;
 import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.stereotype.Component;
 
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 
 /**
  * @author jingxu
@@ -67,7 +66,7 @@ public class Utils {
     /**
      * 方法清除 redis 中对应的 set 集合
      */
-    public static void clearRedisData(StringRedisTemplate redisTemplate , DeviceMapper deviceMapper) {
+    public static void clearRedisData(StringRedisTemplate redisTemplate, DeviceMapper deviceMapper) {
         try {
             redisTemplate.delete("device:meter");
             redisTemplate.delete("device:sensor");
@@ -75,6 +74,35 @@ public class Utils {
             deviceMapper.delete(null);
         } catch (Exception e) {
             throw new DeviceRegisterException("移除设备失败");
+        }
+    }
+
+    /**
+     * 方法按照字符串匹配规则删除 redis的 key
+     * @param pattern 匹配规则
+     * @param count   扫描数量
+     */
+    public static void redisScanDel(String pattern, int count, StringRedisTemplate redisTemplate) {
+        ScanOptions options = ScanOptions.scanOptions()
+                .match(pattern)
+                .count(count)
+                .build();
+        try (Cursor<byte[]> cursor = redisTemplate.executeWithStickyConnection(
+                connection -> connection.keyCommands().scan(options)
+        )) {
+            Set<String> keys = new HashSet<>();
+            while (cursor.hasNext()) {
+                keys.add(new String(cursor.next()));
+                // 扫到一批就删一批，避免 key 堆积
+                if (keys.size() >= count) {
+                    redisTemplate.delete(keys);
+                    keys.clear();
+                }
+            }
+            // 删掉最后不足一批的
+            if (!keys.isEmpty()) {
+                redisTemplate.delete(keys);
+            }
         }
     }
 }

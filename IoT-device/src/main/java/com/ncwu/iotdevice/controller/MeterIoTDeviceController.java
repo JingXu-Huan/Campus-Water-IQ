@@ -1,8 +1,13 @@
 package com.ncwu.iotdevice.controller;
 
 import com.ncwu.common.VO.Result;
+import com.ncwu.iotdevice.exception.DeviceRegisterException;
 import com.ncwu.iotdevice.service.VirtualDeviceService;
+import jakarta.validation.Valid;
+import jakarta.validation.constraints.Max;
+import jakarta.validation.constraints.Min;
 import lombok.RequiredArgsConstructor;
+import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
@@ -15,6 +20,7 @@ import java.util.Map;
  * @version 1.0.0
  * @since 2025/12/25
  */
+@Validated
 @RestController
 @RequestMapping("/simulator")
 @RequiredArgsConstructor
@@ -27,9 +33,12 @@ public class MeterIoTDeviceController {
      * 建议前端传入参数，或者从配置文件读取默认值
      */
     @GetMapping("/init")
-    public Result<String> start(@RequestParam(defaultValue = "1") int buildings,
-                                @RequestParam(defaultValue = "1") int floors,
-                                @RequestParam(defaultValue = "10") int rooms) throws InterruptedException {
+    public Result<String> start(@Min(1) @Max(99) @RequestParam(defaultValue = "1") int buildings,
+                                @Min(1) @Max(99) @RequestParam(defaultValue = "1") int floors,
+                                @Min(1) @Max(999) @RequestParam(defaultValue = "10") int rooms) throws InterruptedException {
+        if (buildings * floors * rooms > 10000) {
+            throw new DeviceRegisterException("开启设备数量超过系统10万上限,请调整。");
+        }
         return virtualDeviceService.init(buildings, floors, rooms);
     }
 

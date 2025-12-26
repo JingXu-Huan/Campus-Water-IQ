@@ -4,7 +4,12 @@ import com.ncwu.iotdevice.utils.Utils;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.data.redis.core.Cursor;
+import org.springframework.data.redis.core.ScanOptions;
 import org.springframework.data.redis.core.StringRedisTemplate;
+
+import java.util.HashSet;
+import java.util.Set;
 
 @SpringBootTest
 class IoTDeviceApplicationTests {
@@ -24,6 +29,22 @@ class IoTDeviceApplicationTests {
     void clear() {
 //        Utils.clearRedisData(redisTemplate);
     }
+
+
+    @Test
+    void redisTest() {
+        for (int i = 0; i < 10; i++) {
+            redisTemplate.opsForValue().set("jingxu:" + i, String.valueOf(i));
+        }
+
+    }
+
+    @Test
+    void removeRedisKeys() {
+
+    }
+
+
 
 
 }

@@ -93,8 +93,6 @@ public class VirtualDeviceServiceImpl extends ServiceImpl<DeviceMapper, VirtualD
                         .eq(VirtualDevice::getStatus, "offline")
                         .set(VirtualDevice::getStatus, "online").update();
             });
-            //删除缓存
-            ids.forEach(id -> redisTemplate.delete(prefix + id));
             // 每一个设备开启一个独立的递归流
             ids.forEach(this::scheduleNextReport);
             log.info("成功开启 {} 台设备的模拟数据流", ids.size());
@@ -150,8 +148,8 @@ public class VirtualDeviceServiceImpl extends ServiceImpl<DeviceMapper, VirtualD
             deviceMapper.update(offline);
         });
         //删缓存
-        Set<String> keys = redisTemplate.keys(prefix + "*");
-        redisTemplate.delete(keys);
+        //此方法是安全的，使用scan进行删除
+        Utils.redisScanDel(prefix + "*", 100, redisTemplate);
         deviceTasks.clear();
         log.info("已停止所有模拟数据上报任务");
         return Result.ok("已停止所有模拟数据上报任务");
@@ -182,7 +180,7 @@ public class VirtualDeviceServiceImpl extends ServiceImpl<DeviceMapper, VirtualD
                     .set(VirtualDevice::getStatus, "offline");
             deviceMapper.update(offline);
             //删除缓存
-            ids.forEach(id -> redisTemplate.delete(prefix + id));
+            redisTemplate.delete(ids);
         });
         return Result.ok(null, 200, "设备停止成功");
     }
@@ -196,19 +194,18 @@ public class VirtualDeviceServiceImpl extends ServiceImpl<DeviceMapper, VirtualD
         Iterator<Map.Entry<String, String>> it = map1.entrySet().iterator();
         while (it.hasNext()) {
             Map.Entry<String, String> entry = it.next();
-            String status = redisTemplate.opsForValue().get(entry.getKey());
+            String status = redisTemplate.opsForValue().get(prefix + entry.getKey());
             if (status != null) {
                 map.put(entry.getKey(), status);
                 it.remove();
             }
         }
         int offset = new Random().nextInt(120 + 1);
-
-        map1.forEach((k, v) -> {
-            String status = this.lambdaQuery().eq(VirtualDevice::getDeviceCode, k).one().getStatus();
-            map.put(k, status);
+        map1.forEach((id, v) -> {
+            String status = this.lambdaQuery().eq(VirtualDevice::getDeviceCode, id).one().getStatus();
+            map.put(id, status);
             //加偏移量，防止缓存雪崩
-            redisTemplate.opsForValue().set(prefix + k, status, 300 + offset, TimeUnit.SECONDS);
+            redisTemplate.opsForValue().set(prefix + id, status, 180 + offset, TimeUnit.SECONDS);
         });
         return Result.ok(map);
     }
@@ -249,7 +246,7 @@ public class VirtualDeviceServiceImpl extends ServiceImpl<DeviceMapper, VirtualD
         // 时间戳微扰：增加纳秒级偏移，使排序更逼真
         dataBo.setTimeStamp(LocalDateTime.now().plusNanos(random.nextInt(1000000)));
         // 模拟瞬时流量 L/s
-        double flow = random.nextDouble(0.05, 0.3);
+        double flow = random.nextDouble(0.0, 0.4);
         dataBo.setFlow(flow);
         // 计算增量并累加到 Redis。假设采集频率约 10s，增量 = 流量 * 时间
         double increment = flow * 10;
@@ -266,6 +263,8 @@ public class VirtualDeviceServiceImpl extends ServiceImpl<DeviceMapper, VirtualD
      * 初始化设备并入库（逻辑保持原样）
      */
     public Result<String> init(int buildings, int floors, int rooms) throws InterruptedException {
+
+
         Utils.clearRedisData(redisTemplate, deviceMapper);
         DeviceIdList deviceIdList = Utils.initAllRedisData(buildings, floors, rooms, redisTemplate);
 

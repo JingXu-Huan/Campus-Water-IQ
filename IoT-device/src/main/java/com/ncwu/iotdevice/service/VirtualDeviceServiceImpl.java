@@ -23,6 +23,7 @@ import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.stereotype.Service;
 
 import java.time.LocalDateTime;
+import java.time.ZoneOffset;
 import java.util.*;
 import java.util.concurrent.*;
 import java.util.function.Function;
@@ -39,7 +40,9 @@ import java.util.stream.Collectors;
 @RequiredArgsConstructor
 public class VirtualDeviceServiceImpl extends ServiceImpl<DeviceMapper, VirtualDevice> implements VirtualDeviceService {
 
-    final String prefix = "cache:meter:status:";
+    final String meterStatusPrefix = "cache:meter:status:";
+    final String onLineStatusPrefix = "Online:";
+
     // 线程池大小建议根据设备规模调整，对于 1000 个以内的设备，20-50 个线程足够，因为大多在等待
     private final ScheduledExecutorService scheduler = Executors.newScheduledThreadPool(20);
 
@@ -111,12 +114,6 @@ public class VirtualDeviceServiceImpl extends ServiceImpl<DeviceMapper, VirtualD
             return Result.fail(ErrorCode.BUSINESS_INIT_ERROR.code(),
                     ErrorCode.BUSINESS_INIT_ERROR.message());
         }
-        if (isRunning) {
-            log.info("模拟器已在运行中");
-            return Result.fail(ErrorCode.BUSINESS_DEVICE_RUNNING_NOW_ERROR.code(),
-                    ErrorCode.BUSINESS_DEVICE_RUNNING_NOW_ERROR.message());
-        }
-        this.isRunning = true;
         if (ids != null && !ids.isEmpty()) {
             pool.submit(() -> {
                 this.lambdaUpdate().in(VirtualDevice::getDeviceCode, ids)
@@ -124,7 +121,7 @@ public class VirtualDeviceServiceImpl extends ServiceImpl<DeviceMapper, VirtualD
                         .set(VirtualDevice::getStatus, "online").update();
             });
             //删除缓存
-            ids.forEach(id -> redisTemplate.delete(prefix + id));
+            ids.forEach(id -> redisTemplate.delete(meterStatusPrefix + id));
             // 每一个设备开启一个独立的递归流
             ids.forEach(this::scheduleNextReport);
             log.info("成功开启 {} 台设备的模拟数据流", ids.size());
@@ -155,7 +152,7 @@ public class VirtualDeviceServiceImpl extends ServiceImpl<DeviceMapper, VirtualD
         });
         //删缓存
         //此方法是安全的，使用scan进行删除
-        Utils.redisScanDel(prefix + "*", 100, redisTemplate);
+        Utils.redisScanDel(meterStatusPrefix + "*", 100, redisTemplate);
         deviceTasks.clear();
         log.info("已停止所有模拟数据上报任务");
         return Result.ok("已停止所有模拟数据上报任务");
@@ -201,7 +198,7 @@ public class VirtualDeviceServiceImpl extends ServiceImpl<DeviceMapper, VirtualD
         Iterator<Map.Entry<String, String>> it = map1.entrySet().iterator();
         while (it.hasNext()) {
             Map.Entry<String, String> entry = it.next();
-            String status = redisTemplate.opsForValue().get(prefix + entry.getKey());
+            String status = redisTemplate.opsForValue().get(meterStatusPrefix + entry.getKey());
             if (status != null) {
                 map.put(entry.getKey(), status);
                 it.remove();
@@ -212,7 +209,7 @@ public class VirtualDeviceServiceImpl extends ServiceImpl<DeviceMapper, VirtualD
             String status = this.lambdaQuery().eq(VirtualDevice::getDeviceCode, id).one().getStatus();
             map.put(id, status);
             //加偏移量，防止缓存雪崩
-            redisTemplate.opsForValue().set(prefix + id, status, 180 + offset, TimeUnit.SECONDS);
+            redisTemplate.opsForValue().set(meterStatusPrefix + id, status, 180 + offset, TimeUnit.SECONDS);
         });
         return Result.ok(map);
     }
@@ -225,9 +222,9 @@ public class VirtualDeviceServiceImpl extends ServiceImpl<DeviceMapper, VirtualD
         if (!isRunning || currentMode != SwitchModes.NORMAL) {
             return;
         }
-        // 设定上报周期，例如平均 10s，上下浮动 2s (8000ms - 12000ms)
+        // 设定上报周期，例如平均 60s，上下浮动 2s (58000ms->62000ms)
         // 这样可以彻底打破所有设备在同一秒上报的情况
-        long delay = 8000 + new Random().nextInt(4000);
+        long delay = 58000L + ThreadLocalRandom.current().nextLong(2001);
         ScheduledFuture<?> future = scheduler.schedule(() -> {
             try {
                 processSingleDevice(deviceId);
@@ -263,6 +260,7 @@ public class VirtualDeviceServiceImpl extends ServiceImpl<DeviceMapper, VirtualD
         dataBo.setWaterTem(random.nextDouble(20, 37.5));
         dataBo.setIsOpen(DeviceStatus.NORMAL);
         dataBo.setStatus(DeviceStatus.NORMAL);
+
         sendData(dataBo);
     }
 
@@ -311,10 +309,49 @@ public class VirtualDeviceServiceImpl extends ServiceImpl<DeviceMapper, VirtualD
         return String.valueOf(this.currentMode);
     }
 
+    /**
+     * 此方法传递发送的数据，并且更新 redis 中设备的在在线状态
+     *
+     * @param dataBo 数据载荷
+     * @throws MessageSendException 数据发送失败异常
+     */
     private void sendData(MeterDataBo dataBo) throws MessageSendException {
         // 模拟发送，实际可接入消息队列
-//        log.debug("上报数据: {}", dataBo);
+        //log.debug("上报数据: {}", dataBo);
+        //更新 redis 中时间戳,就是向 redis 上报自己的心跳
+
+        //获取当前系统时间
+        long timestamp = System.currentTimeMillis();
+        String id = dataBo.getDeviceId();
+        redisTemplate.opsForHash().put("OnLineMap", id, String.valueOf(timestamp));
+
+
+        //todo 消息队列通知上线
+
+        Boolean onLine = redisTemplate.hasKey("device:OffLine:" + id);
+        if (onLine) {
+            //如果设备上线,调用设备上线后置处理器
+            afterOnLineProcessor(id, timestamp);
+        }
         System.out.println(dataBo);
+    }
+
+    /**
+     * 设备上线后置处理器
+     *
+     * @param id        设备编号
+     * @param timestamp 当前系统时间戳
+     */
+    private void afterOnLineProcessor(String id, long timestamp) {
+        LambdaUpdateWrapper<VirtualDevice> updateWrapper = new LambdaUpdateWrapper<VirtualDevice>()
+                .eq(VirtualDevice::getDeviceCode, id)
+                .eq(VirtualDevice::getStatus, "offline")
+                .set(VirtualDevice::getStatus, "online");
+        deviceMapper.update(updateWrapper);
+        //后置处理：在离线缓存中将其移除
+        redisTemplate.delete("device:OffLine:" + id);
+        //后置处理：在心跳表中重新监控
+        redisTemplate.opsForHash().put("OnLineMap", id, String.valueOf(timestamp));
     }
 
     private static void build(List<String> deviceIds, List<VirtualDevice> virtualDeviceList, int type) {

@@ -11,6 +11,9 @@ import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.stereotype.Component;
 
 import java.util.*;
+import java.util.function.Function;
+import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 /**
  * @author jingxu
@@ -52,11 +55,13 @@ public class Utils {
                 }
             }
         }
-
+        Map<String, String> map = Stream.concat(meterDeviceIds.stream(), waterQualityDeviceIds.stream())
+                .collect(Collectors.toMap(Function.identity(), id -> "-1"));
         try {
             redisTemplate.opsForHash().putAll("meter:total_usage", meterMap);
             redisTemplate.opsForSet().add("device:meter", meterDeviceIds.toArray(new String[0]));
             redisTemplate.opsForSet().add("device:sensor", waterQualityDeviceIds.toArray(new String[0]));
+            redisTemplate.opsForHash().putAll("OnLineMap",map);
         } catch (Exception e) {
             throw new DeviceRegisterException("注册失败");
         }
@@ -71,6 +76,7 @@ public class Utils {
             redisTemplate.delete("device:meter");
             redisTemplate.delete("device:sensor");
             redisTemplate.delete("meter:total_usage");
+            redisTemplate.delete("OnLineMap");
             deviceMapper.delete(null);
         } catch (Exception e) {
             throw new DeviceRegisterException("移除设备失败");

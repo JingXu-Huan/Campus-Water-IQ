@@ -38,7 +38,7 @@ public class IotDeviceData {
 
     /**
      * 设备上报原始数据（JSON 字符串）
-     *
+     * <p>
      * 注意：
      * 接入层不要反序列化，不要解析，不要业务绑定
      */

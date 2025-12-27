@@ -4,7 +4,6 @@ import lombok.Data;
 
 /**
  * 所有微服务的统一响应体
- *
  * @author jingxu
  * @version 1.1.0
  * @since 2025/12/25
@@ -12,7 +11,7 @@ import lombok.Data;
 @Data
 public class Result<T> {
 
-    private Integer code;
+    private String code;
     private String message;
     private T data;
 
@@ -20,10 +19,10 @@ public class Result<T> {
     }
 
     public static <T> Result<T> ok(T data) {
-        return ok(data, 200, "success");
+        return ok(data, "200", "success");
     }
 
-    public static <T> Result<T> ok(T data, Integer code, String message) {
+    public static <T> Result<T> ok(T data, String code, String message) {
         Result<T> result = new Result<>();
         result.code = code;
         result.message = message;
@@ -31,11 +30,15 @@ public class Result<T> {
         return result;
     }
 
-    public static <T> Result<T> fail(Integer code, String message) {
+    public static <T> Result<T> ok(String code, String message) {
+        return ok(null, code, message);
+    }
+
+    public static <T> Result<T> fail(String code, String message) {
         return fail(null, code, message);
     }
 
-    public static <T> Result<T> fail(T data, Integer code, String message) {
+    public static <T> Result<T> fail(T data, String code, String message) {
         Result<T> result = new Result<>();
         result.code = code;
         result.message = message;

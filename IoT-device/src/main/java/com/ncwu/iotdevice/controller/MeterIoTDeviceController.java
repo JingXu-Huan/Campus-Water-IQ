@@ -3,9 +3,7 @@ package com.ncwu.iotdevice.controller;
 import com.ncwu.common.VO.Result;
 import com.ncwu.iotdevice.exception.DeviceRegisterException;
 import com.ncwu.iotdevice.service.VirtualDeviceService;
-import jakarta.validation.Valid;
-import jakarta.validation.constraints.Max;
-import jakarta.validation.constraints.Min;
+import jakarta.validation.constraints.*;
 import lombok.RequiredArgsConstructor;
 import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
@@ -43,20 +41,23 @@ public class MeterIoTDeviceController {
     }
 
     /**
-     * 开始模拟
+     * 开始模拟任务
      */
     @GetMapping("/startAll")
     public Result<String> startAllSimulator() {
         return virtualDeviceService.start();
     }
 
+    /**
+     * 单设备或设备列表开始模拟任务
+     */
     @PostMapping("/startList")
-    public Result<String> startListSimulator(@RequestBody List<String> ids) {
+    public Result<String> startListSimulator(@NotNull @NotEmpty @RequestBody List<@NotBlank String> ids) {
         return virtualDeviceService.startList(ids);
     }
 
     /**
-     * 停止模拟任务
+     * 停止所有模拟任务
      */
     @GetMapping("/endAll")
     public Result<String> endAll() {
@@ -64,10 +65,10 @@ public class MeterIoTDeviceController {
     }
 
     /**
-     * 单设备停止模拟任务
+     * 单设备或设备列表停止模拟任务
      */
     @PostMapping("/endList")
-    public Result<String> endList(@RequestBody List<String> ids) {
+    public Result<String> endList(@NotNull @NotEmpty @RequestBody List<@NotBlank String> ids) {
         return virtualDeviceService.singleStopSimulation(ids);
     }
 
@@ -77,6 +78,5 @@ public class MeterIoTDeviceController {
     @PostMapping("/status")
     public Result<Map<String, String>> checkDeviceStatus(@RequestBody List<String> ids) {
         return virtualDeviceService.checkDeviceStatus(ids);
-
     }
 }

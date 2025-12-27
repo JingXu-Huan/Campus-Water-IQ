@@ -4,21 +4,12 @@ import com.ncwu.iotdevice.utils.Utils;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
-import org.springframework.data.redis.core.Cursor;
-import org.springframework.data.redis.core.ScanOptions;
 import org.springframework.data.redis.core.StringRedisTemplate;
-
-import java.util.HashSet;
-import java.util.Set;
 
 @SpringBootTest
 class IoTDeviceApplicationTests {
     @Autowired
     private StringRedisTemplate redisTemplate;
-
-    @Test
-    void contextLoads() {
-    }
 
     @Test
     void initRedisData() {

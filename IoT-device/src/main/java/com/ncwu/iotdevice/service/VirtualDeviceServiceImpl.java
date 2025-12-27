@@ -5,6 +5,8 @@ import cn.hutool.core.lang.UUID;
 import com.baomidou.mybatisplus.core.conditions.update.LambdaUpdateWrapper;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import com.ncwu.common.VO.Result;
+import com.ncwu.common.enums.ErrorCode;
+import com.ncwu.common.enums.SuccessCode;
 import com.ncwu.iotdevice.Constants.DeviceStatus;
 import com.ncwu.iotdevice.domain.Bo.DeviceIdList;
 import com.ncwu.iotdevice.domain.Bo.MeterDataBo;
@@ -37,18 +39,18 @@ import java.util.stream.Collectors;
 @RequiredArgsConstructor
 public class VirtualDeviceServiceImpl extends ServiceImpl<DeviceMapper, VirtualDevice> implements VirtualDeviceService {
 
-    String prefix = "cache:meter:status:";
+    final String prefix = "cache:meter:status:";
     // 线程池大小建议根据设备规模调整，对于 1000 个以内的设备，20-50 个线程足够，因为大多在等待
     private final ScheduledExecutorService scheduler = Executors.newScheduledThreadPool(20);
 
     //开大小为5的线程池
-    ExecutorService pool = Executors.newFixedThreadPool(5);
+    final ExecutorService pool = Executors.newFixedThreadPool(5);
 
     // 存储每个设备的调度句柄，用于精准停止模拟
     private final Map<String, ScheduledFuture<?>> deviceTasks = new ConcurrentHashMap<>();
 
     //设备上报数据的模式，默认就是正常模式
-    public SwitchModes currentMode = SwitchModes.NORMAL;
+    public final SwitchModes currentMode = SwitchModes.NORMAL;
 
     //设备是否已经完成了初始化
     public volatile boolean isInit = false;
@@ -77,12 +79,14 @@ public class VirtualDeviceServiceImpl extends ServiceImpl<DeviceMapper, VirtualD
     public Result<String> start() {
         //检查设备初始化状态开关
         if (!isInit) {
-            return Result.fail(200, "请先执行 init 进行设备初始化");
+            return Result.fail(ErrorCode.BUSINESS_INIT_ERROR.code(),
+                    ErrorCode.PARAM_VALIDATION_ERROR.message());
         }
         //检查模拟器状态开关
         if (isRunning) {
             log.info("模拟器已在运行中");
-            return Result.fail(200, "模拟器已在运行中");
+            return Result.fail(ErrorCode.BUSINESS_DEVICE_RUNNING_NOW_ERROR.code(),
+                    ErrorCode.PARAM_VALIDATION_ERROR.message());
         }
         //开始模拟
         this.isRunning = true;
@@ -98,17 +102,19 @@ public class VirtualDeviceServiceImpl extends ServiceImpl<DeviceMapper, VirtualD
             log.info("成功开启 {} 台设备的模拟数据流", ids.size());
             return Result.ok("成功开启" + ids.size() + "台设备");
         }
-        return Result.fail(null, 500, "未知错误");
+        return Result.fail(ErrorCode.UNKNOWN.code(), ErrorCode.UNKNOWN.message());
     }
 
     @Override
     public Result<String> startList(List<String> ids) {
         if (!isInit) {
-            return Result.fail(200, "请先执行 init 进行设备初始化");
+            return Result.fail(ErrorCode.BUSINESS_INIT_ERROR.code(),
+                    ErrorCode.BUSINESS_INIT_ERROR.message());
         }
         if (isRunning) {
             log.info("模拟器已在运行中");
-            return Result.fail(200, "模拟器已在运行中");
+            return Result.fail(ErrorCode.BUSINESS_DEVICE_RUNNING_NOW_ERROR.code(),
+                    ErrorCode.BUSINESS_DEVICE_RUNNING_NOW_ERROR.message());
         }
         this.isRunning = true;
         if (ids != null && !ids.isEmpty()) {
@@ -124,7 +130,7 @@ public class VirtualDeviceServiceImpl extends ServiceImpl<DeviceMapper, VirtualD
             log.info("成功开启 {} 台设备的模拟数据流", ids.size());
             return Result.ok("成功开启" + ids.size() + "台设备");
         }
-        return Result.fail(null, 500, "未知错误");
+        return Result.fail(ErrorCode.UNKNOWN.code(), ErrorCode.UNKNOWN.message());
     }
 
     /**
@@ -182,7 +188,8 @@ public class VirtualDeviceServiceImpl extends ServiceImpl<DeviceMapper, VirtualD
             //删除缓存
             redisTemplate.delete(ids);
         });
-        return Result.ok(null, 200, "设备停止成功");
+        return Result.ok(SuccessCode.DEVICE_OPEN_SUCCESS.getCode(),
+                SuccessCode.DEVICE_OPEN_SUCCESS.getMessage());
     }
 
     @Override
@@ -285,7 +292,8 @@ public class VirtualDeviceServiceImpl extends ServiceImpl<DeviceMapper, VirtualD
         executor.awaitTermination(10, TimeUnit.MINUTES);
         isInit = true;
         log.info("设备注册完成：楼宇 {} 层数 {} 房间 {}", buildings, floors, rooms);
-        return Result.ok(null, 200, "设备注册完成");
+        return Result.ok(SuccessCode.DEVICE_REGISTER_SUCCESS.getCode(),
+                SuccessCode.DEVICE_REGISTER_SUCCESS.getMessage());
     }
 
     @Override

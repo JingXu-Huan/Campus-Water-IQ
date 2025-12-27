@@ -15,13 +15,5 @@
       <jdbc-url>jdbc:redis://101.42.157.163:6379/0</jdbc-url>
       <working-dir>$ProjectFileDir$</working-dir>
     </data-source>
-    <data-source source="LOCAL" name="jdbc:mysql://101.42.157.163:3307/water?useSSL=false&amp;serverTimezone=UTC&amp;rewriteBatchedStatements=true [DEBUG]" group="​IoTDeviceApplication" uuid="496e9b78-397d-47a7-90b6-e7b77e9e8981">
-      <driver-ref>mysql.8</driver-ref>
-      <synchronize>true</synchronize>
-      <imported>true</imported>
-      <jdbc-driver>com.mysql.cj.jdbc.Driver</jdbc-driver>
-      <jdbc-url>jdbc:mysql://101.42.157.163:3307/water?useSSL=false&amp;serverTimezone=UTC&amp;rewriteBatchedStatements=true</jdbc-url>
-      <working-dir>$ProjectFileDir$</working-dir>
-    </data-source>
   </component>
 </project>

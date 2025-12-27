@@ -269,7 +269,6 @@ public class VirtualDeviceServiceImpl extends ServiceImpl<DeviceMapper, VirtualD
      */
     public Result<String> init(int buildings, int floors, int rooms) throws InterruptedException {
 
-
         Utils.clearRedisData(redisTemplate, deviceMapper);
         DeviceIdList deviceIdList = Utils.initAllRedisData(buildings, floors, rooms, redisTemplate);
 

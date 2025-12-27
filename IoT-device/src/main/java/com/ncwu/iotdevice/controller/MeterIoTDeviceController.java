@@ -76,7 +76,7 @@ public class MeterIoTDeviceController {
      * 查看某台设备当前运行状态
      */
     @PostMapping("/status")
-    public Result<Map<String, String>> checkDeviceStatus(@RequestBody List<String> ids) {
+    public Result<Map<String, String>> checkDeviceStatus(@NotNull @NotEmpty @RequestBody List<@NotBlank String> ids) {
         return virtualDeviceService.checkDeviceStatus(ids);
     }
 }

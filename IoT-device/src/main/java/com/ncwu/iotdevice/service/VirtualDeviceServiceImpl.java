@@ -15,6 +15,7 @@ import com.ncwu.iotdevice.enums.SwitchModes;
 import com.ncwu.iotdevice.exception.MessageSendException;
 import com.ncwu.iotdevice.mapper.DeviceMapper;
 import com.ncwu.iotdevice.utils.Utils;
+import jakarta.annotation.PostConstruct;
 import jakarta.annotation.PreDestroy;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -22,8 +23,9 @@ import org.springframework.aop.framework.AopContext;
 import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.stereotype.Service;
 
+import java.math.BigDecimal;
+import java.math.RoundingMode;
 import java.time.LocalDateTime;
-import java.time.ZoneOffset;
 import java.util.*;
 import java.util.concurrent.*;
 import java.util.function.Function;
@@ -39,6 +41,13 @@ import java.util.stream.Collectors;
 @Service
 @RequiredArgsConstructor
 public class VirtualDeviceServiceImpl extends ServiceImpl<DeviceMapper, VirtualDevice> implements VirtualDeviceService {
+    Set<String> idList;
+    int totalSize;
+
+    @PostConstruct
+    void init() {
+        idList = new HashSet<>();
+    }
 
     final String meterStatusPrefix = "cache:meter:status:";
     final String onLineStatusPrefix = "Online:";
@@ -102,6 +111,7 @@ public class VirtualDeviceServiceImpl extends ServiceImpl<DeviceMapper, VirtualD
             });
             // 每一个设备开启一个独立的递归流
             ids.forEach(this::scheduleNextReport);
+            this.totalSize = ids.size();
             log.info("成功开启 {} 台设备的模拟数据流", ids.size());
             return Result.ok("成功开启" + ids.size() + "台设备");
         }
@@ -124,7 +134,7 @@ public class VirtualDeviceServiceImpl extends ServiceImpl<DeviceMapper, VirtualD
             ids.forEach(id -> redisTemplate.delete(meterStatusPrefix + id));
             // 每一个设备开启一个独立的递归流
             ids.forEach(this::scheduleNextReport);
-            log.info("成功开启 {} 台设备的模拟数据流", ids.size());
+            log.info("批量：成功开启 {} 台设备的模拟数据流", ids.size());
             return Result.ok("成功开启" + ids.size() + "台设备");
         }
         return Result.fail(ErrorCode.UNKNOWN.code(), ErrorCode.UNKNOWN.message());
@@ -224,7 +234,7 @@ public class VirtualDeviceServiceImpl extends ServiceImpl<DeviceMapper, VirtualD
         }
         // 设定上报周期，例如平均 60s，上下浮动 2s (58000ms->62000ms)
         // 这样可以彻底打破所有设备在同一秒上报的情况
-        long delay = 58000L + ThreadLocalRandom.current().nextLong(2001);
+        long delay = 8000L + ThreadLocalRandom.current().nextLong(2001);
         ScheduledFuture<?> future = scheduler.schedule(() -> {
             try {
                 processSingleDevice(deviceId);
@@ -243,25 +253,84 @@ public class VirtualDeviceServiceImpl extends ServiceImpl<DeviceMapper, VirtualD
      * 生成单条模拟数据并执行发送
      */
     private void processSingleDevice(String id) {
-        Random random = new Random();
+        if (idList.size() < totalSize * 0.05) {
+            idList.add(id);
+        }
         MeterDataBo dataBo = new MeterDataBo();
-        dataBo.setDevice(1);
         dataBo.setDeviceId(id);
+        dataBo.setDevice(1);
+        int time = Integer.parseInt(Objects.requireNonNull(redisTemplate.opsForValue().get("Time")));
+        double flow;
+        if (time <= 5 && idList.contains(id)) {
+            flow = keep3(0.1 + ThreadLocalRandom.current().nextDouble(0.05));
+        } else flow = waterFlowGenerate(time);
+        double pressure = waterPressureGenerate(flow);
         // 时间戳微扰：增加纳秒级偏移，使排序更逼真
-        dataBo.setTimeStamp(LocalDateTime.now().plusNanos(random.nextInt(1000000)));
-        // 模拟瞬时流量 L/s
-        double flow = random.nextDouble(0.0, 0.4);
+        dataBo.setTimeStamp(LocalDateTime.now().plusNanos(ThreadLocalRandom.current().nextInt(1000000)));
         dataBo.setFlow(flow);
         // 计算增量并累加到 Redis。假设采集频率约 10s，增量 = 流量 * 时间
-        double increment = flow * 10;
+        double increment = keep3(flow * 10);
         Double currentTotal = redisTemplate.opsForHash().increment("meter:total_usage", id, increment);
-        dataBo.setTotalUsage(currentTotal);
-        dataBo.setPressure(random.nextDouble(0.2, 0.35));
-        dataBo.setWaterTem(random.nextDouble(20, 37.5));
+        dataBo.setTotalUsage(keep3(currentTotal));
+        dataBo.setPressure(pressure);
+        dataBo.setWaterTem(keep3(ThreadLocalRandom.current().nextDouble(20, 25)));
         dataBo.setIsOpen(DeviceStatus.NORMAL);
         dataBo.setStatus(DeviceStatus.NORMAL);
-
         sendData(dataBo);
+    }
+
+    /**
+     * 根据管网水流对水压进行计算和离散化
+     */
+    private double waterPressureGenerate(double flow) {
+        //管网初始压力
+        double p0 = 0.4;
+        double pressure = p0 - 0.15 * flow + ThreadLocalRandom.current().nextDouble(0.01, 0.03);
+        //离散步长
+        double s = 0.01;
+        double Pdiscrete = Math.round(pressure / s) * s;
+        //管网最小压力
+        double Pmin = 0.12;
+        //管网最大压力
+        double Pmax = 0.45;
+        return keep3(Math.min(Math.max(Pdiscrete, Pmin), Pmax));
+    }
+
+    /**
+     * 根据每天不同时段生成水流量的水流生成器
+     */
+    private double waterFlowGenerate(int time) {
+        double flow;
+        if (time >= 0 && time <= 5) {
+            double p = Math.random();
+            if (p <= 0.8) {
+                flow = 0.0;
+            } else if (p <= 0.95) {
+                flow = ThreadLocalRandom.current().nextDouble(0, 0.15);
+            } else {
+                flow = ThreadLocalRandom.current().nextDouble(0.1, 0.15);
+            }
+        } else if (time <= 8) {
+            flow = ThreadLocalRandom.current().nextDouble(0.15, 0.25);
+        } else if (time <= 17) {
+            flow = ThreadLocalRandom.current().nextDouble(0.08, 0.15);
+        } else if (time <= 22) {
+            flow = ThreadLocalRandom.current().nextDouble(0.2, 0.35);
+        } else {
+            double p = Math.random();
+            if (p <= 0.7) {
+                flow = ThreadLocalRandom.current().nextDouble(0, 0.05);
+            } else {
+                flow = ThreadLocalRandom.current().nextDouble(0, 0.15);
+            }
+        }
+        return keep3(flow);
+    }
+
+    private static double keep3(double v) {
+        return BigDecimal.valueOf(v)
+                .setScale(3, RoundingMode.HALF_UP)
+                .doubleValue();
     }
 
     /**

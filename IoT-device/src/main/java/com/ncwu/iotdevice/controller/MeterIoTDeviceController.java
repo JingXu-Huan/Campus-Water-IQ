@@ -79,4 +79,17 @@ public class MeterIoTDeviceController {
     public Result<Map<String, String>> checkDeviceStatus(@NotNull @NotEmpty @RequestBody List<@NotBlank String> ids) {
         return virtualDeviceService.checkDeviceStatus(ids);
     }
+
+    /**
+     * 更改当天的时间
+     * <p>
+     * 当然 😂 这不是逆转时间的公式，在物理世界，过去的人和事儿就是过去了
+     * <p>
+     * 这不过是虚拟世界罢了，祝你一切都好！
+     * @param time 你要重置的时间点
+     */
+    @GetMapping
+    public Result<String> changeTime(@Min(0) @Max(24) int time) {
+        return virtualDeviceService.changeTime(time);
+    }
 }

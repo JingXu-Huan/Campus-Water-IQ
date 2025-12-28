@@ -31,4 +31,6 @@ public interface VirtualDeviceService extends IService<VirtualDevice> {
     Result<String> singleStopSimulation(List<String> ids);
 
     Result<Map<String, String>> checkDeviceStatus(List<String> ids);
+
+    Result<String> changeTime(int time);
 }

@@ -22,22 +22,22 @@ import java.util.List;
 @RestControllerAdvice
 public class GlobalExceptionHandler {
 
-//    @ExceptionHandler(ConstraintViolationException.class)
-//    public Result<?> handleConstraintViolation(ConstraintViolationException ex) {
-//
-//        List<String> errors = ex.getConstraintViolations()
-//                .stream()
-//                .map(v -> v.getPropertyPath() + " " + v.getMessage())
-//                .toList();
-//
-//        return Result.fail(String.join("; ", errors), ErrorCode.PARAM_VALIDATION_ERROR.code(),
-//                ErrorCode.PARAM_VALIDATION_ERROR.message());
-//    }
+    @ExceptionHandler(ConstraintViolationException.class)
+    public Result<?> handleConstraintViolation(ConstraintViolationException ex) {
 
-//    @ResponseStatus(HttpStatus.BAD_REQUEST)
-//    @ExceptionHandler(DeviceRegisterException.class)
-//    public Result<String> tooManyDevicesException(DeviceRegisterException e) {
-//        return Result.fail(e.getMessage(), ErrorCode.BUSINESS_ERROR.code(), ErrorCode.PARAM_VALIDATION_ERROR.message());
-//    }
+        List<String> errors = ex.getConstraintViolations()
+                .stream()
+                .map(v -> v.getPropertyPath() + " " + v.getMessage())
+                .toList();
+
+        return Result.fail(String.join("; ", errors), ErrorCode.PARAM_VALIDATION_ERROR.code(),
+                ErrorCode.PARAM_VALIDATION_ERROR.message());
+    }
+
+    @ResponseStatus(HttpStatus.BAD_REQUEST)
+    @ExceptionHandler(DeviceRegisterException.class)
+    public Result<String> tooManyDevicesException(DeviceRegisterException e) {
+        return Result.fail(e.getMessage(), ErrorCode.BUSINESS_ERROR.code(), ErrorCode.PARAM_VALIDATION_ERROR.message());
+    }
 
 }

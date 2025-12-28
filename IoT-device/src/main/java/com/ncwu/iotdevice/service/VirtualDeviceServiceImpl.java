@@ -195,8 +195,8 @@ public class VirtualDeviceServiceImpl extends ServiceImpl<DeviceMapper, VirtualD
             //删除缓存
             redisTemplate.delete(ids);
         });
-        return Result.ok(SuccessCode.DEVICE_OPEN_SUCCESS.getCode(),
-                SuccessCode.DEVICE_OPEN_SUCCESS.getMessage());
+        return Result.ok(SuccessCode.DEVICE_STOP_SUCCESS.getCode(),
+                SuccessCode.DEVICE_STOP_SUCCESS.getMessage());
     }
 
     @Override
@@ -222,6 +222,13 @@ public class VirtualDeviceServiceImpl extends ServiceImpl<DeviceMapper, VirtualD
             redisTemplate.opsForValue().set(meterStatusPrefix + id, status, 180 + offset, TimeUnit.SECONDS);
         });
         return Result.ok(map);
+    }
+
+    @Override
+    public Result<String> changeTime(int time) {
+        redisTemplate.opsForValue().set("Time", String.valueOf(time));
+        return Result.ok(SuccessCode.TIME_CHANGE_SUCCESS.getCode(),
+                SuccessCode.TIME_CHANGE_SUCCESS.getMessage());
     }
 
     /**
@@ -371,7 +378,7 @@ public class VirtualDeviceServiceImpl extends ServiceImpl<DeviceMapper, VirtualD
     public String isInit() {
         return String.valueOf(this.isInit);
     }
-
+    //season
     @Override
     public String getCurrentMode() {
         return String.valueOf(this.currentMode);

@@ -63,6 +63,7 @@ public class Utils {
             redisTemplate.opsForSet().add("device:sensor", waterQualityDeviceIds.toArray(new String[0]));
             redisTemplate.opsForHash().putAll("OnLineMap",map);
             redisTemplate.opsForValue().set("Time","12");
+            redisTemplate.opsForValue().set("Season","1");
         } catch (Exception e) {
             throw new DeviceRegisterException("注册失败");
         }
@@ -79,6 +80,7 @@ public class Utils {
             redisTemplate.delete("meter:total_usage");
             redisTemplate.delete("OnLineMap");
             redisTemplate.delete("Time");
+            redisTemplate.delete("Season");
             redisScanDel("device:OffLine:*",1000,redisTemplate);
             deviceMapper.delete(null);
         } catch (Exception e) {

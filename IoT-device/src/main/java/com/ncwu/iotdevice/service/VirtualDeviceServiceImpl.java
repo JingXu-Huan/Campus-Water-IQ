@@ -231,6 +231,12 @@ public class VirtualDeviceServiceImpl extends ServiceImpl<DeviceMapper, VirtualD
                 SuccessCode.TIME_CHANGE_SUCCESS.getMessage());
     }
 
+    @Override
+    public Result<String> changeSeason(int season) {
+        redisTemplate.opsForValue().set("Season",String.valueOf(season));
+        return Result.ok(SuccessCode.SEASON_CHANGE_SUCCESS.getCode(),SuccessCode.SEASON_CHANGE_SUCCESS.getMessage());
+    }
+
     /**
      * 核心递归调度逻辑
      */

@@ -2,6 +2,7 @@ package com.ncwu.iotdevice.controller;
 
 import com.ncwu.common.VO.Result;
 import com.ncwu.iotdevice.exception.DeviceRegisterException;
+import com.ncwu.iotdevice.scheduling.ScheduledTasks;
 import com.ncwu.iotdevice.service.VirtualDeviceService;
 import jakarta.validation.constraints.*;
 import lombok.RequiredArgsConstructor;
@@ -25,6 +26,7 @@ import java.util.Map;
 public class MeterIoTDeviceController {
 
     private final VirtualDeviceService virtualDeviceService;
+    private final ScheduledTasks scheduledTasks;
 
     /**
      * 初始化
@@ -45,6 +47,7 @@ public class MeterIoTDeviceController {
      */
     @GetMapping("/startAll")
     public Result<String> startAllSimulator() {
+        scheduledTasks.startTask();
         return virtualDeviceService.start();
     }
 
@@ -53,6 +56,7 @@ public class MeterIoTDeviceController {
      */
     @PostMapping("/startList")
     public Result<String> startListSimulator(@NotNull @NotEmpty @RequestBody List<@NotBlank String> ids) {
+        scheduledTasks.startTask();
         return virtualDeviceService.startList(ids);
     }
 
@@ -61,6 +65,7 @@ public class MeterIoTDeviceController {
      */
     @GetMapping("/endAll")
     public Result<String> endAll() {
+        scheduledTasks.stopTask();
         return virtualDeviceService.stopSimulation();
     }
 
@@ -69,6 +74,7 @@ public class MeterIoTDeviceController {
      */
     @PostMapping("/endList")
     public Result<String> endList(@NotNull @NotEmpty @RequestBody List<@NotBlank String> ids) {
+        scheduledTasks.stopTask();
         return virtualDeviceService.singleStopSimulation(ids);
     }
 
@@ -86,10 +92,27 @@ public class MeterIoTDeviceController {
      * 当然 😂 这不是逆转时间的公式，在物理世界，过去的人和事儿就是过去了
      * <p>
      * 这不过是虚拟世界罢了，祝你一切都好！
+     *
      * @param time 你要重置的时间点
      */
-    @GetMapping
+    @GetMapping("/timeChange")
     public Result<String> changeTime(@Min(0) @Max(24) int time) {
         return virtualDeviceService.changeTime(time);
+    }
+
+    /**
+     * 更改世界的季节
+     * <p>
+     * 我赋予了你重启四季的权力，
+     * <p>
+     * 却忘了提醒你，无论你将参数调回哪个季节，
+     * <p>
+     * 那些在枯叶中走散的人，都不会在花开时重逢。
+     *
+     * @param season - 你试图挽回的那个季节
+     */
+    @GetMapping("/seasonChange")
+    public Result<String> changeSeason(@Min(1) @Max(4) int season) {
+        return virtualDeviceService.changeSeason(season);
     }
 }

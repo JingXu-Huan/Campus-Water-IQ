@@ -19,6 +19,9 @@ spring:
           - data-id: shared-mysql-config.yml
             group: DEFAULT_GROUP
             refresh: true
+          - data-id: shared-rocketmq-config.yml
+            group: DEFAULT_GROUP
+            refresh: true
       discovery:
         server-addr: 101.42.157.163:8848
         namespace: 085ed7bf-0e3f-42ff-a2fe-992272b746ae

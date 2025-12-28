@@ -28,6 +28,7 @@ import java.math.RoundingMode;
 import java.time.LocalDateTime;
 import java.util.*;
 import java.util.concurrent.*;
+import java.util.concurrent.atomic.AtomicLong;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 
@@ -43,6 +44,7 @@ import java.util.stream.Collectors;
 public class VirtualDeviceServiceImpl extends ServiceImpl<DeviceMapper, VirtualDevice> implements VirtualDeviceService {
     Set<String> idList;
     int totalSize;
+    AtomicLong sendCnt = new AtomicLong(0);
 
     @PostConstruct
     void init() {
@@ -50,7 +52,6 @@ public class VirtualDeviceServiceImpl extends ServiceImpl<DeviceMapper, VirtualD
     }
 
     final String meterStatusPrefix = "cache:meter:status:";
-    final String onLineStatusPrefix = "Online:";
 
     // 线程池大小建议根据设备规模调整，对于 1000 个以内的设备，20-50 个线程足够，因为大多在等待
     private final ScheduledExecutorService scheduler = Executors.newScheduledThreadPool(20);
@@ -233,8 +234,8 @@ public class VirtualDeviceServiceImpl extends ServiceImpl<DeviceMapper, VirtualD
 
     @Override
     public Result<String> changeSeason(int season) {
-        redisTemplate.opsForValue().set("Season",String.valueOf(season));
-        return Result.ok(SuccessCode.SEASON_CHANGE_SUCCESS.getCode(),SuccessCode.SEASON_CHANGE_SUCCESS.getMessage());
+        redisTemplate.opsForValue().set("Season", String.valueOf(season));
+        return Result.ok(SuccessCode.SEASON_CHANGE_SUCCESS.getCode(), SuccessCode.SEASON_CHANGE_SUCCESS.getMessage());
     }
 
     /**
@@ -264,8 +265,11 @@ public class VirtualDeviceServiceImpl extends ServiceImpl<DeviceMapper, VirtualD
 
     /**
      * 生成单条模拟数据并执行发送
+     * @param id 设备编号
      */
     private void processSingleDevice(String id) {
+        //多线程环境下应当使用原子
+        sendCnt.incrementAndGet();
         if (idList.size() < totalSize * 0.05) {
             idList.add(id);
         }
@@ -286,7 +290,30 @@ public class VirtualDeviceServiceImpl extends ServiceImpl<DeviceMapper, VirtualD
         Double currentTotal = redisTemplate.opsForHash().increment("meter:total_usage", id, increment);
         dataBo.setTotalUsage(keep3(currentTotal));
         dataBo.setPressure(pressure);
-        dataBo.setWaterTem(keep3(ThreadLocalRandom.current().nextDouble(20, 25)));
+        String season = Objects.requireNonNull(redisTemplate.opsForValue().get("Season"));
+        int s = Integer.parseInt(season);
+        int mid, step;
+        //春季
+        if (s == 1) {
+            mid = 15;
+            step = 3;
+        }
+        //夏季
+        else if (s == 2) {
+            mid = 22;
+            step = 5;
+        }
+        //秋季
+        else if (s == 3) {
+            mid = 17;
+            step = 2;
+        }
+        //冬季
+        else {
+            mid = 6;
+            step = 2;
+        }
+        dataBo.setWaterTem(waterTemperateGenerate(time * 3600L + sendCnt.get() * 10, mid, step));
         dataBo.setIsOpen(DeviceStatus.NORMAL);
         dataBo.setStatus(DeviceStatus.NORMAL);
         sendData(dataBo);
@@ -340,6 +367,25 @@ public class VirtualDeviceServiceImpl extends ServiceImpl<DeviceMapper, VirtualD
         return keep3(flow);
     }
 
+    /**
+     * 根据每天不同时段生成水温的水温生成器
+     *
+     * @param time 时间
+     * @param mid  季节基准值
+     * @param step 昼夜温差
+     */
+    private double waterTemperateGenerate(double time, double mid, double step) {
+        double pi = Math.PI;
+
+        // 一天 = 86400 秒，14 点 = 14 * 3600 秒
+        double phi = (pi / 2) - (2 * pi * 14 * 3600 / 86400);
+
+        return keep3(
+                mid + step * Math.sin(2 * pi * time / 86400 + phi)
+        );
+    }
+
+
     private static double keep3(double v) {
         return BigDecimal.valueOf(v)
                 .setScale(3, RoundingMode.HALF_UP)
@@ -384,6 +430,7 @@ public class VirtualDeviceServiceImpl extends ServiceImpl<DeviceMapper, VirtualD
     public String isInit() {
         return String.valueOf(this.isInit);
     }
+
     //season
     @Override
     public String getCurrentMode() {

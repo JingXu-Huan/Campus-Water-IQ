@@ -1,10 +1,6 @@
 package com.ncwu.iotdevice;
 
-import com.ncwu.iotdevice.utils.Utils;
 import org.junit.jupiter.api.Test;
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.test.context.SpringBootTest;
-import org.springframework.data.redis.core.StringRedisTemplate;
 
 import java.util.concurrent.ThreadLocalRandom;
 
@@ -40,5 +36,16 @@ class IoTDeviceApplicationTests {
         //管网最大压力
         double Pmax = 0.45;
         System.out.println(Math.min(Math.max(Pdiscrete, Pmin), Pmax));
+    }
+
+    @Test
+    void waterTemperature() {
+        //time 是你要计算水温的时间
+        int time = 17;
+        double mid = 25;
+        double s = 3;
+        //初相位
+        double phi = (Math.PI / 2) - (2 * Math.PI * 14 / 24);
+        System.out.println(mid + s * Math.sin(2 * Math.PI * time / 24 + phi));
     }
 }

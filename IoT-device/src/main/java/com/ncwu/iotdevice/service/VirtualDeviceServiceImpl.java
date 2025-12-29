@@ -45,16 +45,16 @@ public class VirtualDeviceServiceImpl extends ServiceImpl<DeviceMapper, VirtualD
     Set<String> idList;
     int totalSize;
     AtomicLong sendCnt = new AtomicLong(0);
+    final String meterStatusPrefix = "cache:meter:status:";
+    private ScheduledExecutorService scheduler;
 
     @PostConstruct
     void init() {
         idList = new HashSet<>();
+        //经实验验证，每125台设备对应一个线程即可。
+        //取max防止入参为0发生异常
+        scheduler = Executors.newScheduledThreadPool(Math.max(1, (int) (this.count() / 125)));
     }
-
-    final String meterStatusPrefix = "cache:meter:status:";
-
-    // 线程池大小建议根据设备规模调整，对于 1000 个以内的设备，20-50 个线程足够，因为大多在等待
-    private final ScheduledExecutorService scheduler = Executors.newScheduledThreadPool(20);
 
     //开大小为5的线程池
     final ExecutorService pool = Executors.newFixedThreadPool(5);
@@ -265,6 +265,7 @@ public class VirtualDeviceServiceImpl extends ServiceImpl<DeviceMapper, VirtualD
 
     /**
      * 生成单条模拟数据并执行发送
+     *
      * @param id 设备编号
      */
     private void processSingleDevice(String id) {
@@ -452,8 +453,6 @@ public class VirtualDeviceServiceImpl extends ServiceImpl<DeviceMapper, VirtualD
         long timestamp = System.currentTimeMillis();
         String id = dataBo.getDeviceId();
         redisTemplate.opsForHash().put("OnLineMap", id, String.valueOf(timestamp));
-
-
         //todo 消息队列通知上线
 
         Boolean onLine = redisTemplate.hasKey("device:OffLine:" + id);
@@ -461,7 +460,7 @@ public class VirtualDeviceServiceImpl extends ServiceImpl<DeviceMapper, VirtualD
             //如果设备上线,调用设备上线后置处理器
             afterOnLineProcessor(id, timestamp);
         }
-        System.out.println(dataBo);
+//        System.out.println(dataBo);
     }
 
     /**

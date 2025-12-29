@@ -1,6 +1,7 @@
 package com.ncwu.iotdevice.controller;
 
 import com.ncwu.common.VO.Result;
+import com.ncwu.iotdevice.exception.DeviceRegisterException;
 import com.ncwu.iotdevice.scheduling.ScheduledTasks;
 import com.ncwu.iotdevice.service.VirtualDeviceService;
 import jakarta.validation.constraints.*;
@@ -35,9 +36,9 @@ public class MeterIoTDeviceController {
     public Result<String> start(@Min(1) @Max(99) @RequestParam(defaultValue = "1") int buildings,
                                 @Min(1) @Max(99) @RequestParam(defaultValue = "1") int floors,
                                 @Min(1) @Max(999) @RequestParam(defaultValue = "10") int rooms) throws InterruptedException {
-//        if (buildings * floors * rooms > 10000) {
-//            throw new DeviceRegisterException("开启设备数量超过系统10万上限,请调整。");
-//        }
+        if (buildings * floors * rooms > 10000) {
+            throw new DeviceRegisterException("开启设备数量超过系统10万上限,请调整。");
+        }
         return virtualDeviceService.init(buildings, floors, rooms);
     }
 

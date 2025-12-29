@@ -3,7 +3,7 @@ package com.ncwu.iotdevice.controller;
 import com.ncwu.common.VO.Result;
 import com.ncwu.iotdevice.exception.DeviceRegisterException;
 import com.ncwu.iotdevice.scheduling.ScheduledTasks;
-import com.ncwu.iotdevice.service.VirtualDeviceService;
+import com.ncwu.iotdevice.service.VirtualMeterDeviceService;
 import jakarta.validation.constraints.*;
 import lombok.RequiredArgsConstructor;
 import org.springframework.validation.annotation.Validated;
@@ -21,11 +21,11 @@ import java.util.Map;
  */
 @Validated
 @RestController
-@RequestMapping("/simulator")
+@RequestMapping("/simulator/meter")
 @RequiredArgsConstructor
 public class MeterIoTDeviceController {
 
-    private final VirtualDeviceService virtualDeviceService;
+    private final VirtualMeterDeviceService virtualMeterDeviceService;
     private final ScheduledTasks scheduledTasks;
 
     /**
@@ -39,7 +39,7 @@ public class MeterIoTDeviceController {
         if (buildings * floors * rooms > 10000) {
             throw new DeviceRegisterException("开启设备数量超过系统10万上限,请调整。");
         }
-        return virtualDeviceService.init(buildings, floors, rooms);
+        return virtualMeterDeviceService.init(buildings, floors, rooms);
     }
 
     /**
@@ -48,7 +48,7 @@ public class MeterIoTDeviceController {
     @GetMapping("/startAll")
     public Result<String> startAllSimulator() {
         scheduledTasks.startTask();
-        return virtualDeviceService.start();
+        return virtualMeterDeviceService.start();
     }
 
     /**
@@ -57,7 +57,7 @@ public class MeterIoTDeviceController {
     @PostMapping("/startList")
     public Result<String> startListSimulator(@NotNull @NotEmpty @RequestBody List<@NotBlank String> ids) {
         scheduledTasks.startTask();
-        return virtualDeviceService.startList(ids);
+        return virtualMeterDeviceService.startList(ids);
     }
 
     /**
@@ -66,7 +66,7 @@ public class MeterIoTDeviceController {
     @GetMapping("/endAll")
     public Result<String> endAll() {
         scheduledTasks.stopTask();
-        return virtualDeviceService.stopSimulation();
+        return virtualMeterDeviceService.stopSimulation();
     }
 
     /**
@@ -75,7 +75,7 @@ public class MeterIoTDeviceController {
     @PostMapping("/endList")
     public Result<String> endList(@NotNull @NotEmpty @RequestBody List<@NotBlank String> ids) {
         scheduledTasks.stopTask();
-        return virtualDeviceService.singleStopSimulation(ids);
+        return virtualMeterDeviceService.singleStopSimulation(ids);
     }
 
     /**
@@ -83,7 +83,7 @@ public class MeterIoTDeviceController {
      */
     @PostMapping("/status")
     public Result<Map<String, String>> checkDeviceStatus(@NotNull @NotEmpty @RequestBody List<@NotBlank String> ids) {
-        return virtualDeviceService.checkDeviceStatus(ids);
+        return virtualMeterDeviceService.checkDeviceStatus(ids);
     }
 
     /**
@@ -97,7 +97,7 @@ public class MeterIoTDeviceController {
      */
     @GetMapping("/timeChange")
     public Result<String> changeTime(@Min(0) @Max(24) int time) {
-        return virtualDeviceService.changeTime(time);
+        return virtualMeterDeviceService.changeTime(time);
     }
 
     /**
@@ -113,6 +113,6 @@ public class MeterIoTDeviceController {
      */
     @GetMapping("/seasonChange")
     public Result<String> changeSeason(@Min(1) @Max(4) int season) {
-        return virtualDeviceService.changeSeason(season);
+        return virtualMeterDeviceService.changeSeason(season);
     }
 }

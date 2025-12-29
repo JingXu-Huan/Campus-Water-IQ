@@ -1,4 +1,4 @@
-package com.ncwu.iotdevice.service;
+package com.ncwu.iotdevice.service.impl;
 
 
 import cn.hutool.core.lang.UUID;
@@ -14,6 +14,7 @@ import com.ncwu.iotdevice.domain.entity.VirtualDevice;
 import com.ncwu.iotdevice.enums.SwitchModes;
 import com.ncwu.iotdevice.exception.MessageSendException;
 import com.ncwu.iotdevice.mapper.DeviceMapper;
+import com.ncwu.iotdevice.service.VirtualMeterDeviceService;
 import com.ncwu.iotdevice.utils.Utils;
 import jakarta.annotation.PostConstruct;
 import jakarta.annotation.PreDestroy;
@@ -41,7 +42,7 @@ import java.util.stream.Collectors;
 @Slf4j
 @Service
 @RequiredArgsConstructor
-public class VirtualDeviceServiceImpl extends ServiceImpl<DeviceMapper, VirtualDevice> implements VirtualDeviceService {
+public class VirtualMeterDeviceServiceImpl extends ServiceImpl<DeviceMapper, VirtualDevice> implements VirtualMeterDeviceService {
     Set<String> idList;
     int totalSize;
     AtomicLong sendCnt = new AtomicLong(0);
@@ -411,7 +412,7 @@ public class VirtualDeviceServiceImpl extends ServiceImpl<DeviceMapper, VirtualD
         build(waterQualityDeviceIds, waterList, 2);
 
         ExecutorService executor = Executors.newFixedThreadPool(2);
-        VirtualDeviceServiceImpl proxy = (VirtualDeviceServiceImpl) AopContext.currentProxy();
+        VirtualMeterDeviceServiceImpl proxy = (VirtualMeterDeviceServiceImpl) AopContext.currentProxy();
         executor.submit(() -> proxy.saveBatch(meterList, 2000));
         executor.submit(() -> proxy.saveBatch(waterList, 2000));
         executor.shutdown();
@@ -460,7 +461,7 @@ public class VirtualDeviceServiceImpl extends ServiceImpl<DeviceMapper, VirtualD
             //如果设备上线,调用设备上线后置处理器
             afterOnLineProcessor(id, timestamp);
         }
-//        System.out.println(dataBo);
+        System.out.println(dataBo);
     }
 
     /**
@@ -500,7 +501,7 @@ public class VirtualDeviceServiceImpl extends ServiceImpl<DeviceMapper, VirtualD
 
     @Override
     public boolean equals(Object o) {
-        if (!(o instanceof VirtualDeviceServiceImpl that)) return false;
+        if (!(o instanceof VirtualMeterDeviceServiceImpl that)) return false;
         return isInit == that.isInit && isRunning == that.isRunning && currentMode == that.currentMode;
     }
 

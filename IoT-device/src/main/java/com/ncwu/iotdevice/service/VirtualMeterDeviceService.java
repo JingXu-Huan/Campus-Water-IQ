@@ -4,8 +4,6 @@ package com.ncwu.iotdevice.service;
 import com.baomidou.mybatisplus.extension.service.IService;
 import com.ncwu.common.VO.Result;
 import com.ncwu.iotdevice.domain.entity.VirtualDevice;
-import jakarta.validation.constraints.Max;
-import jakarta.validation.constraints.Min;
 
 import java.util.List;
 import java.util.Map;
@@ -15,7 +13,7 @@ import java.util.Map;
  * @version 1.0.0
  * @since 2025/12/21
  */
-public interface VirtualDeviceService extends IService<VirtualDevice> {
+public interface VirtualMeterDeviceService extends IService<VirtualDevice> {
     Result<String> start();
 
     Result<String> startList(List<String> ids);

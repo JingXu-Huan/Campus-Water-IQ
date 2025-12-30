@@ -353,14 +353,22 @@ public class VirtualMeterDeviceServiceImpl extends ServiceImpl<DeviceMapper, Vir
                 flow = ThreadLocalRandom.current().nextDouble(0.1, 0.15);
             }
         } else if (time <= 8) {
-            flow = ThreadLocalRandom.current().nextDouble(0.15, 0.25);
+            if (Math.random() > 0.8) {
+                flow = 0;
+            } else flow = ThreadLocalRandom.current().nextDouble(0.15, 0.25);
         } else if (time <= 17) {
-            flow = ThreadLocalRandom.current().nextDouble(0.08, 0.15);
+            if (Math.random() > 0.8) {
+                flow = 0;
+            } else flow = ThreadLocalRandom.current().nextDouble(0.08, 0.15);
         } else if (time <= 22) {
-            flow = ThreadLocalRandom.current().nextDouble(0.2, 0.35);
+            if (Math.random() > 0.8) {
+                flow = 0;
+            } else flow = ThreadLocalRandom.current().nextDouble(0.2, 0.35);
         } else {
             double p = Math.random();
-            if (p <= 0.7) {
+            if (p <= 0.6) {
+                flow = 0;
+            } else if (p <= 0.8) {
                 flow = ThreadLocalRandom.current().nextDouble(0, 0.05);
             } else {
                 flow = ThreadLocalRandom.current().nextDouble(0, 0.15);

@@ -2,6 +2,7 @@ package com.ncwu.iotdevice.service;
 
 
 import com.baomidou.mybatisplus.extension.service.IService;
+import com.ncwu.common.VO.Result;
 import com.ncwu.iotdevice.domain.entity.VirtualDevice;
 
 /**
@@ -10,4 +11,5 @@ import com.ncwu.iotdevice.domain.entity.VirtualDevice;
  * @since 2025/12/29
  */
 public interface VirtualWaterQualityDeviceService extends IService<VirtualDevice> {
+    Result<String> startAll();
 }

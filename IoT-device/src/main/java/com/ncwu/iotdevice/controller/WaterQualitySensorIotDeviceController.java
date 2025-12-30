@@ -29,7 +29,7 @@ public class WaterQualitySensorIotDeviceController {
     /**开启所有水质传感器*/
     @GetMapping("/startAll")
     public Result<String> startAll(){
-        return null;
+       return waterQualityDeviceService.startAll();
     }
 
     /**单个或列表关闭水质传感器*/

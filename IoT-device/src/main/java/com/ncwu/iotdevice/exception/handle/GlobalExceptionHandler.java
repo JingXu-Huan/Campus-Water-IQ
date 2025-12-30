@@ -37,7 +37,14 @@ public class GlobalExceptionHandler {
     @ResponseStatus(HttpStatus.BAD_REQUEST)
     @ExceptionHandler(DeviceRegisterException.class)
     public Result<String> tooManyDevicesException(DeviceRegisterException e) {
-        return Result.fail(e.getMessage(), ErrorCode.BUSINESS_ERROR.code(), ErrorCode.PARAM_VALIDATION_ERROR.message());
+        return Result.fail(e.getMessage(), ErrorCode.BUSINESS_ERROR.code()
+                , ErrorCode.PARAM_VALIDATION_ERROR.message());
+    }
+
+    @ExceptionHandler
+    public Result<String> deviceInitException(DeviceRegisterException e){
+        return Result.fail(e.getMessage(),ErrorCode.BUSINESS_INIT_ERROR.code()
+                ,ErrorCode.BUSINESS_INIT_ERROR.message());
     }
 
 }

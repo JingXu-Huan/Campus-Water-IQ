@@ -10,11 +10,9 @@ import com.ncwu.iotdevice.domain.Bo.WaterQualityDataBo;
 import com.ncwu.iotdevice.domain.entity.VirtualDevice;
 import com.ncwu.iotdevice.exception.DeviceRegisterException;
 import com.ncwu.iotdevice.mapper.DeviceMapper;
-import com.ncwu.iotdevice.service.VirtualMeterDeviceService;
 import com.ncwu.iotdevice.service.VirtualWaterQualityDeviceService;
 import jakarta.annotation.PostConstruct;
 import lombok.Getter;
-import lombok.NoArgsConstructor;
 import lombok.RequiredArgsConstructor;
 import lombok.Setter;
 import lombok.extern.slf4j.Slf4j;
@@ -22,6 +20,7 @@ import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.stereotype.Service;
 
 import java.time.LocalDateTime;
+import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.*;
@@ -74,7 +73,6 @@ public class VirtualWaterQualityDeviceServiceImpl extends ServiceImpl<DeviceMapp
             return Result.fail(ErrorCode.BUSINESS_DEVICE_RUNNING_NOW_ERROR.code(),
                     ErrorCode.BUSINESS_DEVICE_RUNNING_NOW_ERROR.message());
         }
-
         Set<String> ids = redisTemplate.opsForSet().members("device:sensor");
         if (ids == null || ids.isEmpty()) {
             return Result.fail(ErrorCode.BUSINESS_ERROR.code(), ErrorCode.BUSINESS_INIT_ERROR.message());
@@ -93,6 +91,11 @@ public class VirtualWaterQualityDeviceServiceImpl extends ServiceImpl<DeviceMapp
         return Result.ok(null, SuccessCode.DEVICE_OPEN_SUCCESS.getCode(),
                 SuccessCode.DEVICE_OPEN_SUCCESS.getMessage()
         );
+    }
+
+    @Override
+    public Result<String> startList(List<String> ids) {
+        return null;
     }
 
     private void scheduleNextReport(String deviceId) {
@@ -133,6 +136,7 @@ public class VirtualWaterQualityDeviceServiceImpl extends ServiceImpl<DeviceMapp
     }
 
     private void sendData(WaterQualityDataBo dataBo) {
+
         //todo 接入消息队列
         System.out.println(dataBo);
     }

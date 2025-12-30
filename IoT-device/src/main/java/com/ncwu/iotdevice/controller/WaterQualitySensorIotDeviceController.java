@@ -3,12 +3,12 @@ package com.ncwu.iotdevice.controller;
 
 import com.ncwu.common.VO.Result;
 import com.ncwu.iotdevice.service.VirtualWaterQualityDeviceService;
+import jakarta.validation.constraints.NotBlank;
+import jakarta.validation.constraints.NotEmpty;
+import jakarta.validation.constraints.NotNull;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.PostMapping;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
 
@@ -34,8 +34,8 @@ public class WaterQualitySensorIotDeviceController {
 
     /**单个或列表关闭水质传感器*/
     @PostMapping("/startList")
-    public Result<String> startList(List<String> ids){
-        return null;
+    public Result<String> startList(@NotEmpty @NotNull @RequestBody List<@NotBlank String> ids){
+        return waterQualityDeviceService.startList(ids);
     }
 
     /**单个或列表开启水质传感器*/

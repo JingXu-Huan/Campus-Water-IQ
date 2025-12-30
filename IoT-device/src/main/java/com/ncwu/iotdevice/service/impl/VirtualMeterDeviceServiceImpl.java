@@ -7,6 +7,8 @@ import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import com.ncwu.common.VO.Result;
 import com.ncwu.common.enums.ErrorCode;
 import com.ncwu.common.enums.SuccessCode;
+import com.ncwu.iotdevice.AOP.annotation.InitLuaScript;
+import com.ncwu.iotdevice.AOP.annotation.Time;
 import com.ncwu.iotdevice.Constants.DeviceStatus;
 import com.ncwu.iotdevice.config.ServerConfig;
 import com.ncwu.iotdevice.domain.Bo.DeviceIdList;
@@ -22,7 +24,6 @@ import jakarta.annotation.PreDestroy;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.aop.framework.AopContext;
-import org.springframework.beans.factory.annotation.Value;
 import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.stereotype.Service;
 
@@ -33,7 +34,9 @@ import java.util.concurrent.atomic.AtomicLong;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 
+import static com.ncwu.iotdevice.AOP.InitLuaScript.Lua_script;
 import static com.ncwu.iotdevice.utils.Utils.keep3;
+import static com.ncwu.iotdevice.utils.Utils.markDeviceOnline;
 
 /**
  * @author jingxu
@@ -54,9 +57,9 @@ public class VirtualMeterDeviceServiceImpl extends ServiceImpl<DeviceMapper, Vir
     @PostConstruct
     void init() {
         idList = new HashSet<>();
-        //经实验验证，每125台设备对应一个线程即可。
+        //经实验验证，每100台设备对应一个线程即可。
         //取max防止入参为0发生异常
-        scheduler = Executors.newScheduledThreadPool(Math.max(1, (int) (this.count() / 125)));
+        scheduler = Executors.newScheduledThreadPool(Math.max(1, (int) (this.count() / 100)));
     }
 
     //开大小为5的线程池
@@ -94,6 +97,10 @@ public class VirtualMeterDeviceServiceImpl extends ServiceImpl<DeviceMapper, Vir
     /**
      * 前端入口：所有设备开始模拟
      */
+    //获取方法耗时
+    @Time
+    //初始化 Lua 脚本
+    @InitLuaScript
     public Result<String> start() {
         //检查设备初始化状态开关
         if (!isInit) {
@@ -115,6 +122,9 @@ public class VirtualMeterDeviceServiceImpl extends ServiceImpl<DeviceMapper, Vir
                         .eq(VirtualDevice::getStatus, "offline")
                         .set(VirtualDevice::getStatus, "online").update();
             });
+            String hashKey = "OnLineMap";
+            //使用Lua脚本加速redis操作！！！
+            redisTemplate.execute(Lua_script, List.of(hashKey), "-1");
             // 每一个设备开启一个独立的递归流
             ids.forEach(this::scheduleNextReport);
             this.totalSize = ids.size();
@@ -139,6 +149,7 @@ public class VirtualMeterDeviceServiceImpl extends ServiceImpl<DeviceMapper, Vir
             //删除缓存
             ids.forEach(id -> redisTemplate.delete(meterStatusPrefix + id));
             // 每一个设备开启一个独立的递归流
+            ids.forEach(id -> redisTemplate.opsForHash().put("OnLineMap", id, "-1"));
             ids.forEach(this::scheduleNextReport);
             log.info("批量：成功开启 {} 台设备的模拟数据流", ids.size());
             return Result.ok("成功开启" + ids.size() + "台设备");
@@ -149,6 +160,8 @@ public class VirtualMeterDeviceServiceImpl extends ServiceImpl<DeviceMapper, Vir
     /**
      * 前端入口：所有虚拟设备停止模拟
      */
+    @Time
+    @InitLuaScript
     public Result<String> stopSimulation() {
         //关闭开关
         this.isRunning = false;
@@ -169,6 +182,8 @@ public class VirtualMeterDeviceServiceImpl extends ServiceImpl<DeviceMapper, Vir
         //删缓存
         //此方法是安全的，使用scan进行删除
         Utils.redisScanDel(meterStatusPrefix + "*", 100, redisTemplate);
+        String hashKey = "OnLineMap";
+        redisTemplate.execute(Lua_script, List.of(hashKey), "0");
         deviceTasks.clear();
         log.info("已停止所有模拟数据上报任务");
         return Result.ok("已停止所有模拟数据上报任务");
@@ -189,6 +204,7 @@ public class VirtualMeterDeviceServiceImpl extends ServiceImpl<DeviceMapper, Vir
             if (future != null) {
                 future.cancel(false);
                 deviceTasks.remove(id);
+                redisTemplate.opsForHash().put("OnLineMap", id, String.valueOf(0));
             }
         });
         //这里同理
@@ -200,6 +216,7 @@ public class VirtualMeterDeviceServiceImpl extends ServiceImpl<DeviceMapper, Vir
             deviceMapper.update(offline);
             //删除缓存
             redisTemplate.delete(ids);
+
         });
         return Result.ok(SuccessCode.DEVICE_STOP_SUCCESS.getCode(),
                 SuccessCode.DEVICE_STOP_SUCCESS.getMessage());
@@ -264,16 +281,30 @@ public class VirtualMeterDeviceServiceImpl extends ServiceImpl<DeviceMapper, Vir
                 .nextLong(Long.parseLong(timeOffset));
         ScheduledFuture<?> future = scheduler.schedule(() -> {
             try {
+                if (!isDeviceOnline(deviceId)) {
+                    return;
+                }
                 processSingleDevice(deviceId);
             } catch (Exception e) {
                 log.error("设备 {} 数据上报失败: {}", deviceId, e.getMessage());
             } finally {
-                // 报完本次，递归触发下一次上报
-                scheduleNextReport(deviceId);
+                // 报完本次，如果没有被停掉，递归触发下一次上报
+                if (isDeviceOnline(deviceId)) {
+                    scheduleNextReport(deviceId);
+                }
             }
         }, delay, TimeUnit.MILLISECONDS);
 
         deviceTasks.put(deviceId, future);
+    }
+
+    private boolean isDeviceOnline(String deviceId) {
+        String s = (String) redisTemplate.opsForHash().get("OnLineMap", deviceId);
+        long time = 0;
+        if (s != null) {
+            time = Long.parseLong(s);
+        }
+        return time != 0;
     }
 
     /**
@@ -411,6 +442,7 @@ public class VirtualMeterDeviceServiceImpl extends ServiceImpl<DeviceMapper, Vir
     /**
      * 初始化设备并入库（逻辑保持原样）
      */
+    @Time
     public Result<String> init(int buildings, int floors, int rooms) throws InterruptedException {
 
         Utils.clearRedisData(redisTemplate, deviceMapper);
@@ -464,7 +496,6 @@ public class VirtualMeterDeviceServiceImpl extends ServiceImpl<DeviceMapper, Vir
         // 模拟发送，实际可接入消息队列
         //log.debug("上报数据: {}", dataBo);
         //更新 redis 中时间戳,就是向 redis 上报自己的心跳
-
         //获取当前系统时间
         long timestamp = System.currentTimeMillis();
         String id = dataBo.getDeviceId();
@@ -474,28 +505,11 @@ public class VirtualMeterDeviceServiceImpl extends ServiceImpl<DeviceMapper, Vir
         Boolean onLine = redisTemplate.hasKey("device:OffLine:" + id);
         if (onLine) {
             //如果设备上线,调用设备上线后置处理器
-            afterOnLineProcessor(id, timestamp);
+            markDeviceOnline(id, timestamp, deviceMapper, redisTemplate);
         }
-        System.out.println(dataBo);
+//        System.out.println(dataBo);
     }
 
-    /**
-     * 设备上线后置处理器
-     *
-     * @param id        设备编号
-     * @param timestamp 当前系统时间戳
-     */
-    private void afterOnLineProcessor(String id, long timestamp) {
-        LambdaUpdateWrapper<VirtualDevice> updateWrapper = new LambdaUpdateWrapper<VirtualDevice>()
-                .eq(VirtualDevice::getDeviceCode, id)
-                .eq(VirtualDevice::getStatus, "offline")
-                .set(VirtualDevice::getStatus, "online");
-        deviceMapper.update(updateWrapper);
-        //后置处理：在离线缓存中将其移除
-        redisTemplate.delete("device:OffLine:" + id);
-        //后置处理：在心跳表中重新监控
-        redisTemplate.opsForHash().put("OnLineMap", id, String.valueOf(timestamp));
-    }
 
     private static void build(List<String> deviceIds, List<VirtualDevice> virtualDeviceList, int type) {
         Date now = new Date();

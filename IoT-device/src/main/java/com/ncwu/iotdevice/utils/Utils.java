@@ -1,7 +1,9 @@
 package com.ncwu.iotdevice.utils;
 
 
+import com.baomidou.mybatisplus.core.conditions.update.LambdaUpdateWrapper;
 import com.ncwu.iotdevice.domain.Bo.DeviceIdList;
+import com.ncwu.iotdevice.domain.entity.VirtualDevice;
 import com.ncwu.iotdevice.exception.DeviceRegisterException;
 import com.ncwu.iotdevice.mapper.DeviceMapper;
 import lombok.RequiredArgsConstructor;
@@ -25,7 +27,8 @@ import java.util.stream.Stream;
 @Component
 @RequiredArgsConstructor
 public class Utils {
-
+    private final DeviceMapper deviceMapper;
+    private final StringRedisTemplate redisTemplate;
 
     /**
      * 此方法用于向 redis中初始化设备 id
@@ -63,9 +66,9 @@ public class Utils {
             redisTemplate.opsForHash().putAll("meter:total_usage", meterMap);
             redisTemplate.opsForSet().add("device:meter", meterDeviceIds.toArray(new String[0]));
             redisTemplate.opsForSet().add("device:sensor", waterQualityDeviceIds.toArray(new String[0]));
-            redisTemplate.opsForHash().putAll("OnLineMap",map);
-            redisTemplate.opsForValue().set("Time","12");
-            redisTemplate.opsForValue().set("Season","1");
+            redisTemplate.opsForHash().putAll("OnLineMap", map);
+            redisTemplate.opsForValue().set("Time", "12");
+            redisTemplate.opsForValue().set("Season", "1");
         } catch (Exception e) {
             throw new DeviceRegisterException("注册失败");
         }
@@ -83,7 +86,7 @@ public class Utils {
             redisTemplate.delete("OnLineMap");
             redisTemplate.delete("Time");
             redisTemplate.delete("Season");
-            redisScanDel("device:OffLine:*",1000,redisTemplate);
+            redisScanDel("device:OffLine:*", 1000, redisTemplate);
             deviceMapper.delete(null);
         } catch (Exception e) {
             throw new DeviceRegisterException("移除设备失败");
@@ -92,6 +95,7 @@ public class Utils {
 
     /**
      * 方法按照字符串匹配规则删除 redis的 key
+     *
      * @param pattern 匹配规则
      * @param count   扫描数量
      */
@@ -118,11 +122,29 @@ public class Utils {
             }
         }
     }
+
     public static double keep3(double v) {
         return BigDecimal.valueOf(v)
                 .setScale(3, RoundingMode.HALF_UP)
                 .doubleValue();
     }
+
+    public static void markDeviceOnline(String deviceCode, long timestamp, DeviceMapper deviceMapper,
+                                        StringRedisTemplate redisTemplate) {
+        // 1. 更新数据库状态（仅当当前为 offline 时）
+        LambdaUpdateWrapper<VirtualDevice> updateWrapper =
+                new LambdaUpdateWrapper<VirtualDevice>()
+                        .eq(VirtualDevice::getDeviceCode, deviceCode)
+                        .eq(VirtualDevice::getStatus, "offline")
+                        .set(VirtualDevice::getStatus, "online");
+        deviceMapper.update(updateWrapper);
+        // 2. 清理离线缓存
+        redisTemplate.delete("device:OffLine:" + deviceCode);
+        // 3. 加入心跳监控
+        redisTemplate.opsForHash()
+                .put("OnLineMap", deviceCode, String.valueOf(timestamp));
+    }
+
 }
 
 

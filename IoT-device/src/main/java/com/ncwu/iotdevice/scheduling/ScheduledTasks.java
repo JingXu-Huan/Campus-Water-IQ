@@ -36,11 +36,11 @@ public class ScheduledTasks {
 
     // 定义下线阈值：1分钟
     private static final long OFFLINE_THRESHOLD_MS = 60 * 1000L;
-
     //由于是定时任务，为了避免 OOM ,我们不能一次性把redis的数据全部读下来。尝试这样做会带来很大的GC压力。
-    @Scheduled(fixedDelay = 2 * 60 * 1000)
+    @Scheduled(fixedDelay = 30 * 1000)
     public void checkOnLineDevices() {
 //        检查设备运行控制器
+
         if (!isRunning) {
             return;
         }
@@ -49,7 +49,7 @@ public class ScheduledTasks {
         //获取当前系统时间戳
         long now = System.currentTimeMillis();
         //按量扫描，避免数据量过大产生OOM
-        ScanOptions options = ScanOptions.scanOptions().match("*").count(500).build();
+        ScanOptions options = ScanOptions.scanOptions().match("*").count(15000).build();
 
         try (Cursor<Map.Entry<Object, Object>> cursor = redisTemplate.opsForHash().scan(prefix, options)) {
             while (cursor.hasNext()) {

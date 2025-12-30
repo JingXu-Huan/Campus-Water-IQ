@@ -36,7 +36,7 @@ public class MeterIoTDeviceController {
     public Result<String> start(@Min(1) @Max(99) @RequestParam(defaultValue = "1") int buildings,
                                 @Min(1) @Max(99) @RequestParam(defaultValue = "1") int floors,
                                 @Min(1) @Max(999) @RequestParam(defaultValue = "10") int rooms) throws InterruptedException {
-        if (buildings * floors * rooms > 10000) {
+        if (buildings * floors * rooms > 100000) {
             throw new DeviceRegisterException("开启设备数量超过系统10万上限,请调整。");
         }
         return virtualMeterDeviceService.init(buildings, floors, rooms);
@@ -74,7 +74,6 @@ public class MeterIoTDeviceController {
      */
     @PostMapping("/endList")
     public Result<String> endList(@NotNull @NotEmpty @RequestBody List<@NotBlank String> ids) {
-        scheduledTasks.stopTask();
         return virtualMeterDeviceService.singleStopSimulation(ids);
     }
 
@@ -94,6 +93,7 @@ public class MeterIoTDeviceController {
      * 这不过是虚拟世界罢了，祝你一切都好！
      *
      * @param time 你要重置的时间点
+     * @author 景旭
      */
     @GetMapping("/timeChange")
     public Result<String> changeTime(@Min(0) @Max(24) int time) {
@@ -110,6 +110,7 @@ public class MeterIoTDeviceController {
      * 那些在枯叶中走散的人，都不会在花开时重逢。
      *
      * @param season - 你试图挽回的那个季节
+     * @author 景旭
      */
     @GetMapping("/seasonChange")
     public Result<String> changeSeason(@Min(1) @Max(4) int season) {

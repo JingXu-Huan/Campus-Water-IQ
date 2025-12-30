@@ -10,6 +10,8 @@ import org.springframework.data.redis.core.ScanOptions;
 import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.stereotype.Component;
 
+import java.math.BigDecimal;
+import java.math.RoundingMode;
 import java.util.*;
 import java.util.function.Function;
 import java.util.stream.Collectors;
@@ -115,6 +117,11 @@ public class Utils {
                 redisTemplate.delete(keys);
             }
         }
+    }
+    public static double keep3(double v) {
+        return BigDecimal.valueOf(v)
+                .setScale(3, RoundingMode.HALF_UP)
+                .doubleValue();
     }
 }
 

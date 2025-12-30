@@ -41,10 +41,10 @@ public class GlobalExceptionHandler {
                 , ErrorCode.PARAM_VALIDATION_ERROR.message());
     }
 
-    @ExceptionHandler
-    public Result<String> deviceInitException(DeviceRegisterException e){
-        return Result.fail(e.getMessage(),ErrorCode.BUSINESS_INIT_ERROR.code()
-                ,ErrorCode.BUSINESS_INIT_ERROR.message());
-    }
+//    @ExceptionHandler(DeviceRegisterException)
+//    public Result<String> deviceInitException(DeviceRegisterException e){
+//        return Result.fail(e.getMessage(),ErrorCode.BUSINESS_INIT_ERROR.code()
+//                ,ErrorCode.BUSINESS_INIT_ERROR.message());
+//    }
 
 }

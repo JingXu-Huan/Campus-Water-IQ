@@ -8,6 +8,7 @@ import com.ncwu.common.VO.Result;
 import com.ncwu.common.enums.ErrorCode;
 import com.ncwu.common.enums.SuccessCode;
 import com.ncwu.iotdevice.Constants.DeviceStatus;
+import com.ncwu.iotdevice.config.ServerConfig;
 import com.ncwu.iotdevice.domain.Bo.DeviceIdList;
 import com.ncwu.iotdevice.domain.Bo.MeterDataBo;
 import com.ncwu.iotdevice.domain.entity.VirtualDevice;
@@ -21,17 +22,18 @@ import jakarta.annotation.PreDestroy;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.aop.framework.AopContext;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.stereotype.Service;
 
-import java.math.BigDecimal;
-import java.math.RoundingMode;
 import java.time.LocalDateTime;
 import java.util.*;
 import java.util.concurrent.*;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.function.Function;
 import java.util.stream.Collectors;
+
+import static com.ncwu.iotdevice.utils.Utils.keep3;
 
 /**
  * @author jingxu
@@ -74,6 +76,8 @@ public class VirtualMeterDeviceServiceImpl extends ServiceImpl<DeviceMapper, Vir
 
     private final StringRedisTemplate redisTemplate;
     private final DeviceMapper deviceMapper;
+    private final VirtualWaterQualityDeviceServiceImpl service;
+    private final ServerConfig serverConfig;
 
     /**
      * 停止模拟时调用，优雅关闭资源
@@ -247,9 +251,17 @@ public class VirtualMeterDeviceServiceImpl extends ServiceImpl<DeviceMapper, Vir
         if (!isRunning || currentMode != SwitchModes.NORMAL) {
             return;
         }
+
+        String reportFrequency = serverConfig.getReportFrequency();
+        String timeOffset = serverConfig.getTimeOffset();
+
         // 设定上报周期，例如平均 60s，上下浮动 2s (58000ms->62000ms)
         // 这样可以彻底打破所有设备在同一秒上报的情况
-        long delay = 8000L + ThreadLocalRandom.current().nextLong(2001);
+        if (reportFrequency == null || timeOffset == null) {
+            return;
+        }
+        long delay = Long.parseLong(reportFrequency) + ThreadLocalRandom.current()
+                .nextLong(Long.parseLong(timeOffset));
         ScheduledFuture<?> future = scheduler.schedule(() -> {
             try {
                 processSingleDevice(deviceId);
@@ -396,12 +408,6 @@ public class VirtualMeterDeviceServiceImpl extends ServiceImpl<DeviceMapper, Vir
     }
 
 
-    private static double keep3(double v) {
-        return BigDecimal.valueOf(v)
-                .setScale(3, RoundingMode.HALF_UP)
-                .doubleValue();
-    }
-
     /**
      * 初始化设备并入库（逻辑保持原样）
      */
@@ -425,7 +431,8 @@ public class VirtualMeterDeviceServiceImpl extends ServiceImpl<DeviceMapper, Vir
         executor.submit(() -> proxy.saveBatch(waterList, 2000));
         executor.shutdown();
         executor.awaitTermination(10, TimeUnit.MINUTES);
-        isInit = true;
+        this.isInit = true;
+        service.setInit(true);
         log.info("设备注册完成：楼宇 {} 层数 {} 房间 {}", buildings, floors, rooms);
         return Result.ok(SuccessCode.DEVICE_REGISTER_SUCCESS.getCode(),
                 SuccessCode.DEVICE_REGISTER_SUCCESS.getMessage());

@@ -1,12 +1,10 @@
-name: "CodeQL (Java)"
+name: "CodeQL (Java Manual)"
 
 on:
   push:
     branches: [ "master" ]
   pull_request:
     branches: [ "master" ]
-  schedule:
-    - cron: '42 22 * * 2'
 
 jobs:
   analyze:
@@ -20,26 +18,31 @@ jobs:
       packages: read
 
     steps:
-      # 1️⃣ 拉代码（没有这步 = 扫空气）
+      # 1️⃣ 拉代码
       - name: Checkout repository
         uses: actions/checkout@v4
 
-      # 2️⃣ 安装 JDK（非常关键）
+      # 2️⃣ 安装 JDK
       - name: Set up JDK
         uses: actions/setup-java@v4
         with:
           distribution: temurin
-          java-version: '21'   
+          java-version: '21'   # 按你项目实际版本改
           cache: maven
 
-      # 3️⃣ 初始化 CodeQL（用 autobuild）
+      # 3️⃣ 初始化 CodeQL（manual）
       - name: Initialize CodeQL
         uses: github/codeql-action/init@v4
         with:
           languages: java-kotlin
-          build-mode: autobuild
+          build-mode: manual
 
-      # 4️⃣ 执行分析
+      # 4️⃣ 你亲手“教”它怎么编译
+      - name: Build project
+        run: |
+          mvn clean package -DskipTests
+
+      # 5️⃣ 执行分析
       - name: Perform CodeQL Analysis
         uses: github/codeql-action/analyze@v4
         with:

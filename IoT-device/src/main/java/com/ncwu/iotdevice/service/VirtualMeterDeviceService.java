@@ -4,6 +4,9 @@ package com.ncwu.iotdevice.service;
 import com.baomidou.mybatisplus.extension.service.IService;
 import com.ncwu.common.VO.Result;
 import com.ncwu.iotdevice.domain.entity.VirtualDevice;
+import jakarta.validation.constraints.NotBlank;
+import jakarta.validation.constraints.NotEmpty;
+import jakarta.validation.constraints.NotNull;
 
 import java.util.List;
 import java.util.Map;
@@ -35,4 +38,8 @@ public interface VirtualMeterDeviceService extends IService<VirtualDevice> {
     Result<String> changeTime(int time);
 
     Result<String> changeSeason(int season);
+
+    Result<String> closeValue(@NotNull @NotEmpty List<String> ids);
+
+    Result<String> open(@NotNull @NotEmpty List<String> ids);
 }

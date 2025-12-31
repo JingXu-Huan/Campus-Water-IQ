@@ -78,6 +78,22 @@ public class MeterIoTDeviceController {
     }
 
     /**
+     * 单设备或多设备关闭阀门
+     */
+    @PostMapping("/closeTheValve")
+    public Result<String> closeValue(@NotNull @NotEmpty @RequestBody List<@NotBlank String> ids){
+        return virtualMeterDeviceService.closeValue(ids);
+    }
+
+    /**
+     * 单设备或多设备关闭阀门
+     */
+    @PostMapping("/openTheValve")
+    public Result<String> openValue(@NotNull @NotEmpty @RequestBody List<@NotBlank String> ids){
+        return virtualMeterDeviceService.open(ids);
+    }
+
+    /**
      * 查看某台设备当前运行状态
      */
     @PostMapping("/status")

@@ -260,6 +260,16 @@ public class VirtualMeterDeviceServiceImpl extends ServiceImpl<DeviceMapper, Vir
         return Result.ok(SuccessCode.SEASON_CHANGE_SUCCESS.getCode(), SuccessCode.SEASON_CHANGE_SUCCESS.getMessage());
     }
 
+    @Override
+    public Result<String> closeValue(List<String> ids) {
+        return null;
+    }
+
+    @Override
+    public Result<String> open(List<String> ids) {
+        return null;
+    }
+
     /**
      * 核心递归调度逻辑
      */
@@ -324,8 +334,12 @@ public class VirtualMeterDeviceServiceImpl extends ServiceImpl<DeviceMapper, Vir
         int time = Integer.parseInt(Objects.requireNonNull(redisTemplate.opsForValue().get("Time")));
         double flow;
         if (time <= 5 && idList.contains(id)) {
+            //夜间漏水
             flow = keep3(0.1 + ThreadLocalRandom.current().nextDouble(0.05));
-        } else flow = waterFlowGenerate(time);
+        }
+        else {
+            flow = waterFlowGenerate(time);
+        }
         double pressure = waterPressureGenerate(flow);
         // 时间戳微扰：增加纳秒级偏移，使排序更逼真
         dataBo.setTimeStamp(LocalDateTime.now().plusNanos(ThreadLocalRandom.current().nextInt(1000000)));
@@ -369,15 +383,15 @@ public class VirtualMeterDeviceServiceImpl extends ServiceImpl<DeviceMapper, Vir
      */
     private double waterPressureGenerate(double flow) {
         //管网初始压力
-        double p0 = 0.4;
+        double p0 = serverConfig.getP0();
         double pressure = p0 - 0.15 * flow + ThreadLocalRandom.current().nextDouble(0.01, 0.03);
         //离散步长
-        double s = 0.01;
+        double s = serverConfig.getStep();
         double Pdiscrete = Math.round(pressure / s) * s;
         //管网最小压力
-        double Pmin = 0.12;
+        double Pmin = serverConfig.getPmin();
         //管网最大压力
-        double Pmax = 0.45;
+        double Pmax = serverConfig.getPmax();
         return keep3(Math.min(Math.max(Pdiscrete, Pmin), Pmax));
     }
 
@@ -457,7 +471,7 @@ public class VirtualMeterDeviceServiceImpl extends ServiceImpl<DeviceMapper, Vir
         build(meterDeviceIds, meterList, 1);
         build(waterQualityDeviceIds, waterList, 2);
 
-        ExecutorService executor = Executors.newFixedThreadPool(2);
+        ExecutorService executor = Executors.newFixedThreadPool(4);
         VirtualMeterDeviceServiceImpl proxy = (VirtualMeterDeviceServiceImpl) AopContext.currentProxy();
         executor.submit(() -> proxy.saveBatch(meterList, 2000));
         executor.submit(() -> proxy.saveBatch(waterList, 2000));
@@ -507,7 +521,7 @@ public class VirtualMeterDeviceServiceImpl extends ServiceImpl<DeviceMapper, Vir
             //如果设备上线,调用设备上线后置处理器
             markDeviceOnline(id, timestamp, deviceMapper, redisTemplate);
         }
-//        System.out.println(dataBo);
+        System.out.println(dataBo);
     }
 
 

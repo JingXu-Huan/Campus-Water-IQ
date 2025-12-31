@@ -42,4 +42,8 @@ public interface VirtualMeterDeviceService extends IService<VirtualDevice> {
     Result<String> closeValue(@NotNull @NotEmpty List<String> ids);
 
     Result<String> open(@NotNull @NotEmpty List<String> ids);
+
+    Result<String> openAllValue();
+
+    Result<String> closeAllValue();
 }

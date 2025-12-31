@@ -270,6 +270,16 @@ public class VirtualMeterDeviceServiceImpl extends ServiceImpl<DeviceMapper, Vir
         return null;
     }
 
+    @Override
+    public Result<String> openAllValue() {
+        return null;
+    }
+
+    @Override
+    public Result<String> closeAllValue() {
+        return null;
+    }
+
     /**
      * 核心递归调度逻辑
      */

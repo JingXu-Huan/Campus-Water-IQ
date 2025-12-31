@@ -81,7 +81,7 @@ public class MeterIoTDeviceController {
      * 单设备或多设备关闭阀门
      */
     @PostMapping("/closeTheValve")
-    public Result<String> closeValue(@NotNull @NotEmpty @RequestBody List<@NotBlank String> ids){
+    public Result<String> closeValue(@NotNull @NotEmpty @RequestBody List<@NotBlank String> ids) {
         return virtualMeterDeviceService.closeValue(ids);
     }
 
@@ -89,8 +89,24 @@ public class MeterIoTDeviceController {
      * 单设备或多设备关闭阀门
      */
     @PostMapping("/openTheValve")
-    public Result<String> openValue(@NotNull @NotEmpty @RequestBody List<@NotBlank String> ids){
+    public Result<String> openValue(@NotNull @NotEmpty @RequestBody List<@NotBlank String> ids) {
         return virtualMeterDeviceService.open(ids);
+    }
+
+    /**
+     * 所有设备开启阀门
+     */
+    @GetMapping("/openAllValues")
+    public Result<String> openAllValues() {
+        return virtualMeterDeviceService.openAllValue();
+    }
+
+    /**
+     * 所有设备关闭阀门
+     */
+    @GetMapping("/closeAllValues")
+    public Result<String> closeAllValues() {
+        return virtualMeterDeviceService.closeAllValue();
     }
 
     /**

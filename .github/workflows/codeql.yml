@@ -44,14 +44,22 @@ jobs:
           # ⭐ 打开更严格的规则
           queries: security-extended,security-and-quality
 
-      # ⭐ 只给 Java 跑构建
+      # ⭐ Java 扫描先安装 JDK 21
+      - name: Set up JDK 21
+        if: matrix.language == 'java-kotlin'
+        uses: actions/setup-java@v4
+        with:
+          distribution: 'temurin'
+          java-version: '21'
+
+      # ⭐ 构建 Java 项目
       - name: Build Java project
         if: matrix.language == 'java-kotlin'
         shell: bash
         run: |
           mvn clean compile -DskipTests
 
-      # 执行分析
+      # 执行 CodeQL 分析
       - name: Perform CodeQL Analysis
         uses: github/codeql-action/analyze@v4
         with:

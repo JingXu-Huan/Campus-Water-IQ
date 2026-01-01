@@ -9,9 +9,11 @@ package com.ncwu.common.enums;
 public enum ErrorCode {
     //关于参数失败的,均以A开头
     PARAM_VALIDATION_ERROR("A0400", "参数校验失败"),
-    BUSINESS_ERROR("B0001", "业务异常"),
-    BUSINESS_INIT_ERROR("B0001", "请先执行 init 进行设备初始化"),
-    BUSINESS_DEVICE_RUNNING_NOW_ERROR("B0002", "模拟器已在运行中"),
+    DEVICE_ERROR("B0001", "业务异常"),
+    DEVICE_INIT_ERROR("B0001", "请先执行 init 进行设备初始化"),
+    DEVICE_ALREADY_INIT_ERROR("B0011","设备已经初始化，可以开始运行"),
+    DEVICE_CANT_RESET_ERROR("B0111","设备正在运行，请先停止"),
+    DEVICE_DEVICE_RUNNING_NOW_ERROR("B0002", "模拟器已在运行中"),
     SYSTEM_ERROR("S0500", "系统异常"),
     UNKNOWN("S5000", "系统未知错误");
 

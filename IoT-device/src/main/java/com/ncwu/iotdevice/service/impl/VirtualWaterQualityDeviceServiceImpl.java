@@ -67,15 +67,15 @@ public class VirtualWaterQualityDeviceServiceImpl extends ServiceImpl<DeviceMapp
     @Override
     public Result<String> startAll() {
         if (!isInit) {
-            return Result.fail(ErrorCode.BUSINESS_ERROR.code(), ErrorCode.BUSINESS_INIT_ERROR.message());
+            return Result.fail(ErrorCode.DEVICE_ERROR.code(), ErrorCode.DEVICE_INIT_ERROR.message());
         }
         if (isRunning) {
-            return Result.fail(ErrorCode.BUSINESS_DEVICE_RUNNING_NOW_ERROR.code(),
-                    ErrorCode.BUSINESS_DEVICE_RUNNING_NOW_ERROR.message());
+            return Result.fail(ErrorCode.DEVICE_DEVICE_RUNNING_NOW_ERROR.code(),
+                    ErrorCode.DEVICE_DEVICE_RUNNING_NOW_ERROR.message());
         }
         Set<String> ids = redisTemplate.opsForSet().members("device:sensor");
         if (ids == null || ids.isEmpty()) {
-            return Result.fail(ErrorCode.BUSINESS_ERROR.code(), ErrorCode.BUSINESS_INIT_ERROR.message());
+            return Result.fail(ErrorCode.DEVICE_ERROR.code(), ErrorCode.DEVICE_INIT_ERROR.message());
         }
         pool.submit(() -> {
             //修改数据库状态

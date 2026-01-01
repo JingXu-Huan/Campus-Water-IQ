@@ -15,8 +15,8 @@ import com.ncwu.iotdevice.domain.Bo.DeviceIdList;
 import com.ncwu.iotdevice.domain.Bo.MeterDataBo;
 import com.ncwu.iotdevice.domain.entity.VirtualDevice;
 import com.ncwu.iotdevice.enums.SwitchModes;
-import com.ncwu.iotdevice.exception.MessageSendException;
 import com.ncwu.iotdevice.mapper.DeviceMapper;
+import com.ncwu.iotdevice.service.dataSendService;
 import com.ncwu.iotdevice.service.VirtualMeterDeviceService;
 import com.ncwu.iotdevice.utils.Utils;
 import jakarta.annotation.PostConstruct;
@@ -26,17 +26,14 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.aop.framework.AopContext;
 import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.stereotype.Service;
-
 import java.time.LocalDateTime;
 import java.util.*;
 import java.util.concurrent.*;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.function.Function;
 import java.util.stream.Collectors;
-
 import static com.ncwu.iotdevice.AOP.InitLuaScript.Lua_script;
-import static com.ncwu.iotdevice.utils.Utils.keep3;
-import static com.ncwu.iotdevice.utils.Utils.markDeviceOnline;
+import static com.ncwu.iotdevice.utils.Utils.*;
 
 /**
  * @author jingxu
@@ -85,6 +82,7 @@ public class VirtualMeterDeviceServiceImpl extends ServiceImpl<DeviceMapper, Vir
     private final DeviceMapper deviceMapper;
     private final VirtualWaterQualityDeviceServiceImpl service;
     private final ServerConfig serverConfig;
+    private final dataSendService dataSendService;
 
     /**
      * 停止模拟时调用，优雅关闭资源
@@ -108,14 +106,14 @@ public class VirtualMeterDeviceServiceImpl extends ServiceImpl<DeviceMapper, Vir
     public Result<String> start() {
         //检查设备初始化状态开关
         if (!isInit) {
-            return Result.fail(ErrorCode.BUSINESS_INIT_ERROR.code(),
-                    ErrorCode.PARAM_VALIDATION_ERROR.message());
+            return Result.fail(ErrorCode.DEVICE_INIT_ERROR.code(),
+                    ErrorCode.DEVICE_INIT_ERROR.message());
         }
         //检查模拟器状态开关
         if (isRunning) {
             log.info("模拟器已在运行中");
-            return Result.fail(ErrorCode.BUSINESS_DEVICE_RUNNING_NOW_ERROR.code(),
-                    ErrorCode.PARAM_VALIDATION_ERROR.message());
+            return Result.fail(ErrorCode.DEVICE_DEVICE_RUNNING_NOW_ERROR.code(),
+                    ErrorCode.DEVICE_DEVICE_RUNNING_NOW_ERROR.message());
         }
         //开始模拟
         this.isRunning = true;
@@ -141,8 +139,8 @@ public class VirtualMeterDeviceServiceImpl extends ServiceImpl<DeviceMapper, Vir
     @Override
     public Result<String> startList(List<String> ids) {
         if (!isInit) {
-            return Result.fail(ErrorCode.BUSINESS_INIT_ERROR.code(),
-                    ErrorCode.BUSINESS_INIT_ERROR.message());
+            return Result.fail(ErrorCode.DEVICE_INIT_ERROR.code(),
+                    ErrorCode.DEVICE_INIT_ERROR.message());
         }
         if (ids != null && !ids.isEmpty()) {
             pool.submit(() -> {
@@ -285,6 +283,15 @@ public class VirtualMeterDeviceServiceImpl extends ServiceImpl<DeviceMapper, Vir
         return null;
     }
 
+    @Override
+    public Result<String> destroyAll() {
+        if (this.isRunning){
+            return Result.fail(ErrorCode.DEVICE_CANT_RESET_ERROR.code(), ErrorCode.DEVICE_CANT_RESET_ERROR.message());
+        }
+        this.isInit = false;
+        return Result.ok(SuccessCode.DEVICE_RESET_SUCCESS.getCode(),SuccessCode.DEVICE_RESET_SUCCESS.getMessage());
+    }
+
     /**
      * 核心递归调度逻辑
      */
@@ -354,14 +361,11 @@ public class VirtualMeterDeviceServiceImpl extends ServiceImpl<DeviceMapper, Vir
         } else {
             flow = waterFlowGenerate(time);
         }
-        double pressure = waterPressureGenerate(flow);
+        //得到正确水压
+        double pressure = waterPressureGenerate(flow,serverConfig);
         // 时间戳微扰：增加纳秒级偏移，使排序更逼真
         dataBo.setTimeStamp(LocalDateTime.now().plusNanos(ThreadLocalRandom.current().nextInt(1000000)));
         dataBo.setFlow(flow);
-        // 计算增量并累加到 Redis。假设采集频率约 10s，增量 = 流量 * 时间
-        double increment = keep3(flow * 10);
-        Double currentTotal = redisTemplate.opsForHash().increment("meter:total_usage", id, increment);
-        dataBo.setTotalUsage(keep3(currentTotal));
         dataBo.setPressure(pressure);
         String season = Objects.requireNonNull(redisTemplate.opsForValue().get("Season"));
         int s = Integer.parseInt(season);
@@ -389,24 +393,7 @@ public class VirtualMeterDeviceServiceImpl extends ServiceImpl<DeviceMapper, Vir
         dataBo.setWaterTem(waterTemperateGenerate(time * 3600L + sendCnt.get() * 10, mid, step));
         dataBo.setIsOpen(DeviceStatus.NORMAL);
         dataBo.setStatus(DeviceStatus.NORMAL);
-        sendData(dataBo);
-    }
-
-    /**
-     * 根据管网水流对水压进行计算和离散化
-     */
-    private double waterPressureGenerate(double flow) {
-        //管网初始压力
-        double p0 = serverConfig.getP0();
-        double pressure = p0 - 0.15 * flow + ThreadLocalRandom.current().nextDouble(0.01, 0.03);
-        //离散步长
-        double s = serverConfig.getStep();
-        double Pdiscrete = Math.round(pressure / s) * s;
-        //管网最小压力
-        double Pmin = serverConfig.getPmin();
-        //管网最大压力
-        double Pmax = serverConfig.getPmax();
-        return keep3(Math.min(Math.max(Pdiscrete, Pmin), Pmax));
+        dataSendService.sendData(dataBo);
     }
 
     /**
@@ -472,7 +459,14 @@ public class VirtualMeterDeviceServiceImpl extends ServiceImpl<DeviceMapper, Vir
      */
     @Time
     public Result<String> init(int buildings, int floors, int rooms) throws InterruptedException {
-
+        if (isRunning) {
+            return Result.fail(ErrorCode.DEVICE_DEVICE_RUNNING_NOW_ERROR.code(),
+                    ErrorCode.DEVICE_DEVICE_RUNNING_NOW_ERROR.message());
+        }
+        if (isInit) {
+            return Result.fail(ErrorCode.DEVICE_ALREADY_INIT_ERROR.code()
+                    , ErrorCode.DEVICE_ALREADY_INIT_ERROR.message());
+        }
         Utils.clearRedisData(redisTemplate, deviceMapper);
         DeviceIdList deviceIdList = Utils.initAllRedisData(buildings, floors, rooms, redisTemplate);
 
@@ -498,45 +492,7 @@ public class VirtualMeterDeviceServiceImpl extends ServiceImpl<DeviceMapper, Vir
                 SuccessCode.DEVICE_REGISTER_SUCCESS.getMessage());
     }
 
-    @Override
-    public String isRunning() {
-        return String.valueOf(this.isRunning);
-    }
 
-    @Override
-    public String isInit() {
-        return String.valueOf(this.isInit);
-    }
-
-    //season
-    @Override
-    public String getCurrentMode() {
-        return String.valueOf(this.currentMode);
-    }
-
-    /**
-     * 此方法传递发送的数据，并且更新 redis 中设备的在在线状态
-     *
-     * @param dataBo 数据载荷
-     * @throws MessageSendException 数据发送失败异常
-     */
-    private void sendData(MeterDataBo dataBo) throws MessageSendException {
-        // 模拟发送，实际可接入消息队列
-        //log.debug("上报数据: {}", dataBo);
-        //更新 redis 中时间戳,就是向 redis 上报自己的心跳
-        //获取当前系统时间
-        long timestamp = System.currentTimeMillis();
-        String id = dataBo.getDeviceId();
-        redisTemplate.opsForHash().put("OnLineMap", id, String.valueOf(timestamp));
-        //todo 消息队列通知上线
-
-        Boolean onLine = redisTemplate.hasKey("device:OffLine:" + id);
-        if (onLine) {
-            //如果设备上线,调用设备上线后置处理器
-            markDeviceOnline(id, timestamp, deviceMapper, redisTemplate);
-        }
-        System.out.println(dataBo);
-    }
 
 
     private static void build(List<String> deviceIds, List<VirtualDevice> virtualDeviceList, int type) {

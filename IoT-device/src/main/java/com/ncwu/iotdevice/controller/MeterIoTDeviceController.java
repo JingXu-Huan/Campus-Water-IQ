@@ -148,4 +148,12 @@ public class MeterIoTDeviceController {
     public Result<String> changeSeason(@Min(1) @Max(4) int season) {
         return virtualMeterDeviceService.changeSeason(season);
     }
+
+    /**
+     * 重置全部设备
+     */
+    @GetMapping("/destroyAll")
+    public Result<String> destroyAll() {
+        return virtualMeterDeviceService.destroyAll();
+    }
 }

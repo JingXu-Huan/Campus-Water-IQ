@@ -2,6 +2,7 @@ package com.ncwu.iotdevice.utils;
 
 
 import com.baomidou.mybatisplus.core.conditions.update.LambdaUpdateWrapper;
+import com.ncwu.iotdevice.config.ServerConfig;
 import com.ncwu.iotdevice.domain.Bo.DeviceIdList;
 import com.ncwu.iotdevice.domain.entity.VirtualDevice;
 import com.ncwu.iotdevice.exception.DeviceRegisterException;
@@ -15,6 +16,7 @@ import org.springframework.stereotype.Component;
 import java.math.BigDecimal;
 import java.math.RoundingMode;
 import java.util.*;
+import java.util.concurrent.ThreadLocalRandom;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
@@ -127,6 +129,23 @@ public class Utils {
         return BigDecimal.valueOf(v)
                 .setScale(3, RoundingMode.HALF_UP)
                 .doubleValue();
+    }
+
+    /**
+     * 根据管网水流对水压进行计算和离散化
+     */
+    public static double waterPressureGenerate(double flow ,ServerConfig serverConfig) {
+        //管网初始压力
+        double p0 = serverConfig.getP0();
+        double pressure = p0 - 0.15 * flow + ThreadLocalRandom.current().nextDouble(0.01, 0.03);
+        //离散步长
+        double s = serverConfig.getStep();
+        double Pdiscrete = Math.round(pressure / s) * s;
+        //管网最小压力
+        double Pmin = serverConfig.getPmin();
+        //管网最大压力
+        double Pmax = serverConfig.getPmax();
+        return keep3(Math.min(Math.max(Pdiscrete, Pmin), Pmax));
     }
 
     public static void markDeviceOnline(String deviceCode, long timestamp, DeviceMapper deviceMapper,

@@ -4,7 +4,6 @@ package com.ncwu.iotdevice.service;
 import com.baomidou.mybatisplus.extension.service.IService;
 import com.ncwu.common.VO.Result;
 import com.ncwu.iotdevice.domain.entity.VirtualDevice;
-import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotEmpty;
 import jakarta.validation.constraints.NotNull;
 
@@ -25,12 +24,6 @@ public interface VirtualMeterDeviceService extends IService<VirtualDevice> {
 
     Result<String> init(int buildings, int floors, int rooms) throws InterruptedException;
 
-    String isRunning();
-
-    String isInit();
-
-    String getCurrentMode();
-
     Result<String> singleStopSimulation(List<String> ids);
 
     Result<Map<String, String>> checkDeviceStatus(List<String> ids);
@@ -46,4 +39,7 @@ public interface VirtualMeterDeviceService extends IService<VirtualDevice> {
     Result<String> openAllValue();
 
     Result<String> closeAllValue();
+
+    Result<String> destroyAll();
+
 }

@@ -6,8 +6,8 @@ updates:
       interval: "daily"
     ignore:
       - dependency-name: "org.projectlombok:lombok"
-        versions:
-          - "*"
+        # 忽略所有 1.18.x 版本
+        versions: ["1.18.32"]
       - dependency-name: "com.google.guava:guava"
-        versions:
-          - "*"
+        # 忽略 33.x 系列
+        versions: ["33.5.0-jre"]

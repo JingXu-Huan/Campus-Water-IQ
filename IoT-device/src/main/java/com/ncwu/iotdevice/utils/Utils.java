@@ -69,6 +69,7 @@ public class Utils {
             redisTemplate.opsForSet().add("device:meter", meterDeviceIds.toArray(new String[0]));
             redisTemplate.opsForSet().add("device:sensor", waterQualityDeviceIds.toArray(new String[0]));
             redisTemplate.opsForHash().putAll("OnLineMap", map);
+            redisTemplate.opsForValue().set("mode","normal");
             redisTemplate.opsForValue().set("Time", "12");
             redisTemplate.opsForValue().set("Season", "1");
         } catch (Exception e) {

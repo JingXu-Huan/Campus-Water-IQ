@@ -103,6 +103,7 @@ public class VirtualMeterDeviceServiceImpl extends ServiceImpl<DeviceMapper, Vir
     @Time
     //初始化 Lua 脚本
     @InitLuaScript
+    @Override
     public Result<String> start() {
         //检查设备初始化状态开关
         if (!isInit) {
@@ -164,6 +165,7 @@ public class VirtualMeterDeviceServiceImpl extends ServiceImpl<DeviceMapper, Vir
      */
     @Time
     @InitLuaScript
+    @Override
     public Result<String> stopSimulation() {
         //关闭开关
         this.isRunning = false;
@@ -194,6 +196,7 @@ public class VirtualMeterDeviceServiceImpl extends ServiceImpl<DeviceMapper, Vir
     /**
      * 前端入口：单设备或者批量设备停止模拟
      */
+    @Override
     public Result<String> singleStopSimulation(List<String> ids) {
         if (ids == null || ids.isEmpty()) {
             return Result.fail(null, "设备列表为空");
@@ -458,6 +461,7 @@ public class VirtualMeterDeviceServiceImpl extends ServiceImpl<DeviceMapper, Vir
      * 初始化设备并入库（逻辑保持原样）
      */
     @Time
+    @Override
     public Result<String> init(int buildings, int floors, int rooms) throws InterruptedException {
         if (isRunning) {
             return Result.fail(ErrorCode.DEVICE_DEVICE_RUNNING_NOW_ERROR.code(),

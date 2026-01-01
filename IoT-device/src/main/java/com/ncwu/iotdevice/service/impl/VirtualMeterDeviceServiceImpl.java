@@ -47,7 +47,9 @@ import static com.ncwu.iotdevice.utils.Utils.markDeviceOnline;
 @Slf4j
 @Service
 @RequiredArgsConstructor
-public class VirtualMeterDeviceServiceImpl extends ServiceImpl<DeviceMapper, VirtualDevice> implements VirtualMeterDeviceService {
+public class VirtualMeterDeviceServiceImpl extends ServiceImpl<DeviceMapper, VirtualDevice>
+        implements VirtualMeterDeviceService {
+
     Set<String> idList;
     int totalSize;
     AtomicLong sendCnt = new AtomicLong(0);
@@ -61,6 +63,8 @@ public class VirtualMeterDeviceServiceImpl extends ServiceImpl<DeviceMapper, Vir
         //取max防止入参为0发生异常
         scheduler = Executors.newScheduledThreadPool(Math.max(1, (int) (this.count() / 100)));
     }
+
+    private static final Random RANDOM = new Random();
 
     //开大小为5的线程池
     final ExecutorService pool = Executors.newFixedThreadPool(5);
@@ -237,7 +241,7 @@ public class VirtualMeterDeviceServiceImpl extends ServiceImpl<DeviceMapper, Vir
                 it.remove();
             }
         }
-        int offset = new Random().nextInt(120 + 1);
+        int offset = RANDOM.nextInt(120 + 1);
         map1.forEach((id, v) -> {
             String status = this.lambdaQuery().eq(VirtualDevice::getDeviceCode, id).one().getStatus();
             map.put(id, status);
@@ -347,8 +351,7 @@ public class VirtualMeterDeviceServiceImpl extends ServiceImpl<DeviceMapper, Vir
         if (time <= 5 && idList.contains(id)) {
             //夜间漏水
             flow = keep3(0.1 + ThreadLocalRandom.current().nextDouble(0.05));
-        }
-        else {
+        } else {
             flow = waterFlowGenerate(time);
         }
         double pressure = waterPressureGenerate(flow);

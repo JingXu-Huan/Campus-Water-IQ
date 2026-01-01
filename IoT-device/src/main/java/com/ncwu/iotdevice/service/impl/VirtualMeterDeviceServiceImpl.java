@@ -272,6 +272,7 @@ public class VirtualMeterDeviceServiceImpl extends ServiceImpl<DeviceMapper, Vir
 
     @Override
     public Result<String> openAllValue() {
+        //todo
         return null;
     }
 

@@ -28,6 +28,7 @@
         <module>warning-service</module>
         <module>prediction-service</module>
         <module>auth-service</module>
+        <module>common</module>
     </modules>
 
     <!-- ===== 全局属性 ===== -->

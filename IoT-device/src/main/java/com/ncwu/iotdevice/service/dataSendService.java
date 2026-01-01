@@ -48,7 +48,12 @@ public class dataSendService {
             //如果设备上线,调用设备上线后置处理器
             markDeviceOnline(id, timestamp, deviceMapper, redisTemplate);
         }
-        double reportFrequency = Double.parseDouble(serverConfig.getReportFrequency());
+        double reportFrequency;
+        try {
+            reportFrequency = Double.parseDouble(serverConfig.getReportFrequency());
+        } catch (NumberFormatException e) {
+            throw new MessageSendException("Invalid reportFrequency configuration: " + serverConfig.getReportFrequency(), e);
+        }
         double increment = keep3(dataBo.getFlow() * reportFrequency / 1000);
         Double currentTotal = redisTemplate.opsForHash().increment("meter:total_usage", id, increment);
         dataBo.setTotalUsage(keep3(currentTotal));

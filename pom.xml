@@ -44,7 +44,7 @@
         <rocketmq.version>2.3.4</rocketmq.version>
         <knife4j.version>4.4.0</knife4j.version>
         <hutool.version>5.8.23</hutool.version>
-        <dubbo.version>3.2.3</dubbo.version>
+        <dubbo.version>3.3.6</dubbo.version>
         <lombok.version>1.18.32</lombok.version>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
     </properties>

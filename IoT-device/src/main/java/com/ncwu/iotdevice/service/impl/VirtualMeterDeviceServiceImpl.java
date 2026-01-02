@@ -292,6 +292,18 @@ public class VirtualMeterDeviceServiceImpl extends ServiceImpl<DeviceMapper, Vir
     }
 
     /**
+     * 对日志内容进行简单清洗，防止换行等导致日志注入
+     */
+    private String sanitizeForLog(String input) {
+        if (input == null) {
+            return null;
+        }
+        // 去除回车和换行，防止伪造多行日志
+        return input.replace('\r', ' ')
+                    .replace('\n', ' ');
+    }
+
+    /**
      * 核心递归调度逻辑
      */
     private void scheduleNextReport(String deviceId) {
@@ -317,7 +329,7 @@ public class VirtualMeterDeviceServiceImpl extends ServiceImpl<DeviceMapper, Vir
                 }
                 processSingleDevice(deviceId);
             } catch (Exception e) {
-                log.error("设备 {} 数据上报失败: {}", deviceId, e.getMessage());
+                log.error("设备 {} 数据上报失败: {}", sanitizeForLog(deviceId), sanitizeForLog(e.getMessage()));
             } finally {
                 // 报完本次，如果没有被停掉，递归触发下一次上报
                 if (isDeviceOnline(deviceId)) {

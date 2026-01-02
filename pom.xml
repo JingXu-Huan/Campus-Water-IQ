@@ -6,7 +6,7 @@
 
     <modelVersion>4.0.0</modelVersion>
 
-    <!-- ===== Spring Boot 父依赖 ===== -->
+    <!-- Spring Boot 父依赖：统一版本管理（不要再手动指定 boot starter 版本） -->
     <parent>
         <groupId>org.springframework.boot</groupId>
         <artifactId>spring-boot-starter-parent</artifactId>
@@ -14,13 +14,11 @@
         <relativePath/>
     </parent>
 
-    <!-- ===== 项目坐标 ===== -->
     <groupId>com.ncwu</groupId>
     <artifactId>Campus-Water-IQ</artifactId>
     <version>1.0-SNAPSHOT</version>
     <packaging>pom</packaging>
 
-    <!-- ===== 子模块 ===== -->
     <modules>
         <module>IoT-service</module>
         <module>IoT-device</module>
@@ -31,75 +29,84 @@
         <module>common</module>
     </modules>
 
-    <!-- ===== 全局属性 ===== -->
     <properties>
         <java.version>21</java.version>
+
         <guava.version>33.5.0-jre</guava.version>
         <ollama.version>1.1.2</ollama.version>
-        <spring-boot.version>3.2.2</spring-boot.version>
         <druid.version>1.2.20</druid.version>
         <mybatis.version>3.5.14</mybatis.version>
-        <spring-cloud.version>2023.0.3</spring-cloud.version>
-        <spring-cloud-alibaba.version>2022.0.0.0</spring-cloud-alibaba.version>
-        <rocketmq.version>2.3.0</rocketmq.version>
         <knife4j.version>4.4.0</knife4j.version>
         <hutool.version>5.8.23</hutool.version>
         <dubbo.version>3.2.3</dubbo.version>
         <lombok.version>1.18.32</lombok.version>
+
+        <spring-cloud.version>2023.0.3</spring-cloud.version>
+        <spring-cloud-alibaba.version>2022.0.0.0</spring-cloud-alibaba.version>
+
+        <!-- RocketMQ：starter 2.3.0 + client 5.x（关键！避免你之前 4.9.4 导致 MessageModel 找不到） -->
+        <rocketmq.spring.version>2.3.0</rocketmq.spring.version>
+        <rocketmq.client.version>5.2.0</rocketmq.client.version>
+
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
     </properties>
+
+    <!-- 这里放“父工程也要用”的通用依赖（注意：不要放 boot starter 版本号） -->
     <dependencies>
         <dependency>
             <groupId>org.springframework.cloud</groupId>
             <artifactId>spring-cloud-starter-bootstrap</artifactId>
         </dependency>
-        <!-- MyBatis-Plus 集成 Spring Boot -->
+
         <dependency>
             <groupId>com.baomidou</groupId>
             <artifactId>mybatis-plus-spring-boot3-starter</artifactId>
             <version>${mybatis.version}</version>
         </dependency>
-        <!-- Lombok 注解简化 Java 开发 -->
+
         <dependency>
             <groupId>org.projectlombok</groupId>
             <artifactId>lombok</artifactId>
             <version>${lombok.version}</version>
             <scope>provided</scope>
         </dependency>
-        <!-- Hutool 工具类集合 -->
+
         <dependency>
             <groupId>cn.hutool</groupId>
             <artifactId>hutool-all</artifactId>
             <version>${hutool.version}</version>
         </dependency>
+
         <dependency>
             <groupId>com.alibaba</groupId>
             <artifactId>druid-spring-boot-3-starter</artifactId>
             <version>${druid.version}</version>
         </dependency>
-        <!-- Nacos 服务注册与发现 -->
+
         <dependency>
             <groupId>com.alibaba.cloud</groupId>
             <artifactId>spring-cloud-starter-alibaba-nacos-discovery</artifactId>
             <version>${spring-cloud-alibaba.version}</version>
         </dependency>
-        <!-- Nacos 配置管理 -->
+
         <dependency>
             <groupId>com.alibaba.cloud</groupId>
             <artifactId>spring-cloud-starter-alibaba-nacos-config</artifactId>
             <version>${spring-cloud-alibaba.version}</version>
         </dependency>
+
         <dependency>
             <groupId>org.springframework.boot</groupId>
             <artifactId>spring-boot-starter-aop</artifactId>
         </dependency>
-        <!-- 参数校验 -->
+
         <dependency>
             <groupId>org.springframework.boot</groupId>
             <artifactId>spring-boot-starter-validation</artifactId>
         </dependency>
     </dependencies>
-    <!-- ===== 依赖版本统一管理 ===== -->
+
+    <!-- 统一管理版本：Cloud / Alibaba / AI BOM + RocketMQ 版本对齐 -->
     <dependencyManagement>
         <dependencies>
             <dependency>
@@ -109,7 +116,7 @@
                 <type>pom</type>
                 <scope>import</scope>
             </dependency>
-            <!-- Spring Cloud 统一依赖管理 -->
+
             <dependency>
                 <groupId>org.springframework.cloud</groupId>
                 <artifactId>spring-cloud-dependencies</artifactId>
@@ -117,7 +124,7 @@
                 <type>pom</type>
                 <scope>import</scope>
             </dependency>
-            <!-- Spring Cloud Alibaba 统一依赖管理 -->
+
             <dependency>
                 <groupId>com.alibaba.cloud</groupId>
                 <artifactId>spring-cloud-alibaba-dependencies</artifactId>
@@ -125,81 +132,32 @@
                 <type>pom</type>
                 <scope>import</scope>
             </dependency>
-            <!-- Spring Boot 核心启动器 -->
-            <dependency>
-                <groupId>org.springframework.boot</groupId>
-                <artifactId>spring-boot-starter</artifactId>
-                <version>${spring-boot.version}</version>
-            </dependency>
 
-            <!-- Web 开发依赖，包含 Spring MVC 和 Tomcat -->
-            <dependency>
-                <groupId>org.springframework.boot</groupId>
-                <artifactId>spring-boot-starter-web</artifactId>
-                <version>${spring-boot.version}</version>
-            </dependency>
-            <!-- Redis 数据访问 -->
-            <dependency>
-                <groupId>org.springframework.boot</groupId>
-                <artifactId>spring-boot-starter-data-redis</artifactId>
-                <version>${spring-boot.version}</version>
-            </dependency>
-
-            <!-- RabbitMQ 消息队列集成 -->
-            <dependency>
-                <groupId>org.springframework.boot</groupId>
-                <artifactId>spring-boot-starter-amqp</artifactId>
-                <version>${spring-boot.version}</version>
-            </dependency>
-
-            <!-- RocketMQ 消息队列 Spring Boot 启动器 -->
+            <!-- RocketMQ starter 版本 -->
             <dependency>
                 <groupId>org.apache.rocketmq</groupId>
                 <artifactId>rocketmq-spring-boot-starter</artifactId>
-                <version>${rocketmq.version}</version>
+                <version>${rocketmq.spring.version}</version>
             </dependency>
-            <!-- OpenFeign 用于服务间调用 -->
+
+            <!-- 强制 RocketMQ client 走 5.x，防止被别的依赖拉回 4.9.4 -->
             <dependency>
-                <groupId>org.springframework.cloud</groupId>
-                <artifactId>spring-cloud-starter-openfeign</artifactId>
-                <version>${spring-cloud.version}</version>
+                <groupId>org.apache.rocketmq</groupId>
+                <artifactId>rocketmq-client</artifactId>
+                <version>${rocketmq.client.version}</version>
             </dependency>
-            <!--负载均衡-->
             <dependency>
-                <groupId>org.springframework.cloud</groupId>
-                <artifactId>spring-cloud-starter-loadbalancer</artifactId>
+                <groupId>org.apache.rocketmq</groupId>
+                <artifactId>rocketmq-remoting</artifactId>
+                <version>${rocketmq.client.version}</version>
             </dependency>
-            <!--OK http 的依赖 -->
             <dependency>
-                <groupId>io.github.openfeign</groupId>
-                <artifactId>feign-okhttp</artifactId>
+                <groupId>org.apache.rocketmq</groupId>
+                <artifactId>rocketmq-common</artifactId>
+                <version>${rocketmq.client.version}</version>
             </dependency>
-            <!-- API 文档增强工具 Knife4j -->
-            <dependency>
-                <groupId>com.github.xiaoymin</groupId>
-                <artifactId>knife4j-openapi3-jakarta-spring-boot-starter</artifactId>
-                <version>${knife4j.version}</version>
-            </dependency>
-            <!-- Dubbo RPC 框架 Spring Boot 集成 -->
-            <dependency>
-                <groupId>org.apache.dubbo</groupId>
-                <artifactId>dubbo-spring-boot-starter</artifactId>
-                <version>${dubbo.version}</version>
-            </dependency>
-            <!-- 应用监控与管理 -->
-            <dependency>
-                <groupId>org.springframework.boot</groupId>
-                <artifactId>spring-boot-starter-actuator</artifactId>
-                <version>${spring-boot.version}</version>
-            </dependency>
-            <!-- 单元测试和集成测试工具 -->
-            <dependency>
-                <groupId>org.springframework.boot</groupId>
-                <artifactId>spring-boot-starter-test</artifactId>
-                <version>${spring-boot.version}</version>
-                <scope>test</scope>
-            </dependency>
-            <!--布隆过滤器-->
+
+            <!-- 其它你想统一管版本的库（可选） -->
             <dependency>
                 <groupId>com.google.guava</groupId>
                 <artifactId>guava</artifactId>
@@ -208,11 +166,9 @@
         </dependencies>
     </dependencyManagement>
 
-    <!-- ===== 构建插件统一管理 ===== -->
     <build>
         <pluginManagement>
             <plugins>
-                <!-- Java 编译插件 -->
                 <plugin>
                     <groupId>org.apache.maven.plugins</groupId>
                     <artifactId>maven-compiler-plugin</artifactId>
@@ -222,11 +178,12 @@
                         <target>${java.version}</target>
                     </configuration>
                 </plugin>
-                <!-- Spring Boot 可执行包打包插件 -->
+
                 <plugin>
                     <groupId>org.springframework.boot</groupId>
                     <artifactId>spring-boot-maven-plugin</artifactId>
                 </plugin>
+
                 <plugin>
                     <groupId>com.github.ferstl</groupId>
                     <artifactId>depgraph-maven-plugin</artifactId>

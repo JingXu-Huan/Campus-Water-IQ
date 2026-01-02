@@ -61,6 +61,6 @@ public class dataSendService {
         double increment = keep3(dataBo.getFlow() * reportFrequency / 1000);
         Double currentTotal = redisTemplate.opsForHash().increment("meter:total_usage", id, increment);
         dataBo.setTotalUsage(keep3(currentTotal));
-        rocketMQTemplate.convertAndSend("MeterData",dataBo.toString());
+        rocketMQTemplate.convertAndSend("Meter-Data",dataBo);
     }
 }

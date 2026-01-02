@@ -17,7 +17,6 @@ public enum ErrorCode {
     SYSTEM_ERROR("S0500", "系统异常"),
     UNKNOWN("S5000", "系统未知错误");
 
-
     private final String code;
     private final String defaultMessage;
 

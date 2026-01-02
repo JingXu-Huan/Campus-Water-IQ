@@ -2,6 +2,7 @@ package com.ncwu.iotdevice.utils;
 
 
 import com.baomidou.mybatisplus.core.conditions.update.LambdaUpdateWrapper;
+import com.ncwu.iotdevice.AOP.annotation.InitLuaScript;
 import com.ncwu.iotdevice.config.ServerConfig;
 import com.ncwu.iotdevice.domain.Bo.DeviceIdList;
 import com.ncwu.iotdevice.domain.entity.VirtualDevice;
@@ -20,6 +21,8 @@ import java.util.concurrent.ThreadLocalRandom;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
+
+import static com.ncwu.iotdevice.AOP.InitLuaScript.Lua_script;
 
 /**
  * @author jingxu
@@ -69,7 +72,7 @@ public class Utils {
             redisTemplate.opsForSet().add("device:meter", meterDeviceIds.toArray(new String[0]));
             redisTemplate.opsForSet().add("device:sensor", waterQualityDeviceIds.toArray(new String[0]));
             redisTemplate.opsForHash().putAll("OnLineMap", map);
-            redisTemplate.opsForValue().set("mode","normal");
+            redisTemplate.opsForValue().set("mode", "normal");
             redisTemplate.opsForValue().set("Time", "12");
             redisTemplate.opsForValue().set("Season", "1");
         } catch (Exception e) {
@@ -135,7 +138,7 @@ public class Utils {
     /**
      * 根据管网水流对水压进行计算和离散化
      */
-    public static double waterPressureGenerate(double flow ,ServerConfig serverConfig) {
+    public static double waterPressureGenerate(double flow, ServerConfig serverConfig) {
         //管网初始压力
         double p0 = serverConfig.getP0();
         double pressure = p0 - 0.15 * flow + ThreadLocalRandom.current().nextDouble(0.01, 0.03);
@@ -164,6 +167,18 @@ public class Utils {
         redisTemplate.opsForHash()
                 .put("OnLineMap", deviceCode, String.valueOf(timestamp));
     }
+
+
+    @InitLuaScript("CheckIds.lua")
+    public boolean checkId(List<String> ids) {
+        Long result = redisTemplate.execute(
+                Lua_script,
+                List.of("device:meter"),
+                ids.toArray()
+        );
+        return Long.valueOf(1L).equals(result);
+    }
+
 
 }
 

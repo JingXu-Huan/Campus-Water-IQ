@@ -12,6 +12,7 @@ import org.springframework.web.bind.annotation.*;
 import java.util.List;
 import java.util.Map;
 
+
 /**
  * 智能水表的控制器
  *
@@ -59,6 +60,7 @@ public class MeterIoTDeviceController {
         scheduledTasks.startTask();
         return virtualMeterDeviceService.startList(ids);
     }
+
 
     /**
      * 停止所有模拟任务
@@ -114,6 +116,7 @@ public class MeterIoTDeviceController {
      */
     @PostMapping("/status")
     public Result<Map<String, String>> checkDeviceStatus(@NotNull @NotEmpty @RequestBody List<@NotBlank String> ids) {
+
         return virtualMeterDeviceService.checkDeviceStatus(ids);
     }
 

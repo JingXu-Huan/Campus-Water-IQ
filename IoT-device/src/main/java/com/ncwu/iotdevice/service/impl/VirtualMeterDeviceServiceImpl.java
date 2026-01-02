@@ -26,12 +26,14 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.aop.framework.AopContext;
 import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.stereotype.Service;
+
 import java.time.LocalDateTime;
 import java.util.*;
 import java.util.concurrent.*;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.function.Function;
 import java.util.stream.Collectors;
+
 import static com.ncwu.iotdevice.AOP.InitLuaScript.Lua_script;
 import static com.ncwu.iotdevice.utils.Utils.*;
 
@@ -47,14 +49,17 @@ import static com.ncwu.iotdevice.utils.Utils.*;
 public class VirtualMeterDeviceServiceImpl extends ServiceImpl<DeviceMapper, VirtualDevice>
         implements VirtualMeterDeviceService {
 
+    //运行中的设备集合
+    private int allSize;
+    private final Set<String> runningDevices = ConcurrentHashMap.newKeySet();
     AtomicLong sendCnt = new AtomicLong(0);
     final String meterStatusPrefix = "cache:meter:status:";
     private ScheduledExecutorService scheduler;
 
     @PostConstruct
     void init() {
-        //经实验验证，每100台设备对应一个线程即可。
-        //取max防止入参为0发生异常
+        // 经压测验证，约 100 台虚拟设备对应 1 个调度线程即可满足精度与吞吐
+        // 取 max 防止入参为 0 发生异常
         scheduler = Executors.newScheduledThreadPool(Math.max(1, (int) (this.count() / 100)));
     }
 
@@ -66,14 +71,8 @@ public class VirtualMeterDeviceServiceImpl extends ServiceImpl<DeviceMapper, Vir
     // 存储每个设备的调度句柄，用于精准停止模拟
     private final Map<String, ScheduledFuture<?>> deviceTasks = new ConcurrentHashMap<>();
 
-    //设备上报数据的模式，默认就是正常模式
-    public final SwitchModes currentMode = SwitchModes.NORMAL;
-
     //设备是否已经完成了初始化
     public volatile boolean isInit = false;
-
-    //上报任务是否正在进行
-    public volatile boolean isRunning = false;
 
     private final StringRedisTemplate redisTemplate;
     private final DeviceMapper deviceMapper;
@@ -107,15 +106,17 @@ public class VirtualMeterDeviceServiceImpl extends ServiceImpl<DeviceMapper, Vir
             return Result.fail(ErrorCode.DEVICE_INIT_ERROR.code(),
                     ErrorCode.DEVICE_INIT_ERROR.message());
         }
+        Set<String> ids = redisTemplate.opsForSet().members("device:meter");
         //检查模拟器状态开关
-        if (isRunning) {
-            log.info("模拟器已在运行中");
+        if (ids != null && runningDevices.size() == ids.size()) {
+            log.info("模拟器已全部在运行中");
             return Result.fail(ErrorCode.DEVICE_DEVICE_RUNNING_NOW_ERROR.code(),
                     ErrorCode.DEVICE_DEVICE_RUNNING_NOW_ERROR.message());
         }
         //开始模拟
-        this.isRunning = true;
-        Set<String> ids = redisTemplate.opsForSet().members("device:meter");
+        if (ids != null) {
+            runningDevices.addAll(ids);
+        }
         if (ids != null && !ids.isEmpty()) {
             pool.submit(() -> {
                 this.lambdaUpdate().in(VirtualDevice::getDeviceCode, ids)
@@ -135,6 +136,11 @@ public class VirtualMeterDeviceServiceImpl extends ServiceImpl<DeviceMapper, Vir
 
     @Override
     public Result<String> startList(List<String> ids) {
+        if (ids != null && runningDevices.size() == allSize) {
+            log.info("模拟器已全部在运行中");
+            return Result.fail(ErrorCode.DEVICE_DEVICE_RUNNING_NOW_ERROR.code(),
+                    ErrorCode.DEVICE_DEVICE_RUNNING_NOW_ERROR.message());
+        }
         if (!isInit) {
             return Result.fail(ErrorCode.DEVICE_INIT_ERROR.code(),
                     ErrorCode.DEVICE_INIT_ERROR.message());
@@ -147,6 +153,7 @@ public class VirtualMeterDeviceServiceImpl extends ServiceImpl<DeviceMapper, Vir
             });
             //删除缓存
             ids.forEach(id -> redisTemplate.delete(meterStatusPrefix + id));
+            runningDevices.addAll(ids);
             // 每一个设备开启一个独立的递归流
             ids.forEach(id -> redisTemplate.opsForHash().put("OnLineMap", id, "-1"));
             ids.forEach(this::scheduleNextReport);
@@ -164,7 +171,7 @@ public class VirtualMeterDeviceServiceImpl extends ServiceImpl<DeviceMapper, Vir
     @Override
     public Result<String> stopSimulation() {
         //关闭开关
-        this.isRunning = false;
+        runningDevices.clear();
         // 取消所有排队中的倒计时任务
         deviceTasks.forEach((id, future) -> {
             if (future != null && !future.isCancelled()) {
@@ -205,6 +212,7 @@ public class VirtualMeterDeviceServiceImpl extends ServiceImpl<DeviceMapper, Vir
             if (future != null) {
                 future.cancel(false);
                 deviceTasks.remove(id);
+                runningDevices.remove(id);
                 redisTemplate.opsForHash().put("OnLineMap", id, String.valueOf(0));
             }
         });
@@ -284,7 +292,7 @@ public class VirtualMeterDeviceServiceImpl extends ServiceImpl<DeviceMapper, Vir
 
     @Override
     public Result<String> destroyAll() {
-        if (this.isRunning) {
+        if (this.isRunning()) {
             return Result.fail(ErrorCode.DEVICE_CANT_RESET_ERROR.code(), ErrorCode.DEVICE_CANT_RESET_ERROR.message());
         }
         this.isInit = false;
@@ -300,7 +308,7 @@ public class VirtualMeterDeviceServiceImpl extends ServiceImpl<DeviceMapper, Vir
         }
         // 去除回车和换行，防止伪造多行日志
         return input.replace('\r', ' ')
-                    .replace('\n', ' ');
+                .replace('\n', ' ');
     }
 
     /**
@@ -308,7 +316,7 @@ public class VirtualMeterDeviceServiceImpl extends ServiceImpl<DeviceMapper, Vir
      */
     private void scheduleNextReport(String deviceId) {
         // 检查全局控制位
-        if (!isRunning || currentMode != SwitchModes.NORMAL) {
+        if (!runningDevices.contains(deviceId)) {
             return;
         }
 
@@ -394,7 +402,7 @@ public class VirtualMeterDeviceServiceImpl extends ServiceImpl<DeviceMapper, Vir
             step = 2;
         }
         dataBo.setWaterTem(waterTemperateGenerate(time * 3600L +
-                sendCnt.get() * ((double) Integer.parseInt(serverConfig.getReportFrequency()) /1000), mid, step));
+                sendCnt.get() * ((double) Integer.parseInt(serverConfig.getReportFrequency()) / 1000), mid, step));
         dataBo.setIsOpen(DeviceStatus.NORMAL);
         dataBo.setStatus(DeviceStatus.NORMAL);
         dataSendService.sendData(dataBo);
@@ -464,7 +472,7 @@ public class VirtualMeterDeviceServiceImpl extends ServiceImpl<DeviceMapper, Vir
     @Time
     @Override
     public Result<String> init(int buildings, int floors, int rooms) throws InterruptedException {
-        if (isRunning) {
+        if (isRunning()) {
             return Result.fail(ErrorCode.DEVICE_DEVICE_RUNNING_NOW_ERROR.code(),
                     ErrorCode.DEVICE_DEVICE_RUNNING_NOW_ERROR.message());
         }
@@ -493,11 +501,14 @@ public class VirtualMeterDeviceServiceImpl extends ServiceImpl<DeviceMapper, Vir
         this.isInit = true;
         service.setInit(true);
         log.info("设备注册完成：楼宇 {} 层数 {} 房间 {}", buildings, floors, rooms);
+        this.allSize = buildings * floors * rooms;
         return Result.ok(SuccessCode.DEVICE_REGISTER_SUCCESS.getCode(),
                 SuccessCode.DEVICE_REGISTER_SUCCESS.getMessage());
     }
 
-
+    /**
+     * 构建设备集合，方便存入数据库
+     */
     private static void build(List<String> deviceIds, List<VirtualDevice> virtualDeviceList, int type) {
         Date now = new Date();
         deviceIds.forEach(id -> {
@@ -518,11 +529,15 @@ public class VirtualMeterDeviceServiceImpl extends ServiceImpl<DeviceMapper, Vir
     @Override
     public boolean equals(Object o) {
         if (!(o instanceof VirtualMeterDeviceServiceImpl that)) return false;
-        return isInit == that.isInit && isRunning == that.isRunning && currentMode == that.currentMode;
+        return isInit == that.isInit && isRunning() == that.isRunning();
     }
 
     @Override
     public int hashCode() {
-        return Objects.hash(currentMode, isInit, isRunning);
+        return Objects.hash(isInit, isRunning());
+    }
+
+    private boolean isRunning() {
+        return !runningDevices.isEmpty();
     }
 }

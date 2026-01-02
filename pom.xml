@@ -34,7 +34,7 @@
 
         <guava.version>33.5.0-jre</guava.version>
         <ollama.version>1.1.2</ollama.version>
-        <druid.version>1.2.20</druid.version>
+        <druid.version>1.2.27</druid.version>
         <mybatis.version>3.5.14</mybatis.version>
         <knife4j.version>4.4.0</knife4j.version>
         <hutool.version>5.8.23</hutool.version>

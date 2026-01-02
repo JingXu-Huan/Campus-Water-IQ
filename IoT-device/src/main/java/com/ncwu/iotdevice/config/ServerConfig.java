@@ -8,7 +8,9 @@ import org.springframework.stereotype.Component;
 @ConfigurationProperties(prefix = "server")
 @Data
 public class ServerConfig {
+    //上报频率，以秒为单位
     private String reportFrequency;
+    //上报偏移时间
     private String timeOffset;
     //管网的初始压力
     private double p0;
@@ -18,4 +20,6 @@ public class ServerConfig {
     double Pmin;
     //管网的最大压力
     double Pmax;
+    //数据不可信发生概率
+    double PnotCredible;
 }

@@ -5,6 +5,7 @@ import com.ncwu.iotdevice.AOP.annotation.Time;
 import org.aspectj.lang.ProceedingJoinPoint;
 import org.aspectj.lang.annotation.Around;
 import org.aspectj.lang.annotation.Aspect;
+import org.springframework.core.annotation.Order;
 import org.springframework.stereotype.Component;
 
 /**
@@ -14,6 +15,7 @@ import org.springframework.stereotype.Component;
 @Component
 public class GetMethodsCostTime {
 
+    @Order(1)
     @Around("@annotation(time)")
     public Object getMethodCostedTime(ProceedingJoinPoint pjp, Time time) throws Throwable {
         // 获取方法名

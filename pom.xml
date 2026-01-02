@@ -10,7 +10,7 @@
     <parent>
         <groupId>org.springframework.boot</groupId>
         <artifactId>spring-boot-starter-parent</artifactId>
-        <version>3.2.2</version>
+        <version>3.3.5</version>
         <relativePath/>
     </parent>
 
@@ -41,7 +41,7 @@
         <mybatis.version>3.5.14</mybatis.version>
         <spring-cloud.version>2023.0.3</spring-cloud.version>
         <spring-cloud-alibaba.version>2022.0.0.0</spring-cloud-alibaba.version>
-        <rocketmq.version>2.3.4</rocketmq.version>
+        <rocketmq.version>2.3.0</rocketmq.version>
         <knife4j.version>4.4.0</knife4j.version>
         <hutool.version>5.8.23</hutool.version>
         <dubbo.version>3.2.3</dubbo.version>

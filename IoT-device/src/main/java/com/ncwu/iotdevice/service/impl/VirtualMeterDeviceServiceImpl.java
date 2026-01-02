@@ -47,15 +47,12 @@ import static com.ncwu.iotdevice.utils.Utils.*;
 public class VirtualMeterDeviceServiceImpl extends ServiceImpl<DeviceMapper, VirtualDevice>
         implements VirtualMeterDeviceService {
 
-    Set<String> idList;
-    int totalSize;
     AtomicLong sendCnt = new AtomicLong(0);
     final String meterStatusPrefix = "cache:meter:status:";
     private ScheduledExecutorService scheduler;
 
     @PostConstruct
     void init() {
-        idList = new HashSet<>();
         //经实验验证，每100台设备对应一个线程即可。
         //取max防止入参为0发生异常
         scheduler = Executors.newScheduledThreadPool(Math.max(1, (int) (this.count() / 100)));
@@ -130,7 +127,6 @@ public class VirtualMeterDeviceServiceImpl extends ServiceImpl<DeviceMapper, Vir
             redisTemplate.execute(Lua_script, List.of(hashKey), "-1");
             // 每一个设备开启一个独立的递归流
             ids.forEach(this::scheduleNextReport);
-            this.totalSize = ids.size();
             log.info("成功开启 {} 台设备的模拟数据流", ids.size());
             return Result.ok("成功开启" + ids.size() + "台设备");
         }
@@ -288,11 +284,11 @@ public class VirtualMeterDeviceServiceImpl extends ServiceImpl<DeviceMapper, Vir
 
     @Override
     public Result<String> destroyAll() {
-        if (this.isRunning){
+        if (this.isRunning) {
             return Result.fail(ErrorCode.DEVICE_CANT_RESET_ERROR.code(), ErrorCode.DEVICE_CANT_RESET_ERROR.message());
         }
         this.isInit = false;
-        return Result.ok(SuccessCode.DEVICE_RESET_SUCCESS.getCode(),SuccessCode.DEVICE_RESET_SUCCESS.getMessage());
+        return Result.ok(SuccessCode.DEVICE_RESET_SUCCESS.getCode(), SuccessCode.DEVICE_RESET_SUCCESS.getMessage());
     }
 
     /**
@@ -350,22 +346,14 @@ public class VirtualMeterDeviceServiceImpl extends ServiceImpl<DeviceMapper, Vir
     private void processSingleDevice(String id) {
         //多线程环境下应当使用原子
         sendCnt.incrementAndGet();
-        if (idList.size() < totalSize * 0.05) {
-            idList.add(id);
-        }
+
         MeterDataBo dataBo = new MeterDataBo();
         dataBo.setDeviceId(id);
         dataBo.setDevice(1);
         int time = Integer.parseInt(Objects.requireNonNull(redisTemplate.opsForValue().get("Time")));
-        double flow;
-        if (time <= 5 && idList.contains(id)) {
-            //夜间漏水
-            flow = keep3(0.1 + ThreadLocalRandom.current().nextDouble(0.05));
-        } else {
-            flow = waterFlowGenerate(time);
-        }
+        double flow = waterFlowGenerate(time);
         //得到正确水压
-        double pressure = waterPressureGenerate(flow,serverConfig);
+        double pressure = waterPressureGenerate(flow, serverConfig);
         // 时间戳微扰：增加纳秒级偏移，使排序更逼真
         dataBo.setTimeStamp(LocalDateTime.now().plusNanos(ThreadLocalRandom.current().nextInt(1000000)));
         dataBo.setFlow(flow);
@@ -393,7 +381,8 @@ public class VirtualMeterDeviceServiceImpl extends ServiceImpl<DeviceMapper, Vir
             mid = 6;
             step = 2;
         }
-        dataBo.setWaterTem(waterTemperateGenerate(time * 3600L + sendCnt.get() * 10, mid, step));
+        dataBo.setWaterTem(waterTemperateGenerate(time * 3600L +
+                sendCnt.get() * ((double) Integer.parseInt(serverConfig.getReportFrequency()) /1000), mid, step));
         dataBo.setIsOpen(DeviceStatus.NORMAL);
         dataBo.setStatus(DeviceStatus.NORMAL);
         dataSendService.sendData(dataBo);
@@ -495,8 +484,6 @@ public class VirtualMeterDeviceServiceImpl extends ServiceImpl<DeviceMapper, Vir
         return Result.ok(SuccessCode.DEVICE_REGISTER_SUCCESS.getCode(),
                 SuccessCode.DEVICE_REGISTER_SUCCESS.getMessage());
     }
-
-
 
 
     private static void build(List<String> deviceIds, List<VirtualDevice> virtualDeviceList, int type) {

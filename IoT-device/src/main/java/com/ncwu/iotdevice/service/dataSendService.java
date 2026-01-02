@@ -1,12 +1,14 @@
 package com.ncwu.iotdevice.service;
 
 
+import com.ncwu.iotdevice.AOP.annotation.NotCredible;
 import com.ncwu.iotdevice.AOP.annotation.RandomEvent;
 import com.ncwu.iotdevice.config.ServerConfig;
 import com.ncwu.iotdevice.domain.Bo.MeterDataBo;
 import com.ncwu.iotdevice.exception.MessageSendException;
 import com.ncwu.iotdevice.mapper.DeviceMapper;
 import lombok.RequiredArgsConstructor;
+import org.apache.rocketmq.spring.core.RocketMQTemplate;
 import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.stereotype.Service;
 
@@ -22,6 +24,7 @@ import static com.ncwu.iotdevice.utils.Utils.markDeviceOnline;
 @RequiredArgsConstructor
 public class dataSendService {
 
+    private final RocketMQTemplate rocketMQTemplate;
     private final StringRedisTemplate redisTemplate;
     private final DeviceMapper deviceMapper;
     private final ServerConfig serverConfig;
@@ -32,6 +35,7 @@ public class dataSendService {
      * @param dataBo 数据载荷
      * @throws MessageSendException 数据发送失败异常
      */
+    @NotCredible
     @RandomEvent
     public void sendData(MeterDataBo dataBo) throws MessageSendException {
         // 模拟发送，实际可接入消息队列
@@ -57,6 +61,6 @@ public class dataSendService {
         double increment = keep3(dataBo.getFlow() * reportFrequency / 1000);
         Double currentTotal = redisTemplate.opsForHash().increment("meter:total_usage", id, increment);
         dataBo.setTotalUsage(keep3(currentTotal));
-        System.out.println(dataBo);
+        rocketMQTemplate.convertAndSend("MeterData",dataBo.toString());
     }
 }

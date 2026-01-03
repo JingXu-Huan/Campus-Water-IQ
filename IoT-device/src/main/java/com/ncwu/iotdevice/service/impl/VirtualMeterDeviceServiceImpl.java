@@ -344,16 +344,17 @@ public class VirtualMeterDeviceServiceImpl extends ServiceImpl<DeviceMapper, Vir
      * 核心递归调度逻辑（含心跳上报）
      */
     private void scheduleNextReport(String deviceId) {
+        String sanitizedDeviceId = sanitizeForLog(deviceId);
         // 检查全局控制位
         if (!runningDevices.contains(deviceId)) {
-            log.info("设备 {} 不在运行集合中, 停止上报调度", deviceId);
+            log.info("设备 {} 不在运行集合中, 停止上报调度", sanitizedDeviceId);
             return;
         }
         String reportFrequency = serverConfig.getReportFrequency();
         String timeOffset = serverConfig.getTimeOffset();
         // 如果配置缺失，直接返回
         if (reportFrequency == null || timeOffset == null) {
-            log.warn("设备 {} 上报配置缺失", deviceId);
+            log.warn("设备 {} 上报配置缺失", sanitizedDeviceId);
             return;
         }
         // 计算随机上报延迟，打破设备集中上报
@@ -363,8 +364,7 @@ public class VirtualMeterDeviceServiceImpl extends ServiceImpl<DeviceMapper, Vir
             try {
                 processSingleDevice(deviceId);
             } catch (Exception e) {
-                String sanitizeForLog = sanitizeForLog(deviceId);
-                log.error("设备 {} 数据上报失败: {}", sanitizeForLog, e.getMessage(), e);
+                log.error("设备 {} 数据上报失败: {}", sanitizedDeviceId, e.getMessage(), e);
             } finally {
                 // 递归调度下一次上报
                 reportTime.put(deviceId,System.currentTimeMillis());

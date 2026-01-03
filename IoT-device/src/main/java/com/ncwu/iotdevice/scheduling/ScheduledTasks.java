@@ -40,7 +40,6 @@ public class ScheduledTasks {
     @Scheduled(fixedDelay = 30 * 1000)
     public void checkOnLineDevices() {
 //        检查设备运行控制器
-
         if (!isRunning) {
             return;
         }

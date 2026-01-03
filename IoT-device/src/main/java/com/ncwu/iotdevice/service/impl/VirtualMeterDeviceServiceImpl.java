@@ -14,9 +14,8 @@ import com.ncwu.iotdevice.config.ServerConfig;
 import com.ncwu.iotdevice.domain.Bo.DeviceIdList;
 import com.ncwu.iotdevice.domain.Bo.MeterDataBo;
 import com.ncwu.iotdevice.domain.entity.VirtualDevice;
-import com.ncwu.iotdevice.enums.SwitchModes;
 import com.ncwu.iotdevice.mapper.DeviceMapper;
-import com.ncwu.iotdevice.service.dataSendService;
+import com.ncwu.iotdevice.service.DataSender;
 import com.ncwu.iotdevice.service.VirtualMeterDeviceService;
 import com.ncwu.iotdevice.utils.Utils;
 import jakarta.annotation.PostConstruct;
@@ -58,9 +57,9 @@ public class VirtualMeterDeviceServiceImpl extends ServiceImpl<DeviceMapper, Vir
 
     @PostConstruct
     void init() {
-        // 经压测验证，约 100 台虚拟设备对应 1 个调度线程即可满足精度与吞吐
+        // 经压测验证，约 70 台虚拟设备对应 1 个调度线程即可满足精度与吞吐
         // 取 max 防止入参为 0 发生异常
-        scheduler = Executors.newScheduledThreadPool(Math.max(1, (int) (this.count() / 100)));
+        scheduler = Executors.newScheduledThreadPool(Math.max(1, (int) (this.count() / 70)));
     }
 
     private static final Random RANDOM = new Random();
@@ -71,6 +70,8 @@ public class VirtualMeterDeviceServiceImpl extends ServiceImpl<DeviceMapper, Vir
     // 存储每个设备的调度句柄，用于精准停止模拟
     private final Map<String, ScheduledFuture<?>> deviceTasks = new ConcurrentHashMap<>();
 
+    //存储设备上报时间戳，以便和心跳对齐
+    private final ConcurrentHashMap<String,Long> reportTime = new ConcurrentHashMap<>();
     //设备是否已经完成了初始化
     public volatile boolean isInit = false;
 
@@ -78,7 +79,7 @@ public class VirtualMeterDeviceServiceImpl extends ServiceImpl<DeviceMapper, Vir
     private final DeviceMapper deviceMapper;
     private final VirtualWaterQualityDeviceServiceImpl service;
     private final ServerConfig serverConfig;
-    private final dataSendService dataSendService;
+    private final DataSender dataSender;
 
     /**
      * 停止模拟时调用，优雅关闭资源
@@ -128,6 +129,7 @@ public class VirtualMeterDeviceServiceImpl extends ServiceImpl<DeviceMapper, Vir
             redisTemplate.execute(Lua_script, List.of(hashKey), "-1");
             // 每一个设备开启一个独立的递归流
             ids.forEach(this::scheduleNextReport);
+            ids.forEach(this::startHeartbeat);
             log.info("成功开启 {} 台设备的模拟数据流", ids.size());
             return Result.ok("成功开启" + ids.size() + "台设备");
         }
@@ -157,6 +159,7 @@ public class VirtualMeterDeviceServiceImpl extends ServiceImpl<DeviceMapper, Vir
             // 每一个设备开启一个独立的递归流
             ids.forEach(id -> redisTemplate.opsForHash().put("OnLineMap", id, "-1"));
             ids.forEach(this::scheduleNextReport);
+            ids.forEach(this::startHeartbeat);
             log.info("批量：成功开启 {} 台设备的模拟数据流", ids.size());
             return Result.ok("成功开启" + ids.size() + "台设备");
         }
@@ -189,8 +192,6 @@ public class VirtualMeterDeviceServiceImpl extends ServiceImpl<DeviceMapper, Vir
         //删缓存
         //此方法是安全的，使用scan进行删除
         Utils.redisScanDel(meterStatusPrefix + "*", 100, redisTemplate);
-        String hashKey = "OnLineMap";
-        redisTemplate.execute(Lua_script, List.of(hashKey), "0");
         deviceTasks.clear();
         log.info("已停止所有模拟数据上报任务");
         return Result.ok("已停止所有模拟数据上报任务");
@@ -299,6 +300,16 @@ public class VirtualMeterDeviceServiceImpl extends ServiceImpl<DeviceMapper, Vir
         return Result.ok(SuccessCode.DEVICE_RESET_SUCCESS.getCode(), SuccessCode.DEVICE_RESET_SUCCESS.getMessage());
     }
 
+    @Override
+    public Result<String> offline(List<String> ids) {
+        ids.forEach(id -> {
+            redisTemplate.opsForValue().set("device:OffLine:" + id, "offline");
+            runningDevices.remove(id);
+        });
+        return Result.ok(SuccessCode.DEVICE_OFFLINE_SUCCESS.getCode(),
+                SuccessCode.DEVICE_OFFLINE_SUCCESS.getMessage());
+    }
+
     /**
      * 对日志内容进行简单清洗，防止换行等导致日志注入
      */
@@ -311,52 +322,67 @@ public class VirtualMeterDeviceServiceImpl extends ServiceImpl<DeviceMapper, Vir
                 .replace('\n', ' ');
     }
 
+    // 单独开一个心跳任务
+    private void startHeartbeat(String deviceId) {
+        int time = Integer.parseInt(serverConfig.getReportFrequency()) / 1000;
+        int offset = Integer.parseInt(serverConfig.getTimeOffset()) / 1000;
+        scheduler.scheduleAtFixedRate(() -> {
+            Long reportTime = this.reportTime.get(deviceId);
+            if (reportTime ==null){
+                return;
+            }
+            try {
+                if (!isDeviceOnline(deviceId)) return;
+                dataSender.heartBeat(deviceId, reportTime);
+            } catch (Exception e) {
+                log.error("心跳发送异常: {}", e.getMessage(), e);
+            }
+        }, 0, time+offset, TimeUnit.SECONDS);
+    }
+
     /**
-     * 核心递归调度逻辑
+     * 核心递归调度逻辑（含心跳上报）
      */
     private void scheduleNextReport(String deviceId) {
         // 检查全局控制位
         if (!runningDevices.contains(deviceId)) {
+            log.info("设备 {} 不在运行集合中, 停止上报调度", deviceId);
             return;
         }
-
         String reportFrequency = serverConfig.getReportFrequency();
         String timeOffset = serverConfig.getTimeOffset();
-
-        // 设定上报周期，例如平均 60s，上下浮动 2s (58000ms->62000ms)
-        // 这样可以彻底打破所有设备在同一秒上报的情况
+        // 如果配置缺失，直接返回
         if (reportFrequency == null || timeOffset == null) {
+            log.warn("设备 {} 上报配置缺失", deviceId);
             return;
         }
-        long delay = Long.parseLong(reportFrequency) + ThreadLocalRandom.current()
-                .nextLong(Long.parseLong(timeOffset));
+        // 计算随机上报延迟，打破设备集中上报
+        long delay = Long.parseLong(reportFrequency) +
+                ThreadLocalRandom.current().nextLong(Long.parseLong(timeOffset));
         ScheduledFuture<?> future = scheduler.schedule(() -> {
             try {
-                if (!isDeviceOnline(deviceId)) {
-                    return;
-                }
                 processSingleDevice(deviceId);
             } catch (Exception e) {
-                log.error("设备 {} 数据上报失败: {}", sanitizeForLog(deviceId), sanitizeForLog(e.getMessage()));
+                String sanitizeForLog = sanitizeForLog(deviceId);
+                log.error("设备 {} 数据上报失败: {}", sanitizeForLog, e.getMessage(), e);
             } finally {
-                // 报完本次，如果没有被停掉，递归触发下一次上报
-                if (isDeviceOnline(deviceId)) {
-                    scheduleNextReport(deviceId);
-                }
+                // 递归调度下一次上报
+                reportTime.put(deviceId,System.currentTimeMillis());
+                scheduleNextReport(deviceId);
             }
         }, delay, TimeUnit.MILLISECONDS);
-
+        // 保存任务
         deviceTasks.put(deviceId, future);
     }
 
+    /**
+     * 判断设备是否在线
+     */
     private boolean isDeviceOnline(String deviceId) {
-        String s = (String) redisTemplate.opsForHash().get("OnLineMap", deviceId);
-        long time = 0;
-        if (s != null) {
-            time = Long.parseLong(s);
-        }
-        return time != 0;
+        String s = redisTemplate.opsForValue().get("device:OffLine:" + deviceId);
+        return s == null;
     }
+
 
     /**
      * 生成单条模拟数据并执行发送
@@ -405,7 +431,7 @@ public class VirtualMeterDeviceServiceImpl extends ServiceImpl<DeviceMapper, Vir
                 sendCnt.get() * ((double) Integer.parseInt(serverConfig.getReportFrequency()) / 1000), mid, step));
         dataBo.setIsOpen(DeviceStatus.NORMAL);
         dataBo.setStatus(DeviceStatus.NORMAL);
-        dataSendService.sendData(dataBo);
+        dataSender.sendData(dataBo);
     }
 
     /**

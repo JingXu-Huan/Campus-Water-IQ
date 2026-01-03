@@ -10,7 +10,6 @@ import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
-import java.util.Map;
 
 
 /**
@@ -80,6 +79,14 @@ public class MeterIoTDeviceController {
     }
 
     /**
+     * 单设备或设备列表下线
+     */
+    @PostMapping("/offLine")
+    public Result<String> offline(@NotNull @NotEmpty @RequestBody List<@NotBlank String> ids) {
+        return virtualMeterDeviceService.offline(ids);
+    }
+
+    /**
      * 单设备或多设备关闭阀门
      */
     @PostMapping("/closeTheValve")
@@ -111,52 +118,4 @@ public class MeterIoTDeviceController {
         return virtualMeterDeviceService.closeAllValue();
     }
 
-    /**
-     * 查看某台设备当前运行状态
-     */
-    @PostMapping("/status")
-    public Result<Map<String, String>> checkDeviceStatus(@NotNull @NotEmpty @RequestBody List<@NotBlank String> ids) {
-
-        return virtualMeterDeviceService.checkDeviceStatus(ids);
-    }
-
-    /**
-     * 更改当天的时间
-     * <p>
-     * 当然 😂 这不是逆转时间的公式，在物理世界，过去的人和事儿就是过去了
-     * <p>
-     * 这不过是虚拟世界罢了，祝你一切都好！
-     *
-     * @param time 你要重置的时间点
-     * @author 景旭
-     */
-    @GetMapping("/timeChange")
-    public Result<String> changeTime(@Min(0) @Max(24) int time) {
-        return virtualMeterDeviceService.changeTime(time);
-    }
-
-    /**
-     * 更改世界的季节
-     * <p>
-     * 我赋予了你重启四季的权力，
-     * <p>
-     * 却忘了提醒你，无论你将参数调回哪个季节，
-     * <p>
-     * 那些在枯叶中走散的人，都不会在花开时重逢。
-     *
-     * @param season - 你试图挽回的那个季节
-     * @author 景旭
-     */
-    @GetMapping("/seasonChange")
-    public Result<String> changeSeason(@Min(1) @Max(4) int season) {
-        return virtualMeterDeviceService.changeSeason(season);
-    }
-
-    /**
-     * 重置全部设备
-     */
-    @GetMapping("/destroyAll")
-    public Result<String> destroyAll() {
-        return virtualMeterDeviceService.destroyAll();
-    }
 }

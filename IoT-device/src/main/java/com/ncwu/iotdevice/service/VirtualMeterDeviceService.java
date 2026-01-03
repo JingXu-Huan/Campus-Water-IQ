@@ -42,4 +42,5 @@ public interface VirtualMeterDeviceService extends IService<VirtualDevice> {
 
     Result<String> destroyAll();
 
+    Result<String> offline(@NotNull @NotEmpty List<String> ids);
 }

@@ -22,7 +22,7 @@ import static com.ncwu.iotdevice.utils.Utils.markDeviceOnline;
  */
 @Service
 @RequiredArgsConstructor
-public class dataSendService {
+public class DataSender {
 
     private final RocketMQTemplate rocketMQTemplate;
     private final StringRedisTemplate redisTemplate;
@@ -42,15 +42,15 @@ public class dataSendService {
         //log.debug("上报数据: {}", dataBo);
         //更新 redis 中时间戳,就是向 redis 上报自己的心跳
         //获取当前系统时间
+        String deviceId = dataBo.getDeviceId();
         long timestamp = System.currentTimeMillis();
-        String id = dataBo.getDeviceId();
-        redisTemplate.opsForHash().put("OnLineMap", id, String.valueOf(timestamp));
+        heartBeat(deviceId, timestamp);
         //todo 消息队列通知上线
 
-        Boolean onLine = redisTemplate.hasKey("device:OffLine:" + id);
+        Boolean onLine = redisTemplate.hasKey("device:OffLine:" + deviceId);
         if (onLine) {
             //如果设备上线,调用设备上线后置处理器
-            markDeviceOnline(id, timestamp, deviceMapper, redisTemplate);
+            markDeviceOnline(deviceId, timestamp, deviceMapper, redisTemplate);
         }
         double reportFrequency;
         try {
@@ -59,8 +59,12 @@ public class dataSendService {
             throw new MessageSendException("Invalid reportFrequency configuration: " + serverConfig.getReportFrequency(), e);
         }
         double increment = keep3(dataBo.getFlow() * reportFrequency / 1000);
-        Double currentTotal = redisTemplate.opsForHash().increment("meter:total_usage", id, increment);
+        Double currentTotal = redisTemplate.opsForHash().increment("meter:total_usage", deviceId, increment);
         dataBo.setTotalUsage(keep3(currentTotal));
-        rocketMQTemplate.convertAndSend("Meter-Data",dataBo);
+        rocketMQTemplate.convertAndSend("Meter-Data", dataBo);
+    }
+
+    public void heartBeat(String deviceId, long timestamp) {
+        redisTemplate.opsForHash().put("OnLineMap", deviceId, String.valueOf(timestamp));
     }
 }

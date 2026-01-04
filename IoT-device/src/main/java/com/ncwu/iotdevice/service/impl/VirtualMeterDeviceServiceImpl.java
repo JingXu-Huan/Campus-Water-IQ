@@ -71,7 +71,7 @@ public class VirtualMeterDeviceServiceImpl extends ServiceImpl<DeviceMapper, Vir
     private final Map<String, ScheduledFuture<?>> deviceTasks = new ConcurrentHashMap<>();
 
     //存储设备上报时间戳，以便和心跳对齐
-    private final ConcurrentHashMap<String,Long> reportTime = new ConcurrentHashMap<>();
+    private final ConcurrentHashMap<String, Long> reportTime = new ConcurrentHashMap<>();
     //设备是否已经完成了初始化
     public volatile boolean isInit = false;
 
@@ -270,25 +270,36 @@ public class VirtualMeterDeviceServiceImpl extends ServiceImpl<DeviceMapper, Vir
         return Result.ok(SuccessCode.SEASON_CHANGE_SUCCESS.getCode(), SuccessCode.SEASON_CHANGE_SUCCESS.getMessage());
     }
 
+    /**
+     * 将设备列表里面的水表的水闸设置为关
+     */
     @Override
     public Result<String> closeValue(List<String> ids) {
-        return null;
+        ids.forEach(id -> redisTemplate.opsForSet().add("meter_closed", id));
+        return Result.ok(SuccessCode.METER_CLOSE_SUCCESS.getCode(), SuccessCode.METER_CLOSE_SUCCESS.getMessage());
     }
 
     @Override
     public Result<String> open(List<String> ids) {
-        return null;
+        redisTemplate.opsForSet().remove("meter_closed", ids.toArray());
+        return Result.ok(SuccessCode.METER_OPEN_SUCCESS.getCode(), SuccessCode.METER_OPEN_SUCCESS.getMessage());
     }
 
     @Override
     public Result<String> openAllValue() {
-        //todo
-        return null;
+        redisTemplate.delete("meter_closed");
+        return Result.ok(SuccessCode.METER_OPEN_SUCCESS.getCode(), SuccessCode.METER_OPEN_SUCCESS.getMessage());
     }
 
     @Override
     public Result<String> closeAllValue() {
-        return null;
+        Set<Object> keys = redisTemplate.opsForHash().keys("OnLineMap");
+        List<String> list = keys.stream()
+                .map(Object::toString)
+                .filter(s -> !s.startsWith("2"))
+                .toList();
+        list.forEach(id -> redisTemplate.opsForSet().add("meter_closed", id));
+        return Result.ok(SuccessCode.METER_CLOSE_SUCCESS.getCode(), SuccessCode.METER_CLOSE_SUCCESS.getMessage());
     }
 
     @Override
@@ -328,7 +339,7 @@ public class VirtualMeterDeviceServiceImpl extends ServiceImpl<DeviceMapper, Vir
         int offset = Integer.parseInt(serverConfig.getTimeOffset()) / 1000;
         scheduler.scheduleAtFixedRate(() -> {
             Long reportTime = this.reportTime.get(deviceId);
-            if (reportTime ==null){
+            if (reportTime == null) {
                 return;
             }
             try {
@@ -337,7 +348,7 @@ public class VirtualMeterDeviceServiceImpl extends ServiceImpl<DeviceMapper, Vir
             } catch (Exception e) {
                 log.error("心跳发送异常: {}", e.getMessage(), e);
             }
-        }, 0, time+offset, TimeUnit.SECONDS);
+        }, 0, time + offset, TimeUnit.SECONDS);
     }
 
     /**
@@ -367,7 +378,7 @@ public class VirtualMeterDeviceServiceImpl extends ServiceImpl<DeviceMapper, Vir
                 log.error("设备 {} 数据上报失败: {}", sanitizedDeviceId, e.getMessage(), e);
             } finally {
                 // 递归调度下一次上报
-                reportTime.put(deviceId,System.currentTimeMillis());
+                reportTime.put(deviceId, System.currentTimeMillis());
                 scheduleNextReport(deviceId);
             }
         }, delay, TimeUnit.MILLISECONDS);

@@ -95,7 +95,7 @@ public class MeterIoTDeviceController {
     }
 
     /**
-     * 单设备或多设备关闭阀门
+     * 单设备或多设备开启阀门
      */
     @PostMapping("/openTheValve")
     public Result<String> openValue(@NotNull @NotEmpty @RequestBody List<@NotBlank String> ids) {

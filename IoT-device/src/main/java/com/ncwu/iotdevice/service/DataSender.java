@@ -1,6 +1,7 @@
 package com.ncwu.iotdevice.service;
 
 
+import com.ncwu.iotdevice.AOP.annotation.CloseValue;
 import com.ncwu.iotdevice.AOP.annotation.NotCredible;
 import com.ncwu.iotdevice.AOP.annotation.RandomEvent;
 import com.ncwu.iotdevice.config.ServerConfig;
@@ -37,6 +38,7 @@ public class DataSender {
      */
     @NotCredible
     @RandomEvent
+    @CloseValue
     public void sendData(MeterDataBo dataBo) throws MessageSendException {
         // 模拟发送，实际可接入消息队列
         //log.debug("上报数据: {}", dataBo);

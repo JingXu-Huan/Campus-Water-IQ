@@ -44,9 +44,9 @@ public class WaterQualitySensorIotDeviceController {
         return null;
     }
 
-    /**关闭所有水质传感器*/
+    /**停止所有水质传感器上报任务*/
     @GetMapping("/stopAll")
     public Result<String> stopAll(){
-        return null;
+        return waterQualityDeviceService.stopAll();
     }
 }

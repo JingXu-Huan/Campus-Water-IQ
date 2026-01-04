@@ -35,4 +35,7 @@ public class VirtualDevice {
 
     @TableField("status")
     private String status; // 在线、离线、异常、报废
+
+    @TableField("is_running")
+    private Boolean isRunning; // 正在上报数据、停止上报数据
 }

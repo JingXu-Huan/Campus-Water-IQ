@@ -4,6 +4,8 @@ package com.ncwu.iotdevice.mapper;
 import com.baomidou.mybatisplus.core.mapper.BaseMapper;
 import com.ncwu.iotdevice.domain.entity.VirtualDevice;
 import org.apache.ibatis.annotations.Mapper;
+import org.apache.ibatis.annotations.Param;
+import org.apache.ibatis.annotations.Update;
 
 /**
  * @author jingxu

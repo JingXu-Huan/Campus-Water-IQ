@@ -3,6 +3,7 @@ package com.ncwu.iotdevice.service.impl;
 
 import cn.hutool.core.lang.UUID;
 import com.baomidou.mybatisplus.core.conditions.update.LambdaUpdateWrapper;
+import com.baomidou.mybatisplus.extension.conditions.update.LambdaUpdateChainWrapper;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import com.ncwu.common.VO.Result;
 import com.ncwu.common.enums.ErrorCode;
@@ -25,6 +26,7 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.aop.framework.AopContext;
 import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
 import java.util.*;
@@ -121,8 +123,8 @@ public class VirtualMeterDeviceServiceImpl extends ServiceImpl<DeviceMapper, Vir
         if (ids != null && !ids.isEmpty()) {
             pool.submit(() -> {
                 this.lambdaUpdate().in(VirtualDevice::getDeviceCode, ids)
-                        .eq(VirtualDevice::getStatus, "offline")
-                        .set(VirtualDevice::getStatus, "online").update();
+                        .eq(VirtualDevice::getIsRunning, false)
+                        .set(VirtualDevice::getIsRunning, true).update();
             });
             String hashKey = "OnLineMap";
             //使用Lua脚本加速redis操作！！！
@@ -150,8 +152,8 @@ public class VirtualMeterDeviceServiceImpl extends ServiceImpl<DeviceMapper, Vir
         if (ids != null && !ids.isEmpty()) {
             pool.submit(() -> {
                 this.lambdaUpdate().in(VirtualDevice::getDeviceCode, ids)
-                        .eq(VirtualDevice::getStatus, "offline")
-                        .set(VirtualDevice::getStatus, "online").update();
+                        .eq(VirtualDevice::getIsRunning, false)
+                        .set(VirtualDevice::getStatus, true).update();
             });
             //删除缓存
             ids.forEach(id -> redisTemplate.delete(meterStatusPrefix + id));
@@ -185,8 +187,8 @@ public class VirtualMeterDeviceServiceImpl extends ServiceImpl<DeviceMapper, Vir
         //todo 由于异步线程的异常不被事务控制，这里最好用消息队列
         pool.submit(() -> {
             LambdaUpdateWrapper<VirtualDevice> offline = new LambdaUpdateWrapper<VirtualDevice>()
-                    .eq(VirtualDevice::getStatus, "online")
-                    .set(VirtualDevice::getStatus, "offline");
+                    .eq(VirtualDevice::getIsRunning, true)
+                    .set(VirtualDevice::getIsRunning, false);
             deviceMapper.update(offline);
         });
         //删缓存
@@ -219,11 +221,11 @@ public class VirtualMeterDeviceServiceImpl extends ServiceImpl<DeviceMapper, Vir
         });
         //这里同理
         pool.submit(() -> {
-            LambdaUpdateWrapper<VirtualDevice> offline = new LambdaUpdateWrapper<VirtualDevice>()
+            LambdaUpdateWrapper<VirtualDevice> running = new LambdaUpdateWrapper<VirtualDevice>()
                     .in(VirtualDevice::getDeviceCode, ids)
-                    .eq(VirtualDevice::getStatus, "online")
-                    .set(VirtualDevice::getStatus, "offline");
-            deviceMapper.update(offline);
+                    .eq(VirtualDevice::getIsRunning, true)
+                    .set(VirtualDevice::getIsRunning, false);
+            deviceMapper.update(running);
             //删除缓存
             redisTemplate.delete(ids);
 
@@ -302,6 +304,7 @@ public class VirtualMeterDeviceServiceImpl extends ServiceImpl<DeviceMapper, Vir
         return Result.ok(SuccessCode.METER_CLOSE_SUCCESS.getCode(), SuccessCode.METER_CLOSE_SUCCESS.getMessage());
     }
 
+
     @Override
     public Result<String> destroyAll() {
         if (this.isRunning()) {
@@ -311,14 +314,22 @@ public class VirtualMeterDeviceServiceImpl extends ServiceImpl<DeviceMapper, Vir
         return Result.ok(SuccessCode.DEVICE_RESET_SUCCESS.getCode(), SuccessCode.DEVICE_RESET_SUCCESS.getMessage());
     }
 
+
     @Override
     public Result<String> offline(List<String> ids) {
-        ids.forEach(id -> {
-            redisTemplate.opsForValue().set("device:OffLine:" + id, "offline");
-            runningDevices.remove(id);
-        });
-        return Result.ok(SuccessCode.DEVICE_OFFLINE_SUCCESS.getCode(),
-                SuccessCode.DEVICE_OFFLINE_SUCCESS.getMessage());
+        log.info("下线设备：{}", ids);
+        boolean updateResult = lambdaUpdate()
+                .in(VirtualDevice::getDeviceCode, ids)
+                .set(VirtualDevice::getStatus, "offline")
+                .set(VirtualDevice::getIsRunning, false)
+                .update();
+        if (updateResult) {
+            ids.forEach(runningDevices::remove);
+            return Result.ok(SuccessCode.DEVICE_OFFLINE_SUCCESS.getCode(),
+                    SuccessCode.DEVICE_OFFLINE_SUCCESS.getMessage());
+        } else {
+            return Result.fail(ErrorCode.SYSTEM_ERROR.code(), ErrorCode.SYSTEM_ERROR.message());
+        }
     }
 
     /**
@@ -335,8 +346,8 @@ public class VirtualMeterDeviceServiceImpl extends ServiceImpl<DeviceMapper, Vir
 
     // 单独开一个心跳任务
     private void startHeartbeat(String deviceId) {
-        int time = Integer.parseInt(serverConfig.getReportFrequency()) / 1000;
-        int offset = Integer.parseInt(serverConfig.getTimeOffset()) / 1000;
+        int time = Integer.parseInt(serverConfig.getMeterReportFrequency()) / 1000;
+        int offset = Integer.parseInt(serverConfig.getMeterTimeOffset()) / 1000;
         scheduler.scheduleAtFixedRate(() -> {
             Long reportTime = this.reportTime.get(deviceId);
             if (reportTime == null) {
@@ -361,8 +372,8 @@ public class VirtualMeterDeviceServiceImpl extends ServiceImpl<DeviceMapper, Vir
             log.info("设备 {} 不在运行集合中, 停止上报调度", sanitizedDeviceId);
             return;
         }
-        String reportFrequency = serverConfig.getReportFrequency();
-        String timeOffset = serverConfig.getTimeOffset();
+        String reportFrequency = serverConfig.getMeterReportFrequency();
+        String timeOffset = serverConfig.getMeterTimeOffset();
         // 如果配置缺失，直接返回
         if (reportFrequency == null || timeOffset == null) {
             log.warn("设备 {} 上报配置缺失", sanitizedDeviceId);
@@ -439,10 +450,10 @@ public class VirtualMeterDeviceServiceImpl extends ServiceImpl<DeviceMapper, Vir
             step = 2;
         }
         dataBo.setWaterTem(waterTemperateGenerate(time * 3600L +
-                sendCnt.get() * ((double) Integer.parseInt(serverConfig.getReportFrequency()) / 1000), mid, step));
+                sendCnt.get() * ((double) Integer.parseInt(serverConfig.getMeterReportFrequency()) / 1000), mid, step));
         dataBo.setIsOpen(DeviceStatus.NORMAL);
         dataBo.setStatus(DeviceStatus.NORMAL);
-        dataSender.sendData(dataBo);
+        dataSender.sendMeterData(dataBo);
     }
 
     /**
@@ -559,6 +570,7 @@ public class VirtualMeterDeviceServiceImpl extends ServiceImpl<DeviceMapper, Vir
             virtualDevice.setFloorNo(id.substring(3, 5));
             virtualDevice.setRoomNo(id.substring(5, 8));
             virtualDevice.setStatus("online");
+            virtualDevice.setIsRunning(false);
             virtualDeviceList.add(virtualDevice);
         });
     }

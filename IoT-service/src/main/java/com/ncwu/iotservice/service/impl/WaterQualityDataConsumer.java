@@ -12,15 +12,10 @@ import org.springframework.stereotype.Component;
  */
 @Component
 @RocketMQMessageListener(
-        topic = "Meter-Data",          // 主题
-        consumerGroup = "Meter-Data-ConsumerGroup" // 消费者组
+        topic = "WaterQuality-Data",          // 主题
+        consumerGroup = "WaterQuality-Data-ConsumerGroup" // 消费者组
 )
-public class DataConsumer implements RocketMQListener<String> {
-
-    public DataConsumer() {
-        System.out.println("====== DataConsumer 已被 Spring 容器初始化 ======");
-    }
-
+public class WaterQualityDataConsumer implements RocketMQListener<String> {
     @Override
     public void onMessage(String s) {
         System.out.println(s);

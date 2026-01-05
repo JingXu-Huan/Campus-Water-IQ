@@ -2,8 +2,11 @@ package com.ncwu.iotdevice.controller;
 
 
 import com.ncwu.common.VO.Result;
+import com.ncwu.common.enums.ErrorCode;
+import com.ncwu.common.enums.SuccessCode;
 import com.ncwu.iotdevice.exception.DeviceRegisterException;
 import com.ncwu.iotdevice.service.VirtualMeterDeviceService;
+import com.ncwu.iotdevice.service.VirtualWaterQualityDeviceService;
 import jakarta.validation.constraints.*;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -11,6 +14,7 @@ import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 
 /**
  * 所有设备通用控制器
@@ -24,6 +28,7 @@ import java.util.Map;
 public class DeviceController {
 
     private final VirtualMeterDeviceService virtualMeterDeviceService;
+    private final VirtualWaterQualityDeviceService virtualWaterQualityDeviceService;
 
     /**
      * 初始化
@@ -84,8 +89,18 @@ public class DeviceController {
      * 重置全部设备
      */
     @GetMapping("/destroyAll")
-    public Result<String> destroyAll() {
-        return virtualMeterDeviceService.destroyAll();
-    }
+    public Result<String> destroyAllMeters() {
+        Result<String> result = virtualWaterQualityDeviceService.destroyAll();
+        Result<String> result1 = virtualMeterDeviceService.destroyAll();
 
+        String code = result.getCode();
+        String code1 = result1.getCode();
+        if (Objects.equals(code, ErrorCode.DEVICE_CANT_RESET_ERROR.code()) ||
+                Objects.equals(code1, ErrorCode.DEVICE_CANT_RESET_ERROR.code())){
+            return Result.fail(ErrorCode.DEVICE_CANT_RESET_ERROR.code(), ErrorCode.DEVICE_CANT_RESET_ERROR.message());
+        }
+        else {
+            return Result.ok(SuccessCode.DEVICE_RESET_SUCCESS.getCode(),SuccessCode.DEVICE_RESET_SUCCESS.getMessage());
+        }
+    }
 }

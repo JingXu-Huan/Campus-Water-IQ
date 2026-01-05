@@ -18,4 +18,12 @@ public interface VirtualWaterQualityDeviceService extends IService<VirtualDevice
     Result<String> startAll();
 
     Result<String> startList(@NotEmpty @NotNull List<String> ids);
+
+    Result<String> stopAll();
+
+    Result<String> offLine(@NotNull List<String> ids);
+
+    Result<String> stopList(List<String> ids);
+
+    Result<String> destroyAll();
 }

@@ -52,7 +52,7 @@ public class VirtualMeterDeviceServiceImpl extends ServiceImpl<DeviceMapper, Vir
     private int allSize;
     private final Set<String> runningDevices = ConcurrentHashMap.newKeySet();
     AtomicLong sendCnt = new AtomicLong(0);
-    final String meterStatusPrefix = "cache:meter:status:";
+    final String deviceStatusPrefix = "cache:device:status:";
     private ScheduledExecutorService scheduler;
 
     @PostConstruct
@@ -121,8 +121,8 @@ public class VirtualMeterDeviceServiceImpl extends ServiceImpl<DeviceMapper, Vir
         if (ids != null && !ids.isEmpty()) {
             pool.submit(() -> {
                 this.lambdaUpdate().in(VirtualDevice::getDeviceCode, ids)
-                        .eq(VirtualDevice::getStatus, "offline")
-                        .set(VirtualDevice::getStatus, "online").update();
+                        .eq(VirtualDevice::getIsRunning, false)
+                        .set(VirtualDevice::getIsRunning, true).update();
             });
             String hashKey = "OnLineMap";
             //使用Lua脚本加速redis操作！！！
@@ -131,6 +131,8 @@ public class VirtualMeterDeviceServiceImpl extends ServiceImpl<DeviceMapper, Vir
             ids.forEach(this::scheduleNextReport);
             ids.forEach(this::startHeartbeat);
             log.info("成功开启 {} 台设备的模拟数据流", ids.size());
+            //可以受检
+            redisTemplate.opsForValue().set("MeterChecked", "1");
             return Result.ok("成功开启" + ids.size() + "台设备");
         }
         return Result.fail(ErrorCode.UNKNOWN.code(), ErrorCode.UNKNOWN.message());
@@ -150,17 +152,18 @@ public class VirtualMeterDeviceServiceImpl extends ServiceImpl<DeviceMapper, Vir
         if (ids != null && !ids.isEmpty()) {
             pool.submit(() -> {
                 this.lambdaUpdate().in(VirtualDevice::getDeviceCode, ids)
-                        .eq(VirtualDevice::getStatus, "offline")
-                        .set(VirtualDevice::getStatus, "online").update();
+                        .eq(VirtualDevice::getIsRunning, false)
+                        .set(VirtualDevice::getStatus, true).update();
             });
             //删除缓存
-            ids.forEach(id -> redisTemplate.delete(meterStatusPrefix + id));
+            ids.forEach(id -> redisTemplate.delete(deviceStatusPrefix + id));
             runningDevices.addAll(ids);
             // 每一个设备开启一个独立的递归流
             ids.forEach(id -> redisTemplate.opsForHash().put("OnLineMap", id, "-1"));
             ids.forEach(this::scheduleNextReport);
             ids.forEach(this::startHeartbeat);
             log.info("批量：成功开启 {} 台设备的模拟数据流", ids.size());
+
             return Result.ok("成功开启" + ids.size() + "台设备");
         }
         return Result.fail(ErrorCode.UNKNOWN.code(), ErrorCode.UNKNOWN.message());
@@ -173,6 +176,8 @@ public class VirtualMeterDeviceServiceImpl extends ServiceImpl<DeviceMapper, Vir
     @InitLuaScript
     @Override
     public Result<String> stopSimulation() {
+        //停止受检
+        redisTemplate.opsForValue().set("MeterChecked", "0");
         //关闭开关
         runningDevices.clear();
         // 取消所有排队中的倒计时任务
@@ -185,13 +190,13 @@ public class VirtualMeterDeviceServiceImpl extends ServiceImpl<DeviceMapper, Vir
         //todo 由于异步线程的异常不被事务控制，这里最好用消息队列
         pool.submit(() -> {
             LambdaUpdateWrapper<VirtualDevice> offline = new LambdaUpdateWrapper<VirtualDevice>()
-                    .eq(VirtualDevice::getStatus, "online")
-                    .set(VirtualDevice::getStatus, "offline");
+                    .eq(VirtualDevice::getIsRunning, true)
+                    .set(VirtualDevice::getIsRunning, false);
             deviceMapper.update(offline);
         });
         //删缓存
         //此方法是安全的，使用scan进行删除
-        Utils.redisScanDel(meterStatusPrefix + "*", 100, redisTemplate);
+        Utils.redisScanDel(deviceStatusPrefix + "*", 100, redisTemplate);
         deviceTasks.clear();
         log.info("已停止所有模拟数据上报任务");
         return Result.ok("已停止所有模拟数据上报任务");
@@ -205,28 +210,21 @@ public class VirtualMeterDeviceServiceImpl extends ServiceImpl<DeviceMapper, Vir
         if (ids == null || ids.isEmpty()) {
             return Result.fail(null, "设备列表为空");
         }
-        if (ids.size() >= 10000) {
-            return Result.fail(null, "设备列表太多");
-        }
         ids.forEach(id -> {
             ScheduledFuture<?> future = deviceTasks.get(id);
             if (future != null) {
                 future.cancel(false);
                 deviceTasks.remove(id);
                 runningDevices.remove(id);
-                redisTemplate.opsForHash().put("OnLineMap", id, String.valueOf(0));
             }
         });
         //这里同理
         pool.submit(() -> {
-            LambdaUpdateWrapper<VirtualDevice> offline = new LambdaUpdateWrapper<VirtualDevice>()
+            LambdaUpdateWrapper<VirtualDevice> running = new LambdaUpdateWrapper<VirtualDevice>()
                     .in(VirtualDevice::getDeviceCode, ids)
-                    .eq(VirtualDevice::getStatus, "online")
-                    .set(VirtualDevice::getStatus, "offline");
-            deviceMapper.update(offline);
-            //删除缓存
-            redisTemplate.delete(ids);
-
+                    .eq(VirtualDevice::getIsRunning, true)
+                    .set(VirtualDevice::getIsRunning, false);
+            deviceMapper.update(running);
         });
         return Result.ok(SuccessCode.DEVICE_STOP_SUCCESS.getCode(),
                 SuccessCode.DEVICE_STOP_SUCCESS.getMessage());
@@ -241,7 +239,7 @@ public class VirtualMeterDeviceServiceImpl extends ServiceImpl<DeviceMapper, Vir
         Iterator<Map.Entry<String, String>> it = map1.entrySet().iterator();
         while (it.hasNext()) {
             Map.Entry<String, String> entry = it.next();
-            String status = redisTemplate.opsForValue().get(meterStatusPrefix + entry.getKey());
+            String status = redisTemplate.opsForValue().get(deviceStatusPrefix + entry.getKey());
             if (status != null) {
                 map.put(entry.getKey(), status);
                 it.remove();
@@ -252,7 +250,7 @@ public class VirtualMeterDeviceServiceImpl extends ServiceImpl<DeviceMapper, Vir
             String status = this.lambdaQuery().eq(VirtualDevice::getDeviceCode, id).one().getStatus();
             map.put(id, status);
             //加偏移量，防止缓存雪崩
-            redisTemplate.opsForValue().set(meterStatusPrefix + id, status, 180 + offset, TimeUnit.SECONDS);
+            redisTemplate.opsForValue().set(deviceStatusPrefix + id, status, 180 + offset, TimeUnit.SECONDS);
         });
         return Result.ok(map);
     }
@@ -302,6 +300,7 @@ public class VirtualMeterDeviceServiceImpl extends ServiceImpl<DeviceMapper, Vir
         return Result.ok(SuccessCode.METER_CLOSE_SUCCESS.getCode(), SuccessCode.METER_CLOSE_SUCCESS.getMessage());
     }
 
+
     @Override
     public Result<String> destroyAll() {
         if (this.isRunning()) {
@@ -311,14 +310,22 @@ public class VirtualMeterDeviceServiceImpl extends ServiceImpl<DeviceMapper, Vir
         return Result.ok(SuccessCode.DEVICE_RESET_SUCCESS.getCode(), SuccessCode.DEVICE_RESET_SUCCESS.getMessage());
     }
 
+
     @Override
     public Result<String> offline(List<String> ids) {
-        ids.forEach(id -> {
-            redisTemplate.opsForValue().set("device:OffLine:" + id, "offline");
-            runningDevices.remove(id);
-        });
-        return Result.ok(SuccessCode.DEVICE_OFFLINE_SUCCESS.getCode(),
-                SuccessCode.DEVICE_OFFLINE_SUCCESS.getMessage());
+        log.info("下线设备：{}", sanitizeForLog(ids.toString()));
+        boolean updateResult = lambdaUpdate()
+                .in(VirtualDevice::getDeviceCode, ids)
+                .set(VirtualDevice::getStatus, "offline")
+                .set(VirtualDevice::getIsRunning, false)
+                .update();
+        if (updateResult) {
+            ids.forEach(runningDevices::remove);
+            return Result.ok(SuccessCode.DEVICE_OFFLINE_SUCCESS.getCode(),
+                    SuccessCode.DEVICE_OFFLINE_SUCCESS.getMessage());
+        } else {
+            return Result.fail(ErrorCode.SYSTEM_ERROR.code(), ErrorCode.SYSTEM_ERROR.message());
+        }
     }
 
     /**
@@ -335,8 +342,8 @@ public class VirtualMeterDeviceServiceImpl extends ServiceImpl<DeviceMapper, Vir
 
     // 单独开一个心跳任务
     private void startHeartbeat(String deviceId) {
-        int time = Integer.parseInt(serverConfig.getReportFrequency()) / 1000;
-        int offset = Integer.parseInt(serverConfig.getTimeOffset()) / 1000;
+        int time = Integer.parseInt(serverConfig.getMeterReportFrequency()) / 1000;
+        int offset = Integer.parseInt(serverConfig.getMeterTimeOffset()) / 1000;
         scheduler.scheduleAtFixedRate(() -> {
             Long reportTime = this.reportTime.get(deviceId);
             if (reportTime == null) {
@@ -361,8 +368,8 @@ public class VirtualMeterDeviceServiceImpl extends ServiceImpl<DeviceMapper, Vir
             log.info("设备 {} 不在运行集合中, 停止上报调度", sanitizedDeviceId);
             return;
         }
-        String reportFrequency = serverConfig.getReportFrequency();
-        String timeOffset = serverConfig.getTimeOffset();
+        String reportFrequency = serverConfig.getMeterReportFrequency();
+        String timeOffset = serverConfig.getMeterTimeOffset();
         // 如果配置缺失，直接返回
         if (reportFrequency == null || timeOffset == null) {
             log.warn("设备 {} 上报配置缺失", sanitizedDeviceId);
@@ -439,10 +446,10 @@ public class VirtualMeterDeviceServiceImpl extends ServiceImpl<DeviceMapper, Vir
             step = 2;
         }
         dataBo.setWaterTem(waterTemperateGenerate(time * 3600L +
-                sendCnt.get() * ((double) Integer.parseInt(serverConfig.getReportFrequency()) / 1000), mid, step));
+                sendCnt.get() * ((double) Integer.parseInt(serverConfig.getMeterReportFrequency()) / 1000), mid, step));
         dataBo.setIsOpen(DeviceStatus.NORMAL);
         dataBo.setStatus(DeviceStatus.NORMAL);
-        dataSender.sendData(dataBo);
+        dataSender.sendMeterData(dataBo);
     }
 
     /**
@@ -559,6 +566,7 @@ public class VirtualMeterDeviceServiceImpl extends ServiceImpl<DeviceMapper, Vir
             virtualDevice.setFloorNo(id.substring(3, 5));
             virtualDevice.setRoomNo(id.substring(5, 8));
             virtualDevice.setStatus("online");
+            virtualDevice.setIsRunning(false);
             virtualDeviceList.add(virtualDevice);
         });
     }

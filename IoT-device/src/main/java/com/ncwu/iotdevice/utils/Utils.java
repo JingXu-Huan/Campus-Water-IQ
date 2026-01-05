@@ -32,7 +32,6 @@ import static com.ncwu.iotdevice.AOP.InitLuaScript.Lua_script;
 @Component
 @RequiredArgsConstructor
 public class Utils {
-    private final DeviceMapper deviceMapper;
     private final StringRedisTemplate redisTemplate;
 
     /**
@@ -68,13 +67,24 @@ public class Utils {
         Map<String, String> map = Stream.concat(meterDeviceIds.stream(), waterQualityDeviceIds.stream())
                 .collect(Collectors.toMap(Function.identity(), id -> "-1"));
         try {
+            //水表总用水量
             redisTemplate.opsForHash().putAll("meter:total_usage", meterMap);
+            //水表设备 id 集合
             redisTemplate.opsForSet().add("device:meter", meterDeviceIds.toArray(new String[0]));
+            //水质传感器设备 id 集合
             redisTemplate.opsForSet().add("device:sensor", waterQualityDeviceIds.toArray(new String[0]));
+            //所以设备心跳表
             redisTemplate.opsForHash().putAll("OnLineMap", map);
+            //管网发生的特殊事件
             redisTemplate.opsForValue().set("mode", "normal");
+            //当天时间
             redisTemplate.opsForValue().set("Time", "12");
+            //世界的季节
             redisTemplate.opsForValue().set("Season", "1");
+            //水表在线状态可否受检
+            redisTemplate.opsForValue().set("MeterChecked", "0");
+            //水质传感器在线状态可否受检
+            redisTemplate.opsForValue().set("WaterQualityChecked", "0");
         } catch (Exception e) {
             throw new DeviceRegisterException("注册失败");
         }
@@ -92,6 +102,8 @@ public class Utils {
             redisTemplate.delete("OnLineMap");
             redisTemplate.delete("Time");
             redisTemplate.delete("Season");
+            redisTemplate.delete("WaterQualityChecked");
+            redisTemplate.delete("MeterChecked");
             redisScanDel("device:OffLine:*", 1000, redisTemplate);
             deviceMapper.delete(null);
         } catch (Exception e) {
@@ -152,6 +164,9 @@ public class Utils {
         return keep3(Math.min(Math.max(Pdiscrete, Pmin), Pmax));
     }
 
+    /**
+     * 设备上线后置处理器
+     */
     public static void markDeviceOnline(String deviceCode, long timestamp, DeviceMapper deviceMapper,
                                         StringRedisTemplate redisTemplate) {
         // 1. 更新数据库状态（仅当当前为 offline 时）

@@ -132,7 +132,7 @@ public class VirtualMeterDeviceServiceImpl extends ServiceImpl<DeviceMapper, Vir
             ids.forEach(this::startHeartbeat);
             log.info("成功开启 {} 台设备的模拟数据流", ids.size());
             //可以受检
-            redisTemplate.opsForValue().set("MeterChecked","1");
+            redisTemplate.opsForValue().set("MeterChecked", "1");
             return Result.ok("成功开启" + ids.size() + "台设备");
         }
         return Result.fail(ErrorCode.UNKNOWN.code(), ErrorCode.UNKNOWN.message());
@@ -177,7 +177,7 @@ public class VirtualMeterDeviceServiceImpl extends ServiceImpl<DeviceMapper, Vir
     @Override
     public Result<String> stopSimulation() {
         //停止受检
-        redisTemplate.opsForValue().set("MeterChecked","0");
+        redisTemplate.opsForValue().set("MeterChecked", "0");
         //关闭开关
         runningDevices.clear();
         // 取消所有排队中的倒计时任务
@@ -313,7 +313,7 @@ public class VirtualMeterDeviceServiceImpl extends ServiceImpl<DeviceMapper, Vir
 
     @Override
     public Result<String> offline(List<String> ids) {
-        log.info("下线设备：{}", ids);
+        log.info("下线设备：{}", sanitizeForLog(ids.toString()));
         boolean updateResult = lambdaUpdate()
                 .in(VirtualDevice::getDeviceCode, ids)
                 .set(VirtualDevice::getStatus, "offline")

@@ -109,7 +109,7 @@ public class VirtualWaterQualityDeviceServiceImpl extends ServiceImpl<DeviceMapp
         log.info("成功开启{}台设备的数据流", ids.size());
         runningDevices.addAll(ids);
         //可以受检
-        redisTemplate.opsForValue().set("WaterQualityChecked","1");
+        redisTemplate.opsForValue().set("WaterQualityChecked", "1");
         return Result.ok(SuccessCode.DEVICE_OPEN_SUCCESS.getCode(),
                 SuccessCode.DEVICE_OPEN_SUCCESS.getMessage());
     }
@@ -138,7 +138,7 @@ public class VirtualWaterQualityDeviceServiceImpl extends ServiceImpl<DeviceMapp
     @Override
     public Result<String> stopAll() {
         //停止受检
-        redisTemplate.opsForValue().set("WaterQualityChecked","0");
+        redisTemplate.opsForValue().set("WaterQualityChecked", "0");
         runningDevices.clear();
         //立即停止未进行的调度任务，正在运行的调度任务将再下一次上报时停止。
         deviceTasks.forEach((id, future) -> {
@@ -151,7 +151,7 @@ public class VirtualWaterQualityDeviceServiceImpl extends ServiceImpl<DeviceMapp
 
     @Override
     public Result<String> offLine(List<String> ids) {
-        log.info("下线设备：{}", ids);
+        log.info("下线设备：{}", sanitizeForLog(ids.toString()));
         pool.submit(() -> {
             lambdaUpdate()
                     .in(VirtualDevice::getDeviceCode, ids)
@@ -161,6 +161,18 @@ public class VirtualWaterQualityDeviceServiceImpl extends ServiceImpl<DeviceMapp
         });
         ids.forEach(runningDevices::remove);
         return Result.ok(SuccessCode.DEVICE_OFFLINE_SUCCESS.getCode(), SuccessCode.DEVICE_OFFLINE_SUCCESS.getMessage());
+    }
+
+    /**
+     * 对日志内容进行简单清洗，防止换行等导致日志注入
+     */
+    private String sanitizeForLog(String input) {
+        if (input == null) {
+            return null;
+        }
+        // 去除回车和换行，防止伪造多行日志
+        return input.replace('\r', ' ')
+                .replace('\n', ' ');
     }
 
     @Override

@@ -229,7 +229,7 @@ public class VirtualWaterQualityDeviceServiceImpl extends ServiceImpl<DeviceMapp
                 processSingleDevice(deviceId);
                 scheduleNextReport(deviceId);
             } catch (Exception e) {
-                log.error("设备:{}上报失败,原因:{}", deviceId, e.getMessage());
+                log.error("设备:{}上报失败,原因:{}", sanitizeForLog(deviceId), e.getMessage());
             }
         }, delay, TimeUnit.MILLISECONDS);
         deviceTasks.put(deviceId, future);

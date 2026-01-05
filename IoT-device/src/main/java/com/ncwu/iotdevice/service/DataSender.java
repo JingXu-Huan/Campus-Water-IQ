@@ -50,12 +50,13 @@ public class DataSender {
         String deviceId = dataBo.getDeviceId();
         long timestamp = System.currentTimeMillis();
         heartBeat(deviceId, timestamp);
-        //todo 消息队列通知上线
-
         Boolean onLine = redisTemplate.hasKey("device:OffLine:" + deviceId);
         if (onLine) {
+            // 消息队列通知上线
+            rocketMQTemplate.convertAndSend("DeviceOnLine",deviceId);
             //如果设备上线,调用设备上线后置处理器
             markDeviceOnline(deviceId, timestamp, deviceMapper, redisTemplate);
+
         }
         double reportFrequency;
         try {
@@ -82,11 +83,10 @@ public class DataSender {
         //每次接到上报的数据，就查询redis的离线列表，看看有没有离线设备重新上报数据(重新上线)
         Boolean onLine = redisTemplate.hasKey("device:OffLine:" + deviceId);
         if (onLine) {
+            //消息队列通知上线
+            rocketMQTemplate.convertAndSend("DeviceOnLine", deviceId);
             //如果设备上线,调用设备上线后置处理器
             markDeviceOnline(deviceId, timestamp, deviceMapper, redisTemplate);
-
-            //消息队列通知上线
-            rocketMQTemplate.convertAndSend("device-online", deviceId);
         }
         //Iot设备上报数据频率高，这里使用异步调用
         asyncSendData("WaterQuality-Data", dataBo);

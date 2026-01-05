@@ -40,8 +40,9 @@ import static com.ncwu.iotdevice.utils.Utils.keep3;
 public class VirtualWaterQualityDeviceServiceImpl extends ServiceImpl<DeviceMapper, VirtualDevice>
         implements VirtualWaterQualityDeviceService {
 
-    private int allSize;
     private final Set<String> runningDevices = ConcurrentHashMap.newKeySet();
+
+    final String deviceStatusPrefix = "cache:device:status:";
 
     //存储设备上报时间戳，以便和心跳对齐
     private final ConcurrentHashMap<String, Long> reportTime = new ConcurrentHashMap<>();
@@ -74,11 +75,15 @@ public class VirtualWaterQualityDeviceServiceImpl extends ServiceImpl<DeviceMapp
         if (!isInit) {
             return Result.fail(ErrorCode.DEVICE_ERROR.code(), ErrorCode.DEVICE_INIT_ERROR.message());
         }
-        if (isRunning()) {
+        Long size1 = redisTemplate.opsForSet().size("device:sensor");
+        if (size1 == null) {
+            return Result.fail(ErrorCode.UNKNOWN.code(), ErrorCode.UNKNOWN.message());
+        }
+        if (runningDevices.size() == size1) {
+            //如果所有设备已经存在于运行设备集合中，无需继续
             return Result.fail(ErrorCode.DEVICE_DEVICE_RUNNING_NOW_ERROR.code(),
                     ErrorCode.DEVICE_DEVICE_RUNNING_NOW_ERROR.message());
         }
-
         Set<String> ids = redisTemplate.opsForSet().members("device:sensor");
         if (ids == null) {
             return Result.fail(ErrorCode.UNKNOWN.code(), ErrorCode.UNKNOWN.message());
@@ -93,7 +98,8 @@ public class VirtualWaterQualityDeviceServiceImpl extends ServiceImpl<DeviceMapp
             LambdaUpdateChainWrapper<VirtualDevice> wrapper = this.lambdaUpdate()
                     .in(VirtualDevice::getId, ids)
                     .eq(VirtualDevice::getStatus, "offline")
-                    .set(VirtualDevice::getStatus, "online");
+                    .set(VirtualDevice::getStatus, "online")
+                    .set(VirtualDevice::getIsRunning, true);
             this.update(wrapper);
         });
         //递归上报数据
@@ -102,26 +108,95 @@ public class VirtualWaterQualityDeviceServiceImpl extends ServiceImpl<DeviceMapp
         ids.forEach(this::startHeartbeat);
         log.info("成功开启{}台设备的数据流", ids.size());
         runningDevices.addAll(ids);
-        return Result.ok(null, SuccessCode.DEVICE_OPEN_SUCCESS.getCode(),
-                SuccessCode.DEVICE_OPEN_SUCCESS.getMessage()
-        );
+        //可以受检
+        redisTemplate.opsForValue().set("WaterQualityChecked","1");
+        return Result.ok(SuccessCode.DEVICE_OPEN_SUCCESS.getCode(),
+                SuccessCode.DEVICE_OPEN_SUCCESS.getMessage());
     }
 
     @Override
     public Result<String> startList(List<String> ids) {
-        return null;
+        if (!isInit) {
+            return Result.fail(ErrorCode.DEVICE_ERROR.code(), ErrorCode.DEVICE_INIT_ERROR.message());
+        }
+        runningDevices.addAll(ids);
+        ids.forEach(this::scheduleNextReport);
+        ids.forEach(this::startHeartbeat);
+        //更新数据库状态,异步执行
+        pool.submit(() -> {
+            this.lambdaUpdate().in(VirtualDevice::getDeviceCode, ids)
+                    .set(VirtualDevice::getStatus, "online")
+                    .set(VirtualDevice::getIsRunning, true);
+        });
+        //删除缓存
+        redisTemplate.delete(deviceStatusPrefix);
+        log.info("批量：成功开启{}台设备的数据流", ids.size());
+        return Result.ok(SuccessCode.DEVICE_OPEN_SUCCESS.getCode(),
+                SuccessCode.DEVICE_OPEN_SUCCESS.getMessage());
     }
 
     @Override
     public Result<String> stopAll() {
+        //停止受检
+        redisTemplate.opsForValue().set("WaterQualityChecked","0");
         runningDevices.clear();
-        //停止调度任务
-        deviceTasks.forEach((id,future)->{
-            if (future!=null&&!future.isCancelled()){
+        //立即停止未进行的调度任务，正在运行的调度任务将再下一次上报时停止。
+        deviceTasks.forEach((id, future) -> {
+            if (future != null && !future.isCancelled()) {
                 future.cancel(false);
             }
         });
-        return null;
+        return Result.ok(SuccessCode.DEVICE_STOP_SUCCESS.getCode(), SuccessCode.DEVICE_STOP_SUCCESS.getMessage());
+    }
+
+    @Override
+    public Result<String> offLine(List<String> ids) {
+        log.info("下线设备：{}", ids);
+        pool.submit(() -> {
+            lambdaUpdate()
+                    .in(VirtualDevice::getDeviceCode, ids)
+                    .set(VirtualDevice::getStatus, "offline")
+                    .set(VirtualDevice::getIsRunning, false)
+                    .update();
+        });
+        ids.forEach(runningDevices::remove);
+        return Result.ok(SuccessCode.DEVICE_OFFLINE_SUCCESS.getCode(), SuccessCode.DEVICE_OFFLINE_SUCCESS.getMessage());
+    }
+
+    @Override
+    public Result<String> stopList(List<String> ids) {
+        if (ids == null || ids.isEmpty()) {
+            return Result.fail(ErrorCode.UNKNOWN.code(), ErrorCode.UNKNOWN.message());
+        }
+        //移除运行中列表
+        ids.forEach(runningDevices::remove);
+        //停止未运行的任务
+        ids.forEach(id -> {
+            ScheduledFuture<?> future = deviceTasks.get(id);
+            if (future != null) {
+                future.cancel(false);
+                deviceTasks.remove(id);
+                runningDevices.remove(id);
+            }
+        });
+        pool.submit(() -> {
+            this.lambdaUpdate().in(VirtualDevice::getDeviceCode, ids)
+                    .set(VirtualDevice::getIsRunning, false)
+                    .update();
+        });
+        return Result.ok(SuccessCode.DEVICE_STOP_SUCCESS.getCode(), SuccessCode.DEVICE_STOP_SUCCESS.getMessage());
+    }
+
+    @Override
+    public Result<String> destroyAll() {
+        if (isRunning()) {
+            return Result.fail(ErrorCode.DEVICE_DEVICE_RUNNING_NOW_ERROR.code(),
+                    ErrorCode.DEVICE_DEVICE_RUNNING_NOW_ERROR.message());
+        } else {
+            this.isInit = false;
+            return Result.ok(SuccessCode.DEVICE_REGISTER_SUCCESS.getCode(),
+                    SuccessCode.DEVICE_REGISTER_SUCCESS.getMessage());
+        }
     }
 
     private void scheduleNextReport(String deviceId) {
@@ -166,7 +241,6 @@ public class VirtualWaterQualityDeviceServiceImpl extends ServiceImpl<DeviceMapp
     }
 
     private void sendData(WaterQualityDataBo dataBo) {
-        System.out.println(dataBo);
         dataSender.sendWaterQualityData(dataBo);
     }
 

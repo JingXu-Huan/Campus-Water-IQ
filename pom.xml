@@ -41,7 +41,7 @@
         <dubbo.version>3.2.3</dubbo.version>
         <lombok.version>1.18.32</lombok.version>
 
-        <spring-cloud.version>2023.0.3</spring-cloud.version>
+        <spring-cloud.version>2025.1.0</spring-cloud.version>
         <spring-cloud-alibaba.version>2022.0.0.0</spring-cloud-alibaba.version>
 
         <!-- RocketMQ：starter 2.3.0 + client 5.x（关键！避免你之前 4.9.4 导致 MessageModel 找不到） -->

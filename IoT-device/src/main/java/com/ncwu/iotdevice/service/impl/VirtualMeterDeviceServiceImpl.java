@@ -17,7 +17,6 @@ import com.ncwu.iotdevice.domain.entity.VirtualDevice;
 import com.ncwu.iotdevice.mapper.DeviceMapper;
 import com.ncwu.iotdevice.service.DataSender;
 import com.ncwu.iotdevice.service.VirtualMeterDeviceService;
-import com.ncwu.iotdevice.utils.Utils;
 import jakarta.annotation.PostConstruct;
 import jakarta.annotation.PreDestroy;
 import lombok.RequiredArgsConstructor;
@@ -89,7 +88,7 @@ public class VirtualMeterDeviceServiceImpl extends ServiceImpl<DeviceMapper, Vir
         // 确保应用关闭时停止所有调度
         stopSimulation();
         // 确保应用关闭之后清空 redis 中所有数据
-        Utils.clearRedisData(redisTemplate, deviceMapper);
+        clearRedisData(redisTemplate, deviceMapper);
         scheduler.shutdown();
     }
 
@@ -196,7 +195,7 @@ public class VirtualMeterDeviceServiceImpl extends ServiceImpl<DeviceMapper, Vir
         });
         //删缓存
         //此方法是安全的，使用scan进行删除
-        Utils.redisScanDel(deviceStatusPrefix + "*", 100, redisTemplate);
+        redisScanDel(deviceStatusPrefix + "*", 100, redisTemplate);
         deviceTasks.clear();
         log.info("已停止所有模拟数据上报任务");
         return Result.ok("已停止所有模拟数据上报任务");
@@ -321,6 +320,15 @@ public class VirtualMeterDeviceServiceImpl extends ServiceImpl<DeviceMapper, Vir
                 .update();
         if (updateResult) {
             ids.forEach(runningDevices::remove);
+//            //写入离线缓存列表
+//            redisTemplate.executePipelined((RedisCallback<Object>)connection->{
+//                for(String id:ids){
+//                    String key = "device:OffLine:" + id;
+//                    String value = "offlineBySystem";
+//                    redisTemplate.opsForValue().set(key,value);
+//                }
+//                return null;
+//            });
             return Result.ok(SuccessCode.DEVICE_OFFLINE_SUCCESS.getCode(),
                     SuccessCode.DEVICE_OFFLINE_SUCCESS.getMessage());
         } else {
@@ -397,8 +405,14 @@ public class VirtualMeterDeviceServiceImpl extends ServiceImpl<DeviceMapper, Vir
      * 判断设备是否在线
      */
     private boolean isDeviceOnline(String deviceId) {
+        //先查询缓存
         String s = redisTemplate.opsForValue().get("device:OffLine:" + deviceId);
-        return s == null;
+        String status = "online";
+        if (s != null) {
+            status = this.lambdaQuery().eq(VirtualDevice::getDeviceCode, deviceId)
+                    .one().getStatus();
+        }
+        return status.equals("online");
     }
 
 
@@ -524,8 +538,8 @@ public class VirtualMeterDeviceServiceImpl extends ServiceImpl<DeviceMapper, Vir
             return Result.fail(ErrorCode.DEVICE_ALREADY_INIT_ERROR.code()
                     , ErrorCode.DEVICE_ALREADY_INIT_ERROR.message());
         }
-        Utils.clearRedisData(redisTemplate, deviceMapper);
-        DeviceIdList deviceIdList = Utils.initAllRedisData(buildings, floors, rooms, redisTemplate);
+        clearRedisData(redisTemplate, deviceMapper);
+        DeviceIdList deviceIdList = initAllRedisData(buildings, floors, rooms, redisTemplate);
 
         List<String> meterDeviceIds = deviceIdList.getMeterDeviceIds();
         List<String> waterQualityDeviceIds = deviceIdList.getWaterQualityDeviceIds();

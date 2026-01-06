@@ -48,7 +48,7 @@ public class VirtualWaterQualityDeviceServiceImpl extends ServiceImpl<DeviceMapp
     private final ConcurrentHashMap<String, Long> reportTime = new ConcurrentHashMap<>();
 
     //开大小为5的线程池
-    final ExecutorService pool = Executors.newFixedThreadPool(5);
+    final ExecutorService pool = Executors.newFixedThreadPool(10);
 
     //设备是否已经完成了初始化
     @Setter
@@ -160,6 +160,15 @@ public class VirtualWaterQualityDeviceServiceImpl extends ServiceImpl<DeviceMapp
                     .update();
         });
         ids.forEach(runningDevices::remove);
+        //写入离线缓存列表
+//        redisTemplate.executePipelined((RedisCallback<Object>) connection->{
+//            for(String id:ids){
+//                String key = "device:OffLine:" + id;
+//                String value = "offlineBySystem";
+//                redisTemplate.opsForValue().set(key,value);
+//            }
+//            return null;
+//        });
         return Result.ok(SuccessCode.DEVICE_OFFLINE_SUCCESS.getCode(), SuccessCode.DEVICE_OFFLINE_SUCCESS.getMessage());
     }
 
@@ -285,7 +294,13 @@ public class VirtualWaterQualityDeviceServiceImpl extends ServiceImpl<DeviceMapp
      * 判断设备是否在线
      */
     private boolean isDeviceOnline(String deviceId) {
+        //先查询缓存
         String s = redisTemplate.opsForValue().get("device:OffLine:" + deviceId);
-        return s == null;
+        String status = "online";
+        if (s != null) {
+            status = this.lambdaQuery().eq(VirtualDevice::getDeviceCode, deviceId)
+                    .one().getStatus();
+        }
+        return status.equals("online");
     }
 }

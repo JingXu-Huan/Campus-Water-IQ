@@ -22,7 +22,7 @@ import java.util.function.Function;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
-import static com.ncwu.iotdevice.AOP.InitLuaScript.Lua_script;
+import static com.ncwu.iotdevice.AOP.Aspects.InitLuaScript.Lua_script;
 
 /**
  * @author jingxu

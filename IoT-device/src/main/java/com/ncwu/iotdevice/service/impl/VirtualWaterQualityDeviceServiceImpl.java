@@ -23,6 +23,7 @@ import org.springframework.stereotype.Service;
 import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Set;
 import java.util.concurrent.*;
 
@@ -160,15 +161,6 @@ public class VirtualWaterQualityDeviceServiceImpl extends ServiceImpl<DeviceMapp
                     .update();
         });
         ids.forEach(runningDevices::remove);
-        //写入离线缓存列表
-//        redisTemplate.executePipelined((RedisCallback<Object>) connection->{
-//            for(String id:ids){
-//                String key = "device:OffLine:" + id;
-//                String value = "offlineBySystem";
-//                redisTemplate.opsForValue().set(key,value);
-//            }
-//            return null;
-//        });
         return Result.ok(SuccessCode.DEVICE_OFFLINE_SUCCESS.getCode(), SuccessCode.DEVICE_OFFLINE_SUCCESS.getMessage());
     }
 
@@ -254,13 +246,35 @@ public class VirtualWaterQualityDeviceServiceImpl extends ServiceImpl<DeviceMapp
         dataBo.setTimeStamp(LocalDateTime.now());
         dataBo.setDevice(2);
         dataBo.setDeviceId(deviceId);
-        dataBo.setPh(keep3(ThreadLocalRandom.current().nextDouble(6.5, 8.5)));
-        dataBo.setTurbidity(keep3(ThreadLocalRandom.current().nextDouble(0.8, 1.0)));
-        dataBo.setChlorine(keep3(ThreadLocalRandom.current().nextDouble(0.05, 0.2)));
+        int season = Integer.parseInt(Objects.requireNonNull(redisTemplate.opsForValue().get("Season")));
+        double ph, turbidity, chlorine;
+        if (season == 1) {
+            ph = ThreadLocalRandom.current().nextDouble(6.8, 7.2);
+            turbidity = ThreadLocalRandom.current().nextDouble(0.3, 0.8);
+            chlorine = ThreadLocalRandom.current().nextDouble(0.3, 0.45);
+        } else if (season == 2) {
+            ph = ThreadLocalRandom.current().nextDouble(7.2, 7.8);
+            turbidity = ThreadLocalRandom.current().nextDouble(0.5, 1.0);
+            chlorine = ThreadLocalRandom.current().nextDouble(0.4, 0.7);
+        } else if (season == 3) {
+            ph = ThreadLocalRandom.current().nextDouble(7.0, 7.5);
+            turbidity = ThreadLocalRandom.current().nextDouble(0.2, 0.5);
+            chlorine = ThreadLocalRandom.current().nextDouble(0.3, 0.45);
+        } else {
+            ph = ThreadLocalRandom.current().nextDouble(7.4, 8.0);
+            turbidity = ThreadLocalRandom.current().nextDouble(0.1, 0.3);
+            chlorine = ThreadLocalRandom.current().nextDouble(0.2, 0.35);
+        }
+        dataBo.setPh(keep3(ph));
+        dataBo.setTurbidity(keep3(turbidity));
+        dataBo.setChlorine(keep3(chlorine + turbidity * 0.2));
         dataBo.setStatus("normal");
         sendData(dataBo);
     }
 
+    /**
+     * 发送模拟数据
+     */
     private void sendData(WaterQualityDataBo dataBo) {
         dataSender.sendWaterQualityData(dataBo);
     }
@@ -269,7 +283,9 @@ public class VirtualWaterQualityDeviceServiceImpl extends ServiceImpl<DeviceMapp
         return !runningDevices.isEmpty();
     }
 
-    // 单独开一个心跳任务
+    /**
+     * 单独开一个心跳任务
+     */
     private void startHeartbeat(String deviceId) {
         int time = Integer.parseInt(serverConfig.getWaterQualityReportFrequency()) / 1000;
         int offset = Integer.parseInt(serverConfig.getWaterQualityReportTimeOffset()) / 1000;

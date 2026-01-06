@@ -1,4 +1,4 @@
-package com.ncwu.iotdevice.AOP;
+package com.ncwu.iotdevice.AOP.Aspects;
 
 import org.aspectj.lang.annotation.Aspect;
 import org.aspectj.lang.annotation.Before;

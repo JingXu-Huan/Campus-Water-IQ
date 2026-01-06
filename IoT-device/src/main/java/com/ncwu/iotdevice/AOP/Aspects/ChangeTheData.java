@@ -1,4 +1,4 @@
-package com.ncwu.iotdevice.AOP;
+package com.ncwu.iotdevice.AOP.Aspects;
 
 
 import com.ncwu.iotdevice.AOP.annotation.RandomEvent;

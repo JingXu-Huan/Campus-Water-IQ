@@ -24,15 +24,13 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.aop.framework.AopContext;
 import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.stereotype.Service;
-
 import java.time.LocalDateTime;
 import java.util.*;
 import java.util.concurrent.*;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.function.Function;
 import java.util.stream.Collectors;
-
-import static com.ncwu.iotdevice.AOP.InitLuaScript.Lua_script;
+import static com.ncwu.iotdevice.AOP.Aspects.InitLuaScript.Lua_script;
 import static com.ncwu.iotdevice.utils.Utils.*;
 
 /**
@@ -320,15 +318,6 @@ public class VirtualMeterDeviceServiceImpl extends ServiceImpl<DeviceMapper, Vir
                 .update();
         if (updateResult) {
             ids.forEach(runningDevices::remove);
-//            //写入离线缓存列表
-//            redisTemplate.executePipelined((RedisCallback<Object>)connection->{
-//                for(String id:ids){
-//                    String key = "device:OffLine:" + id;
-//                    String value = "offlineBySystem";
-//                    redisTemplate.opsForValue().set(key,value);
-//                }
-//                return null;
-//            });
             return Result.ok(SuccessCode.DEVICE_OFFLINE_SUCCESS.getCode(),
                     SuccessCode.DEVICE_OFFLINE_SUCCESS.getMessage());
         } else {

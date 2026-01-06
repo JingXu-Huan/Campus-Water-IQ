@@ -1,11 +1,13 @@
 package com.ncwu.iotdevice.scheduling;
 
 import com.baomidou.mybatisplus.core.conditions.update.LambdaUpdateWrapper;
+import com.ncwu.iotdevice.config.ServerConfig;
 import com.ncwu.iotdevice.domain.entity.VirtualDevice;
 import com.ncwu.iotdevice.mapper.DeviceMapper;
 import lombok.Getter;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.apache.rocketmq.spring.core.RocketMQTemplate;
 import org.springframework.data.redis.core.Cursor;
 import org.springframework.data.redis.core.ScanOptions;
 import org.springframework.data.redis.core.StringRedisTemplate;
@@ -30,14 +32,12 @@ import java.util.concurrent.TimeUnit;
 @RequiredArgsConstructor
 public class MeterOnLineCheckerTasks {
 
-
     private final StringRedisTemplate redisTemplate;
     private final DeviceMapper deviceMapper;
+    private final RocketMQTemplate rocketMQTemplate;
+    private final ServerConfig serverConfig;
 
-    // 定义下线阈值：1分钟
-    private static final long OFFLINE_THRESHOLD_MS = 60 * 1000L;
 
-    //由于是定时任务，为了避免 OOM ,我们不能一次性把redis的数据全部读下来。尝试这样做会带来很大的GC压力。
     @Scheduled(fixedDelay = 30 * 1000)
     public void checkOnLineDevices() {
 //        检查设备运行控制器
@@ -61,7 +61,9 @@ public class MeterOnLineCheckerTasks {
                 if (lastReportTime == -1 || deviceId.startsWith("2")) {
                     continue;
                 }
-                if (now - lastReportTime > OFFLINE_THRESHOLD_MS) {
+                long i = Long.parseLong(serverConfig.getWaterQualityReportFrequency());
+                int n = Math.max(1, serverConfig.getN());
+                if (now - lastReportTime > i * n) {
                     processOffline(deviceId);
                 }
             }
@@ -80,8 +82,8 @@ public class MeterOnLineCheckerTasks {
      *
      */
     private void processOffline(String deviceId) {
-        log.warn("检测到设备下线: {}", deviceId);
-        //todo 消息队列通知告警服务
+        log.warn("检测到水表设备下线: {}", deviceId);
+        rocketMQTemplate.convertAndSend("DeviceOffline", deviceId);
         //更新数据库状态,(此时可能缓存中还有此设备的在线信息,也要一并删除)
         LambdaUpdateWrapper<VirtualDevice> updateWrapper = new LambdaUpdateWrapper<VirtualDevice>()
                 .eq(VirtualDevice::getDeviceCode, deviceId)

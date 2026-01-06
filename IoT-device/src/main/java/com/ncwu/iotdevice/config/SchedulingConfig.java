@@ -10,7 +10,7 @@ public class SchedulingConfig {
     @Bean
     public ThreadPoolTaskScheduler taskScheduler() {
         ThreadPoolTaskScheduler scheduler = new ThreadPoolTaskScheduler();
-        scheduler.setPoolSize(35);  // 设置线程池大小
+        scheduler.setPoolSize(5);  // 设置线程池大小
         scheduler.initialize();
         return scheduler;
     }

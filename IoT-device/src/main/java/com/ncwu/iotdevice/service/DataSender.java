@@ -56,7 +56,6 @@ public class DataSender {
             rocketMQTemplate.convertAndSend("DeviceOnLine",deviceId);
             //如果设备上线,调用设备上线后置处理器
             markDeviceOnline(deviceId, timestamp, deviceMapper, redisTemplate);
-
         }
         double reportFrequency;
         try {

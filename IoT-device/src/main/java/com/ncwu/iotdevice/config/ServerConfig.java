@@ -26,4 +26,6 @@ public class ServerConfig {
     double Pmax;
     //数据不可信发生概率
     double PnotCredible;
+    //错过 n 个上报周期视为下线
+    int n;
 }

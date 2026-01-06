@@ -178,6 +178,7 @@ public class Utils {
         deviceMapper.update(updateWrapper);
         // 2. 清理离线缓存
         redisTemplate.delete("device:OffLine:" + deviceCode);
+        redisTemplate.delete("cache:device:status:"+deviceCode);
         // 3. 加入心跳监控
         redisTemplate.opsForHash()
                 .put("OnLineMap", deviceCode, String.valueOf(timestamp));

@@ -1,4 +1,4 @@
-package com.ncwu.warningservice;
+package com.ncwu.warningservice.listener;
 
 
 import org.apache.rocketmq.spring.annotation.RocketMQMessageListener;
@@ -8,14 +8,13 @@ import org.springframework.stereotype.Component;
 /**
  * @author jingxu
  * @version 1.0.0
- * @since 2026/1/5
+ * @since 2026/1/6
  */
 @Component
-@RocketMQMessageListener(topic = "DeviceOnLine",consumerGroup = "Device-On-LineGroup")
-public class FoundDeviceOnLine implements RocketMQListener<String> {
-
+@RocketMQMessageListener(topic = "DeviceOffline", consumerGroup = "Device-Off-LineGroup")
+public class FoundDeviceOffline implements RocketMQListener<String> {
     @Override
     public void onMessage(String s) {
-        System.out.println(s);
+        System.out.println("检测到设备" + s + "下线");
     }
 }

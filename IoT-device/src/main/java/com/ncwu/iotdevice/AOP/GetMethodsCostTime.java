@@ -10,6 +10,10 @@ import org.springframework.stereotype.Component;
 
 /**
  * 对方法耗时进行监控
+ *
+ * @author jingxu
+ * @version 1.0.0
+ * @since 2026/1/2
  */
 @Aspect
 @Component

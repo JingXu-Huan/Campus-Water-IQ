@@ -12,6 +12,7 @@ import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.stereotype.Component;
 
 /**
+ * 用于将流量设置为0
  * @author jingxu
  * @version 1.0.0
  * @since 2026/1/4

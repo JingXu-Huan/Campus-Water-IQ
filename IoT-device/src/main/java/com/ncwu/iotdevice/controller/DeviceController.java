@@ -18,6 +18,7 @@ import java.util.Objects;
 
 /**
  * 所有设备通用控制器
+ *
  * @author jingxu
  * @version 1.0.0
  * @since 2026/1/3
@@ -33,6 +34,10 @@ public class DeviceController {
     /**
      * 初始化
      * 建议前端传入参数，或者从配置文件读取默认值
+     *
+     * @param rooms     每层房间数
+     * @param floors    楼宇的层数
+     * @param buildings 楼宇的数量
      */
     @GetMapping("/init")
     public Result<String> start(@Min(1) @Max(99) @RequestParam(defaultValue = "1") int buildings,
@@ -43,6 +48,7 @@ public class DeviceController {
         }
         return virtualMeterDeviceService.init(buildings, floors, rooms);
     }
+
     /**
      * 更改当天的时间
      * <p>
@@ -78,6 +84,8 @@ public class DeviceController {
 
     /**
      * 查看某台设备当前运行状态
+     *
+     * @param ids 设备列表
      */
     @PostMapping("/status")
     public Result<Map<String, String>> checkDeviceStatus(@NotNull @NotEmpty @RequestBody List<@NotBlank String> ids) {
@@ -96,11 +104,10 @@ public class DeviceController {
         String code = result.getCode();
         String code1 = result1.getCode();
         if (Objects.equals(code, ErrorCode.DEVICE_CANT_RESET_ERROR.code()) ||
-                Objects.equals(code1, ErrorCode.DEVICE_CANT_RESET_ERROR.code())){
+                Objects.equals(code1, ErrorCode.DEVICE_CANT_RESET_ERROR.code())) {
             return Result.fail(ErrorCode.DEVICE_CANT_RESET_ERROR.code(), ErrorCode.DEVICE_CANT_RESET_ERROR.message());
-        }
-        else {
-            return Result.ok(SuccessCode.DEVICE_RESET_SUCCESS.getCode(),SuccessCode.DEVICE_RESET_SUCCESS.getMessage());
+        } else {
+            return Result.ok(SuccessCode.DEVICE_RESET_SUCCESS.getCode(), SuccessCode.DEVICE_RESET_SUCCESS.getMessage());
         }
     }
 }

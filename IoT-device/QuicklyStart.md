@@ -2,7 +2,7 @@
 
 ## 先决条件：
 
-请在本地部署好Redis服务，并暴露6379端口。**不要设置密码**。
+请在本地部署好Redis服务，并暴露16379端口。**不要设置密码**。
 
 ## 接口展示：
 <img src="src/main/java/com/ncwu/iotdevice/imgs/interfaces.png" alt="全部接口">

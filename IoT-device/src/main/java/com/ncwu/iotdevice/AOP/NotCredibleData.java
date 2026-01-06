@@ -43,6 +43,9 @@ public class NotCredibleData {
         }
     }
 
+    /**
+     * 污染原来的数据
+     */
     public MeterDataBo dataNotCredibleProcessor(ProceedingJoinPoint pjp) {
         MeterDataBo dataBo = (MeterDataBo) pjp.getArgs()[0];
         double p = ThreadLocalRandom.current().nextDouble(1);

@@ -9,6 +9,7 @@ import lombok.ToString;
 import java.time.LocalDateTime;
 
 /**
+ * 水表设备上报数据载荷
  * @author jingxu
  * @version 1.0.0
  * @since 2025/12/23
@@ -18,13 +19,22 @@ import java.time.LocalDateTime;
 @AllArgsConstructor
 @NoArgsConstructor
 public class MeterDataBo {
+    //设备类型
     Integer device;
+    //设备编号
     String deviceId;
+    //数据产生时间戳
     LocalDateTime timeStamp;
+    //瞬时水流量
     Double flow;
+    //总用水量
     Double totalUsage;
+    //水压
     Double pressure;
+    //水温
     Double waterTem;
+    //水闸开闭状态
     String IsOpen;
+    //数据状态
     String status;
 }

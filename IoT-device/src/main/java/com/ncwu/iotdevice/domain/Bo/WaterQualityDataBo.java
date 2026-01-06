@@ -19,11 +19,18 @@ import java.time.LocalDateTime;
 @AllArgsConstructor
 @NoArgsConstructor
 public class WaterQualityDataBo {
+    //设备类型
     Integer device;
+    //设备编号
     String deviceId;
+    //数据产生时间
     LocalDateTime timeStamp;
+    //酸碱
     Double ph;
+    //浊度
     Double turbidity;
+    //含氯量
     Double chlorine;
+    //数据状态
     String status;
 }

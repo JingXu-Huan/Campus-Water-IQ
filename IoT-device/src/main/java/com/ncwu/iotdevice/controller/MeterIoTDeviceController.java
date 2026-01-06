@@ -53,6 +53,8 @@ public class MeterIoTDeviceController {
 
     /**
      * 单设备或设备列表停止模拟任务
+     *
+     * @param ids 设备列表
      */
     @PostMapping("/endList")
     public Result<String> endList(@NotNull @NotEmpty @RequestBody List<@NotBlank String> ids) {
@@ -61,6 +63,8 @@ public class MeterIoTDeviceController {
 
     /**
      * 单设备或设备列表下线
+     *
+     * @param ids 设备列表
      */
     @PostMapping("/offLine")
     public Result<String> offline(@NotNull @NotEmpty @RequestBody List<@NotBlank String> ids) {
@@ -69,6 +73,8 @@ public class MeterIoTDeviceController {
 
     /**
      * 单设备或设备列表关闭阀门
+     *
+     * @param ids 设备列表
      */
     @PostMapping("/closeTheValve")
     public Result<String> closeValue(@NotNull @NotEmpty @RequestBody List<@NotBlank String> ids) {
@@ -77,6 +83,8 @@ public class MeterIoTDeviceController {
 
     /**
      * 单设备或设备列表开启阀门
+     *
+     * @param ids 设备列表
      */
     @PostMapping("/openTheValve")
     public Result<String> openValue(@NotNull @NotEmpty @RequestBody List<@NotBlank String> ids) {

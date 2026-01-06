@@ -40,9 +40,14 @@ public class ChangeTheData {
         String mode = redisTemplate.opsForValue().get("mode");
         Long size = redisTemplate.opsForSet().size("device:meter");
 
+        if (size == null) {
+            return null;
+        }
+        //正常模式
         if (mode == null || "normal".equals(mode)) {
             return pjp.proceed();
         }
+        //爆管
         if ("burstPipe".equals(mode)) {
             MeterDataBo dataBo = getMeterDataBo(pjp);
             if (set.size() < Math.max(1, size * 0.05)) {
@@ -53,6 +58,7 @@ public class ChangeTheData {
                 return pjp.proceed(new Object[]{modifiedData});
             }
         }
+        //漏水
         if ("leaking".equals(mode)) {
             MeterDataBo modifiedData = preLeakingProcessor(pjp);
             return pjp.proceed(new Object[]{modifiedData});
@@ -63,6 +69,9 @@ public class ChangeTheData {
 
     /**
      * 爆管事件前置处理器
+     *
+     * @param point 连接点
+     * @return dataBo 修改后的数据
      */
     private MeterDataBo preburstPipeProcessor(ProceedingJoinPoint point) {
         MeterDataBo dataBo = getMeterDataBo(point);
@@ -96,7 +105,7 @@ public class ChangeTheData {
         return dataBo;
     }
 
-
+    /**得到原方法入参*/
     private static MeterDataBo getMeterDataBo(ProceedingJoinPoint point) {
         Object[] args = point.getArgs();
         return (MeterDataBo) args[0];

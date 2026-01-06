@@ -35,6 +35,8 @@ public class WaterQualitySensorIotDeviceController {
 
     /**
      * 单设备或设备列表开启模拟任务
+     *
+     * @param ids 设备列表
      */
     @PostMapping("/startList")
     public Result<String> startList(@NotNull @RequestBody List<@NotBlank String> ids) {
@@ -43,6 +45,8 @@ public class WaterQualitySensorIotDeviceController {
 
     /**
      * 单设备或设备列表停止模拟任务
+     *
+     * @param ids 设备列表
      */
     @PostMapping("/stopList")
     public Result<String> stopList(@NotNull @RequestBody List<@NotBlank String> ids) {
@@ -59,6 +63,8 @@ public class WaterQualitySensorIotDeviceController {
 
     /**
      * 单设备或设备列表下线
+     *
+     * @param ids 设备列表
      */
     @PostMapping("/stopAll")
     public Result<String> offLineAll(@NotNull @RequestBody List<@NotBlank String> ids) {

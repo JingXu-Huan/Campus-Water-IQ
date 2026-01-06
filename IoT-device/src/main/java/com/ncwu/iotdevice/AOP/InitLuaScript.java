@@ -1,13 +1,18 @@
 package com.ncwu.iotdevice.AOP;
 
-
-
 import org.aspectj.lang.annotation.Aspect;
 import org.aspectj.lang.annotation.Before;
 import org.springframework.core.io.ClassPathResource;
 import org.springframework.data.redis.core.script.DefaultRedisScript;
 import org.springframework.stereotype.Component;
 
+/**
+ * 初始化特定 lua 脚本
+ *
+ * @author jingxu
+ * @version 1.0.0
+ * @since 2026/1/2
+ */
 @Aspect
 @Component
 public class InitLuaScript {

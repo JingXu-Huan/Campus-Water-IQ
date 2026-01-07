@@ -1,13 +1,13 @@
-package com.ncwu.common;
+package com.ncwu.ingestgroup;
 
 import org.junit.jupiter.api.Test;
 import org.springframework.boot.test.context.SpringBootTest;
 
 @SpringBootTest
-class CommonApplicationTests {
-    @Test
-    void load(){
+class IngestGroupApplicationTests {
 
+    @Test
+    void contextLoads() {
     }
 
 }

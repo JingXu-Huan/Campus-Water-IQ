@@ -1,15 +1,18 @@
-package com.ncwu.iotservice.service.impl;
+package com.ncwu.ingestgroup.consumer;
 
 
+import com.baomidou.mybatisplus.extension.service.IService;
+import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.ncwu.common.Bo.MeterDataBo;
-import com.ncwu.iotservice.entity.IotDeviceData;
-import com.ncwu.iotservice.service.IoTDataService;
+import com.ncwu.ingestgroup.entity.IotDeviceData;
+import com.ncwu.ingestgroup.mapper.IotDataMapper;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.rocketmq.spring.annotation.RocketMQMessageListener;
 import org.apache.rocketmq.spring.core.RocketMQListener;
+import org.springframework.aop.framework.AopContext;
 import org.springframework.stereotype.Component;
 import java.util.ArrayList;
 import java.util.List;
@@ -22,12 +25,11 @@ import java.util.List;
 @Component
 @RequiredArgsConstructor
 @RocketMQMessageListener(topic = "Meter-Data", consumerGroup = "Meter-Data-ConsumerGroup")
-public class MeterDataConsumer implements RocketMQListener<String> {
+public class MeterDataConsumer extends ServiceImpl<IotDataMapper,IotDeviceData> implements RocketMQListener<String> , IService<IotDeviceData> {
 
     private final ObjectMapper objectMapper;
-    private final List<IotDeviceData> buffer = new ArrayList<>();
+    private final List<IotDeviceData> buffer = new ArrayList<>(2000);
 
-    private final IoTDataService ioTDataService;
 
     @Override
     public void onMessage(String s) {
@@ -38,12 +40,11 @@ public class MeterDataConsumer implements RocketMQListener<String> {
             iotDeviceData.setDeviceCode(meterDataBo.getDeviceId());
             iotDeviceData.setCollectTime(meterDataBo.getTimeStamp());
             iotDeviceData.setDeviceType("WATER_METER");
-
             synchronized (this) {
                 buffer.add(iotDeviceData);
-                int BATCH_SIZE = 2000;
-                if (buffer.size() >= BATCH_SIZE) {
-                    ioTDataService.saveBatch(new ArrayList<>(buffer));
+                if (buffer.size() >= 2000) {
+                    MeterDataConsumer meterDataConsumer = (MeterDataConsumer) AopContext.currentProxy();
+                    meterDataConsumer.saveBatch(buffer);
                     buffer.clear();
                 }
             }

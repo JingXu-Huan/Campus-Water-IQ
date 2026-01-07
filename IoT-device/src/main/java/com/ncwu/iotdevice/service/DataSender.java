@@ -104,7 +104,6 @@ public class DataSender {
         }
         //Iot设备上报数据频率高，这里使用异步调用
         asyncSendData("WaterQuality-Data", data);
-        System.out.println(data);
     }
 
     /**

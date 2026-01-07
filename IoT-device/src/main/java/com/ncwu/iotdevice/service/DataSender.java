@@ -1,6 +1,8 @@
 package com.ncwu.iotdevice.service;
 
 
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import com.ncwu.iotdevice.AOP.annotation.CloseValue;
 import com.ncwu.iotdevice.AOP.annotation.NotCredible;
 import com.ncwu.iotdevice.AOP.annotation.RandomEvent;
@@ -10,11 +12,10 @@ import com.ncwu.iotdevice.domain.Bo.WaterQualityDataBo;
 import com.ncwu.iotdevice.exception.MessageSendException;
 import com.ncwu.iotdevice.mapper.DeviceMapper;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.apache.rocketmq.client.producer.SendCallback;
 import org.apache.rocketmq.client.producer.SendResult;
 import org.apache.rocketmq.spring.core.RocketMQTemplate;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.stereotype.Service;
 
@@ -26,15 +27,17 @@ import static com.ncwu.iotdevice.utils.Utils.markDeviceOnline;
  * @version 1.0.0
  * @since 2026/1/1
  */
+@Slf4j
 @Service
 @RequiredArgsConstructor
 public class DataSender {
 
-    private static final Logger log = LoggerFactory.getLogger(DataSender.class);
+    private final ObjectMapper objectMapper;
     private final RocketMQTemplate rocketMQTemplate;
     private final StringRedisTemplate redisTemplate;
     private final DeviceMapper deviceMapper;
     private final ServerConfig serverConfig;
+
 
     /**
      * 此方法传递发送的数据，并且更新 redis 中设备的在在线状态
@@ -53,7 +56,7 @@ public class DataSender {
         Boolean onLine = redisTemplate.hasKey("device:OffLine:" + deviceId);
         if (onLine) {
             // 消息队列通知上线
-            rocketMQTemplate.convertAndSend("DeviceOnLine",deviceId);
+            rocketMQTemplate.convertAndSend("DeviceOnLine", deviceId);
             //如果设备上线,调用设备上线后置处理器
             markDeviceOnline(deviceId, timestamp, deviceMapper, redisTemplate);
         }
@@ -66,8 +69,14 @@ public class DataSender {
         double increment = keep3(dataBo.getFlow() * reportFrequency / 1000);
         Double currentTotal = redisTemplate.opsForHash().increment("meter:total_usage", deviceId, increment);
         dataBo.setTotalUsage(keep3(currentTotal));
+        String data;
+        try {
+            data = objectMapper.writeValueAsString(dataBo);
+        } catch (JsonProcessingException e) {
+            throw new RuntimeException(e);
+        }
         //Iot设备上报数据频率高，这里使用异步调用
-        asyncSendData("Meter-Data", dataBo);
+        asyncSendData("Meter-Data", data);
     }
 
     public void heartBeat(String deviceId, long timestamp) {
@@ -87,8 +96,15 @@ public class DataSender {
             //如果设备上线,调用设备上线后置处理器
             markDeviceOnline(deviceId, timestamp, deviceMapper, redisTemplate);
         }
+        String data;
+        try {
+            data = objectMapper.writeValueAsString(dataBo);
+        } catch (JsonProcessingException e) {
+            throw new RuntimeException(e);
+        }
         //Iot设备上报数据频率高，这里使用异步调用
-        asyncSendData("WaterQuality-Data", dataBo);
+        asyncSendData("WaterQuality-Data", data);
+        System.out.println(data);
     }
 
     /**
@@ -105,6 +121,7 @@ public class DataSender {
             @Override
             public void onException(Throwable throwable) {
                 log.error("MQ 异步发送失败，尝试再次异步发送", throwable);
+
                 rocketMQTemplate.asyncSend(topic, data, new SendCallback() {
                     @Override
                     public void onSuccess(SendResult sendResult) {

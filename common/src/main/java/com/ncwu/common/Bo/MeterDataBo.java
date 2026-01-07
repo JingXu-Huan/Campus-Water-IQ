@@ -1,4 +1,4 @@
-package com.ncwu.iotdevice.domain.Bo;
+package com.ncwu.common.Bo;
 
 
 import lombok.AllArgsConstructor;

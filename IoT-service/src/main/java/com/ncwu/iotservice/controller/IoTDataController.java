@@ -18,5 +18,4 @@ import org.springframework.web.bind.annotation.RestController;
 public class IoTDataController {
 
     private final IoTDataService ioTDataService;
-
 }

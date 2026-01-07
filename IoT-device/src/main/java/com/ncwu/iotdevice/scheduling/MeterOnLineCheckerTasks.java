@@ -13,9 +13,10 @@ import org.springframework.data.redis.core.ScanOptions;
 import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Component;
-
 import java.util.Map;
 import java.util.Objects;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
 
 
@@ -32,11 +33,12 @@ import java.util.concurrent.TimeUnit;
 @RequiredArgsConstructor
 public class MeterOnLineCheckerTasks {
 
+    ExecutorService pool = Executors.newFixedThreadPool(7);
+
     private final StringRedisTemplate redisTemplate;
     private final DeviceMapper deviceMapper;
     private final RocketMQTemplate rocketMQTemplate;
     private final ServerConfig serverConfig;
-
 
     @Scheduled(fixedDelay = 30 * 1000)
     public void checkOnLineDevices() {
@@ -82,20 +84,21 @@ public class MeterOnLineCheckerTasks {
      *
      */
     private void processOffline(String deviceId) {
-        log.warn("检测到水表设备下线: {}", deviceId);
+        //发送下线消息
         rocketMQTemplate.convertAndSend("DeviceOffline", deviceId);
         //更新数据库状态,(此时可能缓存中还有此设备的在线信息,也要一并删除)
-        LambdaUpdateWrapper<VirtualDevice> updateWrapper = new LambdaUpdateWrapper<VirtualDevice>()
-                .eq(VirtualDevice::getDeviceCode, deviceId)
-                .eq(VirtualDevice::getStatus, "online")
-                .set(VirtualDevice::getStatus, "offline");
-        deviceMapper.update(updateWrapper);
+        pool.submit(() -> {
+            LambdaUpdateWrapper<VirtualDevice> updateWrapper = new LambdaUpdateWrapper<VirtualDevice>()
+                    .eq(VirtualDevice::getDeviceCode, deviceId)
+                    .set(VirtualDevice::getStatus, "offline");
+            deviceMapper.update(updateWrapper);
+        });
         redisTemplate.delete("cache:meter:status:" + deviceId);
         //在线状态表也要一并清除
         redisTemplate.opsForHash().delete("OnLineMap", deviceId);
-        log.warn("已修改 {} 设备的状态为 offline ", deviceId);
         //在 redis 维护下线缓存列表,为设备后续上线提供方便
         redisTemplate.opsForValue().set("device:OffLine:" + deviceId, "offLine", 7, TimeUnit.DAYS);
     }
+
 }
 

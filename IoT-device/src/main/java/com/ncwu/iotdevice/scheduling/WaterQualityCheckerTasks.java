@@ -84,6 +84,7 @@ public class WaterQualityCheckerTasks {
         LambdaUpdateWrapper<VirtualDevice> updateWrapper = new LambdaUpdateWrapper<VirtualDevice>()
                 .eq(VirtualDevice::getDeviceCode, deviceId)
                 .eq(VirtualDevice::getStatus, "online")
+                .set(VirtualDevice::getIsRunning,true)
                 .set(VirtualDevice::getStatus, "offline");
         deviceMapper.update(updateWrapper);
         redisTemplate.delete("cache:device:status:" + deviceId);
@@ -91,6 +92,6 @@ public class WaterQualityCheckerTasks {
         redisTemplate.opsForHash().delete("OnLineMap", deviceId);
         log.warn("已修改 {} 设备的状态为 offline ", deviceId);
         //在 redis 维护下线缓存列表,为设备后续上线提供方便
-        redisTemplate.opsForValue().set("device:OffLine:" + deviceId, "offLine", 7, TimeUnit.DAYS);
+        redisTemplate.opsForValue().set("device:OffLine:" + deviceId, "offLine,false", 7, TimeUnit.DAYS);
     }
 }

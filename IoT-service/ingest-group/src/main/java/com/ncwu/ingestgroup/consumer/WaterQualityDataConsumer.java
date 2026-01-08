@@ -35,6 +35,7 @@ public class WaterQualityDataConsumer extends ServiceImpl<IotDataMapper, IotDevi
 
     @Override
     public void onMessage(String s) {
+        System.out.println(s);
         try {
             WaterQualityDataBo waterQualityDataBo = objectMapper.readValue(s, WaterQualityDataBo.class);
             IotDeviceData iotDeviceData = new IotDeviceData();

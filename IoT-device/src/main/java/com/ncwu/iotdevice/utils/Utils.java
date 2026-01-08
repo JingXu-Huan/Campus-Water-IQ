@@ -1,6 +1,7 @@
 package com.ncwu.iotdevice.utils;
 
 
+import com.alibaba.nacos.shaded.com.google.common.util.concurrent.ThreadFactoryBuilder;
 import com.baomidou.mybatisplus.core.conditions.update.LambdaUpdateWrapper;
 import com.ncwu.iotdevice.AOP.annotation.InitLuaScript;
 import com.ncwu.iotdevice.config.ServerConfig;
@@ -17,7 +18,7 @@ import org.springframework.stereotype.Component;
 import java.math.BigDecimal;
 import java.math.RoundingMode;
 import java.util.*;
-import java.util.concurrent.ThreadLocalRandom;
+import java.util.concurrent.*;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
@@ -33,6 +34,7 @@ import static com.ncwu.iotdevice.AOP.Aspects.InitLuaScript.Lua_script;
 @RequiredArgsConstructor
 public class Utils {
     private final StringRedisTemplate redisTemplate;
+
 
     /**
      * 此方法用于向 redis中初始化设备 id
@@ -169,16 +171,21 @@ public class Utils {
      */
     public static void markDeviceOnline(String deviceCode, long timestamp, DeviceMapper deviceMapper,
                                         StringRedisTemplate redisTemplate) {
+        //得到自定义线程池
+        ExecutorService pools = getExecutorPools("markDeviceOnline", 5, 10, 60, 1000);
         // 1. 更新数据库状态（仅当当前为 offline 时）
-        LambdaUpdateWrapper<VirtualDevice> updateWrapper =
-                new LambdaUpdateWrapper<VirtualDevice>()
-                        .eq(VirtualDevice::getDeviceCode, deviceCode)
-                        .eq(VirtualDevice::getStatus, "offline")
-                        .set(VirtualDevice::getStatus, "online");
-        deviceMapper.update(updateWrapper);
+        pools.submit(()->{
+            LambdaUpdateWrapper<VirtualDevice> updateWrapper =
+                    new LambdaUpdateWrapper<VirtualDevice>()
+                            .eq(VirtualDevice::getDeviceCode, deviceCode)
+                            .eq(VirtualDevice::getStatus, "offline")
+                            .set(VirtualDevice::getIsRunning,true)
+                            .set(VirtualDevice::getStatus, "online");
+            deviceMapper.update(updateWrapper);
+        });
         // 2. 清理离线缓存
         redisTemplate.delete("device:OffLine:" + deviceCode);
-        redisTemplate.delete("cache:device:status:"+deviceCode);
+        redisTemplate.delete("cache:device:status:" + deviceCode);
         // 3. 加入心跳监控
         redisTemplate.opsForHash()
                 .put("OnLineMap", deviceCode, String.valueOf(timestamp));
@@ -195,7 +202,28 @@ public class Utils {
         return Long.valueOf(1L).equals(result);
     }
 
-
+    /**
+     * 得到一个自定义线程池
+     *
+     * @param name        线程池名称
+     * @param size        核心线程池数量
+     * @param maxSize     最大线程数量
+     * @param seconds     线程空闲生存时间
+     * @param tasksLength 最多任务数量
+     * @return pool 自定义线程池
+     */
+    public static ExecutorService getExecutorPools(String name, int size, int maxSize, int seconds, int tasksLength) {
+        ThreadFactory namedThreadFactory = new ThreadFactoryBuilder()
+                .setNameFormat(name).build();
+        return new ThreadPoolExecutor(
+                size,                      // 核心线程
+                maxSize,                     // 最大线程
+                seconds, TimeUnit.SECONDS,  // 空闲生存时间
+                new ArrayBlockingQueue<>(tasksLength), // 有界队列：最多排队 1000 个
+                namedThreadFactory,     // 自定义名称方便排查
+                new ThreadPoolExecutor.CallerRunsPolicy() // 拒绝策略：队列满了让调用者自己执行
+        );
+    }
 }
 
 

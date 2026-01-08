@@ -129,7 +129,7 @@ public class DataSender {
 
                     @Override
                     public void onException(Throwable t) {
-                        log.error("重试发送仍然失败，记录", t);
+                        log.error("重试发送仍然失败，记录{}", data);
                     }
                 });
             }

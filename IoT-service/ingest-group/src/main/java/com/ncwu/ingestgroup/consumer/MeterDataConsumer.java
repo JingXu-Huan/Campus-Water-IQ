@@ -1,6 +1,5 @@
 package com.ncwu.ingestgroup.consumer;
 
-
 import com.baomidou.mybatisplus.extension.service.IService;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import com.fasterxml.jackson.core.JsonProcessingException;
@@ -33,6 +32,7 @@ public class MeterDataConsumer extends ServiceImpl<IotDataMapper,IotDeviceData> 
 
     @Override
     public void onMessage(String s) {
+        System.out.println(s);
         try {
             MeterDataBo meterDataBo = objectMapper.readValue(s, MeterDataBo.class);
             IotDeviceData iotDeviceData = new IotDeviceData();

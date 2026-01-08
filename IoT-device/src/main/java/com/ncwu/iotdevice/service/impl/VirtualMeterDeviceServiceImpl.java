@@ -17,10 +17,12 @@ import com.ncwu.iotdevice.domain.entity.VirtualDevice;
 import com.ncwu.iotdevice.mapper.DeviceMapper;
 import com.ncwu.iotdevice.service.DataSender;
 import com.ncwu.iotdevice.service.VirtualMeterDeviceService;
+import com.ncwu.iotdevice.utils.Utils;
 import jakarta.annotation.PostConstruct;
 import jakarta.annotation.PreDestroy;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.apache.rocketmq.spring.core.RocketMQTemplate;
 import org.springframework.aop.framework.AopContext;
 import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.stereotype.Service;
@@ -45,18 +47,27 @@ import static com.ncwu.iotdevice.utils.Utils.*;
 public class VirtualMeterDeviceServiceImpl extends ServiceImpl<DeviceMapper, VirtualDevice>
         implements VirtualMeterDeviceService {
 
-    //运行中的设备集合
+
     private int allSize;
+    //运行中的设备集合
     private final Set<String> runningDevices = ConcurrentHashMap.newKeySet();
     AtomicLong sendCnt = new AtomicLong(0);
     final String deviceStatusPrefix = "cache:device:status:";
+
     private ScheduledExecutorService scheduler;
+    private final StringRedisTemplate redisTemplate;
+    private final RocketMQTemplate rocketMQTemplate;
+    private final DeviceMapper deviceMapper;
+    private final VirtualWaterQualityDeviceServiceImpl waterQualityDeviceService;
+    private final ServerConfig serverConfig;
+    private final DataSender dataSender;
+
 
     @PostConstruct
     void init() {
         // 经压测验证，约 70 台虚拟设备对应 1 个调度线程即可满足精度与吞吐
         // 取 max 防止入参为 0 发生异常
-        scheduler = Executors.newScheduledThreadPool(Math.max(1, (int) (this.count() / 70)));
+        scheduler = Executors.newScheduledThreadPool(Math.max(5, (int) (this.count() / 70)));
     }
 
     private static final Random RANDOM = new Random();
@@ -71,12 +82,6 @@ public class VirtualMeterDeviceServiceImpl extends ServiceImpl<DeviceMapper, Vir
     private final ConcurrentHashMap<String, Long> reportTime = new ConcurrentHashMap<>();
     //设备是否已经完成了初始化
     public volatile boolean isInit = false;
-
-    private final StringRedisTemplate redisTemplate;
-    private final DeviceMapper deviceMapper;
-    private final VirtualWaterQualityDeviceServiceImpl service;
-    private final ServerConfig serverConfig;
-    private final DataSender dataSender;
 
     /**
      * 停止模拟时调用，优雅关闭资源
@@ -150,6 +155,7 @@ public class VirtualMeterDeviceServiceImpl extends ServiceImpl<DeviceMapper, Vir
             pool.submit(() -> {
                 this.lambdaUpdate().in(VirtualDevice::getDeviceCode, ids)
                         .eq(VirtualDevice::getIsRunning, false)
+                        .set(VirtualDevice::getIsRunning,true)
                         .set(VirtualDevice::getStatus, true).update();
             });
             //删除缓存
@@ -184,14 +190,9 @@ public class VirtualMeterDeviceServiceImpl extends ServiceImpl<DeviceMapper, Vir
             }
         });
         //写回数据库状态，在异步线程池
-        //todo 由于异步线程的异常不被事务控制，这里最好用消息队列
-        pool.submit(() -> {
-            LambdaUpdateWrapper<VirtualDevice> offline = new LambdaUpdateWrapper<VirtualDevice>()
-                    .eq(VirtualDevice::getIsRunning, true)
-                    .set(VirtualDevice::getIsRunning, false);
-            deviceMapper.update(offline);
-        });
-        //删缓存
+        //由于异步线程的异常不被事务控制，这里最好用消息队列
+        rocketMQTemplate.convertAndSend("OpsForDataBase","LetAllMetersStopRunning");
+        //删状态缓存
         //此方法是安全的，使用scan进行删除
         redisScanDel(deviceStatusPrefix + "*", 100, redisTemplate);
         deviceTasks.clear();
@@ -244,10 +245,13 @@ public class VirtualMeterDeviceServiceImpl extends ServiceImpl<DeviceMapper, Vir
         }
         int offset = RANDOM.nextInt(120 + 1);
         map1.forEach((id, v) -> {
-            String status = this.lambdaQuery().eq(VirtualDevice::getDeviceCode, id).one().getStatus();
-            map.put(id, status);
+            VirtualDevice one = this.lambdaQuery()
+                    .select(VirtualDevice::getStatus, VirtualDevice::getIsRunning)
+                    .eq(VirtualDevice::getDeviceCode, id).one();
+            String value = one.getStatus() + "," + one.getIsRunning();
+            map.put(id, value);
             //加偏移量，防止缓存雪崩
-            redisTemplate.opsForValue().set(deviceStatusPrefix + id, status, 180 + offset, TimeUnit.SECONDS);
+            redisTemplate.opsForValue().set(deviceStatusPrefix + id, value, 180 + offset, TimeUnit.SECONDS);
         });
         return Result.ok(map);
     }
@@ -546,7 +550,7 @@ public class VirtualMeterDeviceServiceImpl extends ServiceImpl<DeviceMapper, Vir
         executor.shutdown();
         executor.awaitTermination(10, TimeUnit.MINUTES);
         this.isInit = true;
-        service.setInit(true);
+        waterQualityDeviceService.setInit(true);
         log.info("设备注册完成：楼宇 {} 层数 {} 房间 {}", buildings, floors, rooms);
         this.allSize = buildings * floors * rooms;
         return Result.ok(SuccessCode.DEVICE_REGISTER_SUCCESS.getCode(),

@@ -68,6 +68,7 @@ public class VirtualWaterQualityDeviceServiceImpl extends ServiceImpl<DeviceMapp
         if (size == null) {
             throw new DeviceRegisterException("请先初始化设备");
         }
+
         scheduler = new ScheduledThreadPoolExecutor(Math.max(2, (int) (size / 100L)));
     }
 
@@ -96,12 +97,11 @@ public class VirtualWaterQualityDeviceServiceImpl extends ServiceImpl<DeviceMapp
         }
         pool.submit(() -> {
             //修改数据库状态
-            LambdaUpdateChainWrapper<VirtualDevice> wrapper = this.lambdaUpdate()
-                    .in(VirtualDevice::getId, ids)
-                    .eq(VirtualDevice::getStatus, "offline")
+            this.lambdaUpdate()
+                    .in(VirtualDevice::getDeviceCode, ids)
+                    .eq(VirtualDevice::getIsRunning, false)
                     .set(VirtualDevice::getStatus, "online")
-                    .set(VirtualDevice::getIsRunning, true);
-            this.update(wrapper);
+                    .set(VirtualDevice::getIsRunning, true).update();
         });
         //递归上报数据
         ids.forEach(this::scheduleNextReport);
@@ -146,6 +146,12 @@ public class VirtualWaterQualityDeviceServiceImpl extends ServiceImpl<DeviceMapp
             if (future != null && !future.isCancelled()) {
                 future.cancel(false);
             }
+        });
+        //更新数据库状态,异步执行
+        pool.submit(() -> {
+            this.lambdaUpdate()
+                    .eq(VirtualDevice::getIsRunning, true)
+                    .set(VirtualDevice::getIsRunning, false);
         });
         return Result.ok(SuccessCode.DEVICE_STOP_SUCCESS.getCode(), SuccessCode.DEVICE_STOP_SUCCESS.getMessage());
     }
@@ -317,6 +323,6 @@ public class VirtualWaterQualityDeviceServiceImpl extends ServiceImpl<DeviceMapp
             status = this.lambdaQuery().eq(VirtualDevice::getDeviceCode, deviceId)
                     .one().getStatus();
         }
-        return status.equals("online");
+        return status.startsWith("online");
     }
 }

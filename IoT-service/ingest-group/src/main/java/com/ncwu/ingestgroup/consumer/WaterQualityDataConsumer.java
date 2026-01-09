@@ -45,7 +45,7 @@ public class WaterQualityDataConsumer extends ServiceImpl<IotDataMapper, IotDevi
             iotDeviceData.setCollectTime(waterQualityDataBo.getTimeStamp());
             synchronized (this) {
                 buffer.add(iotDeviceData);
-                if (buffer.size() >= 2000) {
+                if (buffer.size() >= 200) {
                     WaterQualityDataConsumer waterQualityDataConsumer = (WaterQualityDataConsumer) AopContext.currentProxy();
                     waterQualityDataConsumer.saveBatch(buffer);
                     buffer.clear();

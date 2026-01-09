@@ -5,6 +5,7 @@ import com.baomidou.mybatisplus.core.conditions.update.LambdaUpdateWrapper;
 import com.ncwu.iotdevice.config.ServerConfig;
 import com.ncwu.iotdevice.domain.entity.VirtualDevice;
 import com.ncwu.iotdevice.mapper.DeviceMapper;
+import com.ncwu.iotdevice.utils.Utils;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.rocketmq.spring.core.RocketMQTemplate;
@@ -33,10 +34,12 @@ public class WaterQualityCheckerTasks {
     private final DeviceMapper deviceMapper;
     private final RocketMQTemplate rocketMQTemplate;
     private final ServerConfig serverConfig;
+    private final Utils utils;
 
 
-    @Scheduled(fixedDelay = 30 * 1000)
-    public void checkOnLineDevices() {
+    @Scheduled(fixedDelay = 1000)
+    public void checkOnLineDevices() throws InterruptedException {
+        Thread.sleep(12000);
 //        检查设备运行控制器
         long meterChecked = Long.parseLong(Objects.requireNonNull(redisTemplate.opsForValue().get("WaterQualityChecked")));
 
@@ -45,8 +48,8 @@ public class WaterQualityCheckerTasks {
         }
         log.warn("传感器--开始检测");
         String prefix = "OnLineMap";
-        //获取当前系统时间戳
         long now = System.currentTimeMillis();
+        log.debug("检测时的时间戳：{}", now);
         //按量扫描，避免数据量过大产生OOM
         ScanOptions options = ScanOptions.scanOptions().match("*").count(15000).build();
         try (Cursor<Map.Entry<Object, Object>> cursor = redisTemplate.opsForHash().scan(prefix, options)) {

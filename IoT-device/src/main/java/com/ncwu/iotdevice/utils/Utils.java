@@ -174,12 +174,12 @@ public class Utils {
         //得到自定义线程池
         ExecutorService pools = getExecutorPools("markDeviceOnline", 5, 10, 60, 1000);
         // 1. 更新数据库状态（仅当当前为 offline 时）
-        pools.submit(()->{
+        pools.submit(() -> {
             LambdaUpdateWrapper<VirtualDevice> updateWrapper =
                     new LambdaUpdateWrapper<VirtualDevice>()
                             .eq(VirtualDevice::getDeviceCode, deviceCode)
                             .eq(VirtualDevice::getStatus, "offline")
-                            .set(VirtualDevice::getIsRunning,true)
+                            .set(VirtualDevice::getIsRunning, true)
                             .set(VirtualDevice::getStatus, "online");
             deviceMapper.update(updateWrapper);
         });
@@ -223,6 +223,23 @@ public class Utils {
                 namedThreadFactory,     // 自定义名称方便排查
                 new ThreadPoolExecutor.CallerRunsPolicy() // 拒绝策略：队列满了让调用者自己执行
         );
+    }
+
+    /**方法给出检测设备上下线的一个合理时间戳*/
+    public long getNow() {
+        long now = 0;
+        Map<Object, Object> entries = redisTemplate.opsForHash().randomEntries("OnLineMap", 10);
+        if (entries != null && !entries.isEmpty()) {
+            if (entries.size() == 1) {
+                return System.currentTimeMillis();
+            }
+            long sum = 0;
+            for (Object value : entries.values()) {
+                sum += Long.parseLong(value.toString());
+            }
+            now = sum / entries.size();  // 用实际数量除
+        }
+        return now;
     }
 }
 

@@ -16,7 +16,7 @@ import org.springframework.stereotype.Component;
 @Component
 @RequiredArgsConstructor
 @RocketMQMessageListener(topic = "OpsForDataBase", consumerGroup = "OpsForDataBase")
-public class Consumer implements RocketMQListener<String> {
+public class DataBaseTemplater implements RocketMQListener<String> {
 
     private final VirtualMeterDeviceService meterDeviceService;
     private final VirtualWaterQualityDeviceService waterQualityDeviceService;

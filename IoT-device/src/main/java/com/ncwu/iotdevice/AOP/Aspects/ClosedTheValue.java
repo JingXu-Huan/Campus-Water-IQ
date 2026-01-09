@@ -31,6 +31,7 @@ public class ClosedTheValue {
         Boolean isClosed = redisTemplate.opsForSet().isMember("meter_closed", dataBo.getDeviceId());
         if (Boolean.TRUE.equals(isClosed)){
             dataBo.setFlow(0.0);
+            dataBo.setIsOpen("closed");
         }
         return proceedingJoinPoint.proceed(new Object[]{dataBo});
     }

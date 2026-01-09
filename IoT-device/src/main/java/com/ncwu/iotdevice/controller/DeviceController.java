@@ -24,7 +24,8 @@ import java.util.Objects;
  * @since 2026/1/3
  */
 @Slf4j
-@RestController("device")
+@RestController
+@RequestMapping("/device")
 @RequiredArgsConstructor
 public class DeviceController {
 

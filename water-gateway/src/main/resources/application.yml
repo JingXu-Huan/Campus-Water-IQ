@@ -1,1 +1,36 @@
-
+spring:
+  application:
+    name: water-gateway
+  cloud:
+    nacos:
+      discovery:
+        server-addr: 101.42.157.163:8848
+      config:
+        name: nacos
+        password: nacos
+    gateway:
+      routes:
+        - id: device
+          uri: lb://iot-device
+          predicates:
+            - Path=/device/**,/simulator/**
+        - id: service
+          uri: lb://IoT-service
+          predicates:
+          # 按需替换，添加即可
+            - Path=/service/**
+        - id: PredictionService
+          uri: lb://prediction-service
+          predicates:
+          # 按需替换，添加即可
+            - Path=/prediction/**
+        - id: warn
+          uri: lb://warn-service
+          predicates:
+          # 按需替换，添加即可
+            - Path=/warn/**
+        - id: auth
+          uri: lb://Auth-service
+          predicates:
+            # 按需替换，添加即可
+            - Path=/auth/**

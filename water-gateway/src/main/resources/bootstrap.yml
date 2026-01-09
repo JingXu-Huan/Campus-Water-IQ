@@ -13,9 +13,6 @@ spring:
         username: nacos
         password: nacos
         shared-configs:
-          - data-id: shared-mysql-config.yml
-            group: DEFAULT_GROUP
-            refresh: true
           - data-id: waterGateway.yml
             group: DEFAULT_GROUP
             refresh: true

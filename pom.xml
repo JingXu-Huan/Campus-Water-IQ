@@ -51,6 +51,13 @@
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
     </properties>
 
+    <distributionManagement>
+        <snapshotRepository>
+            <id>2601569-snapshot-Tbgcsb</id>
+            <url>https://packages.aliyun.com/68eb13de15dfc6c8604ff7d3/maven/2601569-snapshot-Tbgcsb</url>
+        </snapshotRepository>
+    </distributionManagement>
+
     <!-- 这里放“父工程也要用”的通用依赖（注意：不要放 boot starter 版本号） -->
     <dependencies>
         <dependency>

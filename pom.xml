@@ -37,7 +37,7 @@
         <druid.version>1.2.20</druid.version>
         <mybatis.version>3.5.14</mybatis.version>
         <knife4j.version>4.4.0</knife4j.version>
-        <hutool.version>5.8.23</hutool.version>
+        <hutool.version>5.8.43</hutool.version>
         <dubbo.version>3.2.3</dubbo.version>
         <lombok.version>1.18.32</lombok.version>
 

@@ -42,7 +42,7 @@ public class MeterDataConsumer extends ServiceImpl<IotDataMapper,IotDeviceData> 
             iotDeviceData.setDeviceType("WATER_METER");
             synchronized (this) {
                 buffer.add(iotDeviceData);
-                if (buffer.size() >= 2000) {
+                if (buffer.size() >= 200) {
                     MeterDataConsumer meterDataConsumer = (MeterDataConsumer) AopContext.currentProxy();
                     meterDataConsumer.saveBatch(buffer);
                     buffer.clear();

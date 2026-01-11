@@ -26,12 +26,14 @@ import org.apache.rocketmq.spring.core.RocketMQTemplate;
 import org.springframework.aop.framework.AopContext;
 import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.stereotype.Service;
+
 import java.time.LocalDateTime;
 import java.util.*;
 import java.util.concurrent.*;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.function.Function;
 import java.util.stream.Collectors;
+
 import static com.ncwu.iotdevice.AOP.Aspects.InitLuaScript.Lua_script;
 import static com.ncwu.iotdevice.utils.Utils.*;
 
@@ -51,7 +53,14 @@ public class VirtualMeterDeviceServiceImpl extends ServiceImpl<DeviceMapper, Vir
     private int allSize;
     //运行中的设备集合
     private final Set<String> runningDevices = ConcurrentHashMap.newKeySet();
+    //上报次数
     AtomicLong sendCnt = new AtomicLong(0);
+    //实验楼数量
+    int experiment;
+    //宿舍楼数量
+    int dormitory;
+    //教学楼数量
+    int education;
     final String deviceStatusPrefix = "cache:device:status:";
 
     private ScheduledExecutorService scheduler;
@@ -68,6 +77,8 @@ public class VirtualMeterDeviceServiceImpl extends ServiceImpl<DeviceMapper, Vir
         // 经压测验证，约 70 台虚拟设备对应 1 个调度线程即可满足精度与吞吐
         // 取 max 防止入参为 0 发生异常
         scheduler = Executors.newScheduledThreadPool(Math.max(5, (int) (this.count() / 70)));
+        experiment = Integer.parseInt(Objects.requireNonNull(redisTemplate.opsForValue().get("device:experimentBuildings")));
+        education = Integer.parseInt(Objects.requireNonNull(redisTemplate.opsForValue().get("device:educationBuildings")));
     }
 
     private static final Random RANDOM = new Random();
@@ -155,7 +166,7 @@ public class VirtualMeterDeviceServiceImpl extends ServiceImpl<DeviceMapper, Vir
             pool.submit(() -> {
                 this.lambdaUpdate().in(VirtualDevice::getDeviceCode, ids)
                         .eq(VirtualDevice::getIsRunning, false)
-                        .set(VirtualDevice::getIsRunning,true)
+                        .set(VirtualDevice::getIsRunning, true)
                         .set(VirtualDevice::getStatus, true).update();
             });
             //删除缓存
@@ -191,7 +202,7 @@ public class VirtualMeterDeviceServiceImpl extends ServiceImpl<DeviceMapper, Vir
         });
         //写回数据库状态，在异步线程池
         //由于异步线程的异常不被事务控制，这里最好用消息队列
-        rocketMQTemplate.convertAndSend("OpsForDataBase","LetAllMetersStopRunning");
+        rocketMQTemplate.convertAndSend("OpsForDataBase", "LetAllMetersStopRunning");
         //删状态缓存
         //此方法是安全的，使用scan进行删除
         redisScanDel(deviceStatusPrefix + "*", 100, redisTemplate);
@@ -422,7 +433,7 @@ public class VirtualMeterDeviceServiceImpl extends ServiceImpl<DeviceMapper, Vir
         dataBo.setDeviceId(id);
         dataBo.setDevice(1);
         int time = Integer.parseInt(Objects.requireNonNull(redisTemplate.opsForValue().get("Time")));
-        double flow = waterFlowGenerate(time);
+        double flow = waterFlowGenerate(time, id);
         //得到正确水压
         double pressure = waterPressureGenerate(flow, serverConfig);
         // 时间戳微扰：增加纳秒级偏移，使排序更逼真
@@ -460,9 +471,22 @@ public class VirtualMeterDeviceServiceImpl extends ServiceImpl<DeviceMapper, Vir
     }
 
     /**
-     * 根据每天不同时段生成水流量的水流生成器
+     * 根据每天不同时段和不同的楼宇生成水流量的水流生成器
      */
-    private double waterFlowGenerate(int time) {
+    private double waterFlowGenerate(int time, String deviceId) {
+        int buildingNum = Integer.parseInt(deviceId.substring(1, 3));
+        double flow;
+        if (buildingNum <= education) {
+            flow = getEducationFlow(time, deviceId);
+        } else if (buildingNum <= experiment) {
+            flow = getExperimentFlow(time, deviceId);
+        } else {
+            flow = getDormitoryFlow(time);
+        }
+        return keep3(flow);
+    }
+
+    private double getDormitoryFlow(int time) {
         double flow;
         if (time >= 0 && time <= 5) {
             double p = Math.random();
@@ -482,7 +506,7 @@ public class VirtualMeterDeviceServiceImpl extends ServiceImpl<DeviceMapper, Vir
                 flow = 0;
             } else flow = ThreadLocalRandom.current().nextDouble(0.08, 0.15);
         } else if (time <= 22) {
-            if (Math.random() > 0.8) {
+            if (Math.random() >= 0.8) {
                 flow = 0;
             } else flow = ThreadLocalRandom.current().nextDouble(0.2, 0.35);
         } else {
@@ -495,7 +519,98 @@ public class VirtualMeterDeviceServiceImpl extends ServiceImpl<DeviceMapper, Vir
                 flow = ThreadLocalRandom.current().nextDouble(0, 0.15);
             }
         }
-        return keep3(flow);
+        return flow;
+    }
+
+    volatile boolean isExperimentGet = false;
+    volatile boolean isEducationGet = false;
+    Set<String> educationIds = null;
+    Set<String> experimentIds = null;
+
+    private double getExperimentFlow(int time, String deviceId) {
+        //正在运行试验的教室，用水量可能一直存在
+        if (!isExperimentGet) {
+            synchronized (this) {
+                int canRunning = (int) Objects.requireNonNull(redisTemplate.opsForSet().members("device:meter"))
+                        .stream()
+                        .filter(id -> {
+                            int buildingNum = Integer.parseInt(id.substring(1, 3));
+                            return buildingNum > education && buildingNum <= experiment;
+                        })
+                        .count();
+
+                experimentIds = Objects.requireNonNull(redisTemplate.opsForSet().members("device:meter"))
+                        .stream()
+                        .filter(id -> {
+                            int buildingNum = Integer.parseInt(id.substring(1, 3));
+                            return buildingNum > education && buildingNum <= experiment;
+                        })
+                        .limit(Math.max(1, canRunning / 3))
+                        .collect(Collectors.toSet());
+                isExperimentGet = true;
+            }
+        }
+        if (experimentIds != null && experimentIds.contains(deviceId)) {
+            if (time >= 8 && time <= 12) {
+                return ThreadLocalRandom.current().nextDouble(0.1, 0.25);
+            } else if (time <= 15) {
+                return ThreadLocalRandom.current().nextDouble(0.1, 0.15);
+            } else if (time <= 18) {
+                return ThreadLocalRandom.current().nextDouble(0.1, 0.25);
+            } else if (time <= 22) {
+                return ThreadLocalRandom.current().nextDouble(0.1, 0.15);
+            } else {
+                return 0.0;
+            }
+        } else {
+            //不在运行设备列表
+            return 0.0;
+        }
+    }
+
+    private double getEducationFlow(int time, String deviceId) {
+        // 教学区活跃时段（以小时为单位，0-23）
+        // 假设：早上 8-12 点，下午 14-20 点
+        boolean isActiveTime = (time >= 8 && time <= 12) || (time >= 14 && time <= 20);
+        // 教学区设备集合，只第一次获取
+        if (!isEducationGet) {
+            synchronized (this) {
+                int canRunning = (int) Objects.requireNonNull(redisTemplate.opsForSet().members("device:meter"))
+                        .stream()
+                        .filter(id -> {
+                            int building = Integer.parseInt(id.substring(1, 3));
+                            return building <= education;
+                        })
+                        .count();
+                educationIds = Objects.requireNonNull(redisTemplate.opsForSet().members("device:meter"))
+                        .stream()
+                        .filter(id -> {
+                            int building = Integer.parseInt(id.substring(1, 3));
+                            return building <= education;
+                        })
+                        .limit(Math.max(1, canRunning / 2))
+                        .collect(Collectors.toSet());
+                isEducationGet = true;
+            }
+        }
+        // 如果这个设备属于教学楼
+        if (educationIds != null && educationIds.contains(deviceId)) {
+            double p = ThreadLocalRandom.current().nextDouble(); // 0-1 随机概率
+            if (!isActiveTime) {
+                // 非活跃时间，绝大多数为 0，少量漏水模拟
+                return ThreadLocalRandom.current().nextDouble(0.05, 0.1);
+            } else {
+                // 活跃时间，偶尔有人使用水，流量低且离散
+                if (p <= 0.7) {
+                    return 0.0; // 大多数时间没用水
+                } else {
+                    return ThreadLocalRandom.current().nextDouble(0.1, 0.15);
+                }
+            }
+        } else {
+            // 非教学楼设备，不处理
+            return 0.0;
+        }
     }
 
     /**
@@ -522,7 +637,7 @@ public class VirtualMeterDeviceServiceImpl extends ServiceImpl<DeviceMapper, Vir
      */
     @Time
     @Override
-    public Result<String> init(int buildings, int floors, int rooms) throws InterruptedException {
+    public Result<String> init(int buildings, int floors, int rooms, int dormitoryBuildings, int educationBuildings, int experimentBuildings) throws InterruptedException {
         if (isRunning()) {
             return Result.fail(ErrorCode.DEVICE_DEVICE_RUNNING_NOW_ERROR.code(),
                     ErrorCode.DEVICE_DEVICE_RUNNING_NOW_ERROR.message());
@@ -531,7 +646,10 @@ public class VirtualMeterDeviceServiceImpl extends ServiceImpl<DeviceMapper, Vir
             return Result.fail(ErrorCode.DEVICE_ALREADY_INIT_ERROR.code()
                     , ErrorCode.DEVICE_ALREADY_INIT_ERROR.message());
         }
+        String prefix = "device:";
         clearRedisData(redisTemplate, deviceMapper);
+        redisTemplate.opsForValue().set(prefix + "educationBuildings", String.valueOf(educationBuildings));
+        redisTemplate.opsForValue().set(prefix + "experimentBuildings", String.valueOf(educationBuildings + experimentBuildings));
         DeviceIdList deviceIdList = initAllRedisData(buildings, floors, rooms, redisTemplate);
 
         List<String> meterDeviceIds = deviceIdList.getMeterDeviceIds();

@@ -97,15 +97,19 @@ public class Utils {
      * 方法清除 redis 中对应的 set 集合
      */
     public static void clearRedisData(StringRedisTemplate redisTemplate, DeviceMapper deviceMapper) {
+        String prefix = "device:";
         try {
-            redisTemplate.delete("device:meter");
-            redisTemplate.delete("device:sensor");
+            redisTemplate.delete(prefix + "meter");
+            redisTemplate.delete(prefix + "sensor");
             redisTemplate.delete("meter:total_usage");
             redisTemplate.delete("OnLineMap");
             redisTemplate.delete("Time");
             redisTemplate.delete("Season");
             redisTemplate.delete("WaterQualityChecked");
             redisTemplate.delete("MeterChecked");
+            redisTemplate.delete(prefix + "DormitoryBuildings");
+            redisTemplate.delete(prefix + "educationBuildings");
+            redisTemplate.delete(prefix + "experimentBuildings");
             redisScanDel("device:OffLine:*", 1000, redisTemplate);
             deviceMapper.delete(null);
         } catch (Exception e) {
@@ -225,7 +229,9 @@ public class Utils {
         );
     }
 
-    /**方法给出检测设备上下线的一个合理时间戳*/
+    /**
+     * 方法给出检测设备上下线的一个合理时间戳
+     */
     public long getNow() {
         long now = 0;
         Map<Object, Object> entries = redisTemplate.opsForHash().randomEntries("OnLineMap", 10);

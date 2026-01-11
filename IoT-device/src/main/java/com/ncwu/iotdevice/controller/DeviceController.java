@@ -36,18 +36,23 @@ public class DeviceController {
      * 初始化
      * 建议前端传入参数，或者从配置文件读取默认值
      *
-     * @param rooms     每层房间数
-     * @param floors    楼宇的层数
-     * @param buildings 楼宇的数量
+     * @param rooms               每层房间数
+     * @param floors              楼宇的层数
+     * @param dormitoryBuildings  宿舍楼宇的数量
+     * @param educationBuildings  教学区楼宇的数量
+     * @param experimentBuildings 实验楼宇的数量
      */
     @GetMapping("/init")
-    public Result<String> start(@Min(1) @Max(99) @RequestParam(defaultValue = "1") int buildings,
+    public Result<String> start(@Min(1) @Max(33) @RequestParam(defaultValue = "1") int dormitoryBuildings,
+                                @Min(1) @Max(30) @RequestParam(defaultValue = "1") int educationBuildings,
+                                @Min(1) @Max(30) @RequestParam(defaultValue = "1") int experimentBuildings,
                                 @Min(1) @Max(99) @RequestParam(defaultValue = "1") int floors,
                                 @Min(1) @Max(999) @RequestParam(defaultValue = "10") int rooms) throws InterruptedException {
-        if (buildings * floors * rooms > 100000) {
+        int totalBuildings = dormitoryBuildings + educationBuildings + experimentBuildings;
+        if (totalBuildings * floors * rooms > 100000) {
             throw new DeviceRegisterException("开启设备数量超过系统10万上限,请调整。");
         }
-        return virtualMeterDeviceService.init(buildings, floors, rooms);
+        return virtualMeterDeviceService.init(totalBuildings, floors, rooms,dormitoryBuildings,educationBuildings,experimentBuildings);
     }
 
     /**

@@ -529,17 +529,18 @@ public class VirtualMeterDeviceServiceImpl extends ServiceImpl<DeviceMapper, Vir
 
     private double getExperimentFlow(int time, String deviceId) {
         //正在运行试验的教室，用水量可能一直存在
-        if (!isExperimentGet) {
-            synchronized (this) {
-                int canRunning = (int) Objects.requireNonNull(redisTemplate.opsForSet().members("device:meter"))
-                        .stream()
-                        .filter(id -> {
-                            int buildingNum = Integer.parseInt(id.substring(1, 3));
-                            return buildingNum > education && buildingNum <= experiment;
-                        })
-                        .count();
-
-                experimentIds = Objects.requireNonNull(redisTemplate.opsForSet().members("device:meter"))
+        //为什么这里使用重量级锁：由于以下同步代码块只执行一次。
+        synchronized (this) {
+            if (!isExperimentGet) {
+                //设备全量列表
+                Set<String> members = Objects.requireNonNull(redisTemplate.opsForSet().members("device:meter"));
+                //是实验楼的所有设备数量
+                int canRunning = (int) members.stream().filter(id -> {
+                    int buildingNum = Integer.parseInt(id.substring(1, 3));
+                    return buildingNum > education && buildingNum <= experiment;
+                }).count();
+                //选择的所有运行设备
+                experimentIds = members
                         .stream()
                         .filter(id -> {
                             int buildingNum = Integer.parseInt(id.substring(1, 3));
@@ -573,17 +574,16 @@ public class VirtualMeterDeviceServiceImpl extends ServiceImpl<DeviceMapper, Vir
         // 假设：早上 8-12 点，下午 14-20 点
         boolean isActiveTime = (time >= 8 && time <= 12) || (time >= 14 && time <= 20);
         // 教学区设备集合，只第一次获取
-        if (!isEducationGet) {
-            synchronized (this) {
-                int canRunning = (int) Objects.requireNonNull(redisTemplate.opsForSet().members("device:meter"))
-                        .stream()
+        synchronized (this) {
+            if (!isEducationGet) {
+                Set<String> members = Objects.requireNonNull(redisTemplate.opsForSet().members("device:meter"));
+                int canRunning = (int) members.stream()
                         .filter(id -> {
                             int building = Integer.parseInt(id.substring(1, 3));
                             return building <= education;
                         })
                         .count();
-                educationIds = Objects.requireNonNull(redisTemplate.opsForSet().members("device:meter"))
-                        .stream()
+                educationIds = members.stream()
                         .filter(id -> {
                             int building = Integer.parseInt(id.substring(1, 3));
                             return building <= education;

@@ -419,16 +419,12 @@ public class VirtualMeterDeviceServiceImpl extends ServiceImpl<DeviceMapper, Vir
         return status.equals("online");
     }
 
-
     /**
      * 生成单条模拟数据并执行发送
      *
      * @param id 设备编号
      */
     private void processSingleDevice(String id) {
-        //多线程环境下应当使用原子
-        sendCnt.incrementAndGet();
-
         MeterDataBo dataBo = new MeterDataBo();
         dataBo.setDeviceId(id);
         dataBo.setDevice(1);
@@ -463,8 +459,7 @@ public class VirtualMeterDeviceServiceImpl extends ServiceImpl<DeviceMapper, Vir
             mid = 6;
             step = 2;
         }
-        dataBo.setWaterTem(waterTemperateGenerate(time * 3600L +
-                sendCnt.get() * ((double) Integer.parseInt(serverConfig.getMeterReportFrequency()) / 1000), mid, step));
+        dataBo.setWaterTem(waterTemperateGenerate(time * 3600L, mid, step));
         dataBo.setIsOpen(DeviceStatus.NORMAL);
         dataBo.setStatus(DeviceStatus.NORMAL);
         dataSender.sendMeterData(dataBo);
@@ -488,36 +483,48 @@ public class VirtualMeterDeviceServiceImpl extends ServiceImpl<DeviceMapper, Vir
 
     private double getDormitoryFlow(int time) {
         double flow;
+        double p = Math.random();
         if (time >= 0 && time <= 5) {
-            double p = Math.random();
-            if (p <= 0.8) {
+            // 凌晨低流量时段
+            if (p <= 0.98) {
                 flow = 0.0;
-            } else if (p <= 0.95) {
-                flow = ThreadLocalRandom.current().nextDouble(0, 0.15);
+            } else if (p <= 0.99) {
+                flow = ThreadLocalRandom.current().nextDouble(0, 0.05);
             } else {
                 flow = ThreadLocalRandom.current().nextDouble(0.1, 0.15);
             }
-        } else if (time <= 8) {
-            if (Math.random() > 0.8) {
-                flow = 0;
-            } else flow = ThreadLocalRandom.current().nextDouble(0.15, 0.25);
-        } else if (time <= 17) {
-            if (Math.random() > 0.8) {
-                flow = 0;
-            } else flow = ThreadLocalRandom.current().nextDouble(0.08, 0.15);
-        } else if (time <= 22) {
-            if (Math.random() >= 0.8) {
-                flow = 0;
-            } else flow = ThreadLocalRandom.current().nextDouble(0.2, 0.35);
-        } else {
-            double p = Math.random();
-            if (p <= 0.6) {
-                flow = 0;
-            } else if (p <= 0.8) {
+        } else if (time > 5 && time <= 8) {
+            // 早晨
+            if (p >= 0.9) {
+                flow = 0.0;
+            } else {
+                flow = ThreadLocalRandom.current().nextDouble(0.05, 0.15);
+            }
+        } else if (time > 8 && time <= 17) {
+            // 白天
+            if (p <= 0.9) {
+                flow = 0.0;
+            } else {
+                flow = ThreadLocalRandom.current().nextDouble(0.08, 0.15);
+            }
+        } else if (time > 17 && time <= 22) {
+            // 晚上
+            if (p <= 0.9) {
+                flow = 0.0;
+            } else {
+                flow = ThreadLocalRandom.current().nextDouble(0.1, 0.25);
+            }
+        } else if (time == 23) {
+            // 深夜
+            if (p <= 0.9) {
+                flow = 0.0;
+            } else if (p <= 0.95) {
                 flow = ThreadLocalRandom.current().nextDouble(0, 0.05);
             } else {
                 flow = ThreadLocalRandom.current().nextDouble(0, 0.15);
             }
+        } else {
+            flow = 0.0;
         }
         return flow;
     }
@@ -553,26 +560,24 @@ public class VirtualMeterDeviceServiceImpl extends ServiceImpl<DeviceMapper, Vir
         }
         if (experimentIds != null && experimentIds.contains(deviceId)) {
             if (time >= 8 && time <= 12) {
-                return ThreadLocalRandom.current().nextDouble(0.1, 0.25);
-            } else if (time <= 15) {
                 return ThreadLocalRandom.current().nextDouble(0.1, 0.15);
-            } else if (time <= 18) {
-                return ThreadLocalRandom.current().nextDouble(0.1, 0.25);
-            } else if (time <= 22) {
+            } else if (time > 12 && time <= 15) {
+                return ThreadLocalRandom.current().nextDouble(0.05, 0.1);
+            } else if (time > 15 && time <= 18) {
                 return ThreadLocalRandom.current().nextDouble(0.1, 0.15);
+            } else if (time > 18 && time <= 22) {
+                return ThreadLocalRandom.current().nextDouble(0.05, 0.1);
             } else {
                 return 0.0;
             }
-        } else {
-            //不在运行设备列表
-            return 0.0;
         }
+        else return 0.0;
     }
 
     private double getEducationFlow(int time, String deviceId) {
         // 教学区活跃时段（以小时为单位，0-23）
         // 假设：早上 8-12 点，下午 14-20 点
-        boolean isActiveTime = (time >= 8 && time <= 12) || (time >= 14 && time <= 20);
+        boolean isActiveTime = (time >= 8 && time <= 12) || (time >= 14 && time <= 21);
         // 教学区设备集合，只第一次获取
         synchronized (this) {
             if (!isEducationGet) {
@@ -597,11 +602,15 @@ public class VirtualMeterDeviceServiceImpl extends ServiceImpl<DeviceMapper, Vir
         if (educationIds != null && educationIds.contains(deviceId)) {
             double p = ThreadLocalRandom.current().nextDouble(); // 0-1 随机概率
             if (!isActiveTime) {
-                // 非活跃时间，绝大多数为 0，少量漏水模拟
-                return ThreadLocalRandom.current().nextDouble(0.05, 0.1);
+                // 非活跃时间，绝大多数为 0
+                if (p <= 0.98) {
+                    return 0.0;
+                } else {
+                    return ThreadLocalRandom.current().nextDouble(0.1, 0.15);
+                }
             } else {
                 // 活跃时间，偶尔有人使用水，流量低且离散
-                if (p <= 0.7) {
+                if (p <= 0.8) {
                     return 0.0; // 大多数时间没用水
                 } else {
                     return ThreadLocalRandom.current().nextDouble(0.1, 0.15);

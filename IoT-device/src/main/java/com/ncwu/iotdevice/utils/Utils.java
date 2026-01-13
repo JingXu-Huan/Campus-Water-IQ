@@ -80,7 +80,7 @@ public class Utils {
             //管网发生的特殊事件
             redisTemplate.opsForValue().set("mode", "normal");
             //当天时间
-            redisTemplate.opsForValue().set("Time", "12");
+            redisTemplate.opsForValue().set("Time", "0");
             //世界的季节
             redisTemplate.opsForValue().set("Season", "1");
             //水表在线状态可否受检

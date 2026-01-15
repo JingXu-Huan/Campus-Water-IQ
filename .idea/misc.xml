@@ -14,6 +14,7 @@
         <option value="$PROJECT_DIR$/prediction-service/pom.xml" />
         <option value="$PROJECT_DIR$/common/pom.xml" />
         <option value="$PROJECT_DIR$/IoT-service/ingest-group/pom.xml" />
+        <option value="$PROJECT_DIR$/repair-service/pom.xml" />
       </list>
     </option>
   </component>

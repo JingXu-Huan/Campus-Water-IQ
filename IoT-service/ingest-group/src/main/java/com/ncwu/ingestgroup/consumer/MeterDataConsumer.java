@@ -26,6 +26,7 @@ import java.time.ZoneId;
 import java.time.ZonedDateTime;
 import java.util.ArrayList;
 import java.util.List;
+
 /**
  * @author jingxu
  * @version 1.0.0
@@ -35,11 +36,11 @@ import java.util.List;
 @Component
 @RequiredArgsConstructor
 @RocketMQMessageListener(topic = "Meter-Data", consumerGroup = "Meter-Data-ConsumerGroup")
-public class MeterDataConsumer extends ServiceImpl<IotDataMapper,IotDeviceData> implements RocketMQListener<String> , IService<IotDeviceData> {
+public class MeterDataConsumer extends ServiceImpl<IotDataMapper, IotDeviceData> implements RocketMQListener<String>, IService<IotDeviceData> {
 
     private final ObjectMapper objectMapper;
-    private final List<IotDeviceData> buffer = new ArrayList<>(2000);
-    private  InfluxDBClient influxDBClient;
+    private final List<IotDeviceData> buffer = new ArrayList<>(200);
+    private InfluxDBClient influxDBClient;
 
     @PostConstruct
     public void init() {
@@ -50,11 +51,15 @@ public class MeterDataConsumer extends ServiceImpl<IotDataMapper,IotDeviceData> 
 
     @Override
     public void onMessage(String s) {
-        String bucket = "test03";
+        String bucket = "test04";
         String org = "jingxu";
         System.out.println(s);
         try {
             MeterDataBo meterDataBo = objectMapper.readValue(s, MeterDataBo.class);
+            if (meterDataBo.getStatus().equals("error")) {
+                //todo 这里以后要自行检测数据状态，检查取值范围。
+                return;
+            }
             IotDeviceData iotDeviceData = new IotDeviceData();
             iotDeviceData.setDataPayload(s);
             iotDeviceData.setDeviceCode(meterDataBo.getDeviceId());
@@ -67,7 +72,7 @@ public class MeterDataConsumer extends ServiceImpl<IotDataMapper,IotDeviceData> 
                     .measurement(meterDataBo.getDeviceId())
                     .addField("flow", meterDataBo.getFlow())
                     .addField("usage", meterDataBo.getTotalUsage())
-                    .addField("tem",meterDataBo.getWaterTem())
+                    .addField("tem", meterDataBo.getWaterTem())
                     .time(zdt.toInstant(), WritePrecision.MS);
 
             WriteApiBlocking writeApi = influxDBClient.getWriteApiBlocking();
@@ -84,12 +89,9 @@ public class MeterDataConsumer extends ServiceImpl<IotDataMapper,IotDeviceData> 
 
         } catch (JsonProcessingException e) {
             // 日志记录即可，不阻塞消费
-            log.error("JSON解析失败：{}",s);
+            log.error("JSON解析失败：{}", s);
         }
     }
 
-    public InfluxDBClient getInfluxDBClient() {
-        return influxDBClient;
-    }
 }
 

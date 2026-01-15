@@ -6,7 +6,7 @@
 
     <modelVersion>4.0.0</modelVersion>
 
-    <!-- Spring Boot 父依赖：统一版本管理（不要再手动指定 boot starter 版本） -->
+    <!-- ===== Spring Boot 父依赖 ===== -->
     <parent>
         <groupId>org.springframework.boot</groupId>
         <artifactId>spring-boot-starter-parent</artifactId>
@@ -14,11 +14,13 @@
         <relativePath/>
     </parent>
 
+    <!-- ===== 项目坐标 ===== -->
     <groupId>com.ncwu</groupId>
     <artifactId>Campus-Water-IQ</artifactId>
     <version>1.0-SNAPSHOT</version>
     <packaging>pom</packaging>
 
+    <!-- ===== 子模块 ===== -->
     <modules>
         <module>IoT-service</module>
         <module>IoT-device</module>
@@ -27,15 +29,21 @@
         <module>prediction-service</module>
         <module>auth-service</module>
         <module>common</module>
+        <module>repair-service</module>
     </modules>
 
+    <!-- ===== 全局属性 ===== -->
     <properties>
         <java.version>21</java.version>
 
         <guava.version>33.5.0-jre</guava.version>
         <ollama.version>1.1.2</ollama.version>
+        <spring-boot.version>3.2.2</spring-boot.version>
         <druid.version>1.2.20</druid.version>
         <mybatis.version>3.5.14</mybatis.version>
+        <spring-cloud.version>2023.0.3</spring-cloud.version>
+        <spring-cloud-alibaba.version>2022.0.0.0</spring-cloud-alibaba.version>
+        <rocketmq.version>2.3.4</rocketmq.version>
         <knife4j.version>4.4.0</knife4j.version>
         <hutool.version>5.8.23</hutool.version>
         <dubbo.version>3.2.3</dubbo.version>
@@ -65,38 +73,37 @@
             <groupId>org.springframework.cloud</groupId>
             <artifactId>spring-cloud-starter-bootstrap</artifactId>
         </dependency>
-
+        <!-- MyBatis-Plus 集成 Spring Boot -->
         <dependency>
             <groupId>com.baomidou</groupId>
             <artifactId>mybatis-plus-spring-boot3-starter</artifactId>
             <version>${mybatis.version}</version>
         </dependency>
-
+        <!-- Lombok 注解简化 Java 开发 -->
         <dependency>
             <groupId>org.projectlombok</groupId>
             <artifactId>lombok</artifactId>
             <version>${lombok.version}</version>
             <scope>provided</scope>
         </dependency>
-
+        <!-- Hutool 工具类集合 -->
         <dependency>
             <groupId>cn.hutool</groupId>
             <artifactId>hutool-all</artifactId>
             <version>${hutool.version}</version>
         </dependency>
-
         <dependency>
             <groupId>com.alibaba</groupId>
             <artifactId>druid-spring-boot-3-starter</artifactId>
             <version>${druid.version}</version>
         </dependency>
-
+        <!-- Nacos 服务注册与发现 -->
         <dependency>
             <groupId>com.alibaba.cloud</groupId>
             <artifactId>spring-cloud-starter-alibaba-nacos-discovery</artifactId>
             <version>${spring-cloud-alibaba.version}</version>
         </dependency>
-
+        <!-- Nacos 配置管理 -->
         <dependency>
             <groupId>com.alibaba.cloud</groupId>
             <artifactId>spring-cloud-starter-alibaba-nacos-config</artifactId>
@@ -144,7 +151,14 @@
                 <type>pom</type>
                 <scope>import</scope>
             </dependency>
+            <!-- Spring Boot 核心启动器 -->
+            <dependency>
+                <groupId>org.springframework.boot</groupId>
+                <artifactId>spring-boot-starter</artifactId>
+                <version>${spring-boot.version}</version>
+            </dependency>
 
+            <!-- Web 开发依赖，包含 Spring MVC 和 Tomcat -->
             <dependency>
                 <groupId>com.influxdb</groupId>
                 <artifactId>influxdb-client-java</artifactId>
@@ -173,8 +187,7 @@
                 <artifactId>rocketmq-common</artifactId>
                 <version>${rocketmq.client.version}</version>
             </dependency>
-
-            <!-- 其它你想统一管版本的库（可选） -->
+            <!-- 单元测试和集成测试工具 -->
             <dependency>
                 <groupId>com.google.guava</groupId>
                 <artifactId>guava</artifactId>
@@ -183,9 +196,11 @@
         </dependencies>
     </dependencyManagement>
 
+    <!-- ===== 构建插件统一管理 ===== -->
     <build>
         <pluginManagement>
             <plugins>
+                <!-- Java 编译插件 -->
                 <plugin>
                     <groupId>org.apache.maven.plugins</groupId>
                     <artifactId>maven-compiler-plugin</artifactId>
@@ -196,6 +211,7 @@
                     </configuration>
                 </plugin>
 
+                <!-- Spring Boot 可执行包打包插件 -->
                 <plugin>
                     <groupId>org.springframework.boot</groupId>
                     <artifactId>spring-boot-maven-plugin</artifactId>

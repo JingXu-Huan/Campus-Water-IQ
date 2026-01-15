@@ -70,12 +70,13 @@ public class VirtualMeterDeviceServiceImpl extends ServiceImpl<DeviceMapper, Vir
     private final ServerConfig serverConfig;
     private final DataSender dataSender;
 
-    Set<String> ids;
-    Set<String> temp;
+    Map<String, Integer> ids;
+    Map<String, Integer> temp;
+
     @PostConstruct
     void init() {
         ids = chooseDormitory(0.5);
-        temp = new HashSet<>(ids);
+        temp = new HashMap<>(ids);
         // 经压测验证，约 70 台虚拟设备对应 1 个调度线程即可满足精度与吞吐
         // 取 max 防止入参为 0 发生异常
         scheduler = Executors.newScheduledThreadPool(Math.max(5, (int) (this.count() / 70)));
@@ -484,35 +485,37 @@ public class VirtualMeterDeviceServiceImpl extends ServiceImpl<DeviceMapper, Vir
     }
 
 
-
     private double getDormitoryFlow(int time, String id) {
         double p = Math.random();
+        int offset = ThreadLocalRandom.current().nextInt(10 * 60);
         double v = ThreadLocalRandom.current().nextDouble(1);
         //上报周期
         int fre = Integer.parseInt(serverConfig.getMeterReportFrequency()) / 1000;
-        if (((time <= 7.5 * 3600) && (time >= 0)) || (time >= 23.5 * 3600) && (time <= 24 * 3600)) {
+        if (((time <= 7 * 3600) && (time >= 0)) || (time >= 23 * 3600) && (time <= 24 * 3600)) {
             if (p >= 0.8) {
                 //模拟宿舍起夜上厕所行为，最多夜间两次
-                int freCnt = 8 * 3600 / fre;
+                int freCnt = 7 * 3600 / fre;
                 double p1 = 1 - (2.0 / freCnt);
                 if (v >= p1) {
                     return ThreadLocalRandom.current().nextDouble(0.1, 0.15);
                 }
             }
-        } else if (time > 7.25 * 3600 && time <= 8 * 3600) {
+        } else if (time > 7.25 * 3600 + offset && time <= 8 * 3600 + offset) {
             if (ids != null) {
                 synchronized (ids) {
-                    if (ids.contains(id)) {
-                        ids.remove(id);
+                    if (ids.containsKey(id) && ids.get(id) > 0) {
+                        Integer cnt = ids.get(id);
+                        ids.put(id, --cnt);
                         return ThreadLocalRandom.current().nextDouble(0.15, 0.2);
                     }
                 }
             }
-        } else if (time > 8 * 3600 && time <= 12.5 * 3600) {
+        } else if (time > 8 * 3600 + offset && time <= 12.5 * 3600) {
             //剩余
             synchronized (temp) {
-                if (!temp.contains(id)) {
-                    temp.add(id);
+                if (temp.containsKey(id) && temp.get(id) > 0) {
+                    Integer cnt = temp.get(id);
+                    temp.put(id, --cnt);
                     return ThreadLocalRandom.current().nextDouble(0.1, 0.15);
                 } else return 0.0;
             }
@@ -539,7 +542,7 @@ public class VirtualMeterDeviceServiceImpl extends ServiceImpl<DeviceMapper, Vir
     /**
      * 方法返回约总设备的0.v倍的设备数量
      */
-    private Set<String> chooseDormitory(double v) {
+    private Map<String, Integer> chooseDormitory(double v) {
         //宿舍楼的编号都在实验楼之后
         int firstIndex = Integer.parseInt(Objects.requireNonNull(redisTemplate.opsForValue().get("device:experimentBuildings")));
         Long size;
@@ -551,7 +554,7 @@ public class VirtualMeterDeviceServiceImpl extends ServiceImpl<DeviceMapper, Vir
                         .map(Object::toString)
                         .filter(id -> id.startsWith("1"))
                         .filter(id -> Integer.parseInt(id.substring(1, 3)) > firstIndex)
-                        .collect(Collectors.toSet());
+                        .collect(Collectors.toMap(id -> id, id -> 8));
             }
         }
         return null;

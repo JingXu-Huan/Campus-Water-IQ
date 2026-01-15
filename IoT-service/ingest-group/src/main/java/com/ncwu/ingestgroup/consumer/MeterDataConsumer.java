@@ -51,7 +51,7 @@ public class MeterDataConsumer extends ServiceImpl<IotDataMapper, IotDeviceData>
 
     @Override
     public void onMessage(String s) {
-        String bucket = "test04";
+        String bucket = "test06";
         String org = "jingxu";
         System.out.println(s);
         try {
@@ -77,7 +77,6 @@ public class MeterDataConsumer extends ServiceImpl<IotDataMapper, IotDeviceData>
 
             WriteApiBlocking writeApi = influxDBClient.getWriteApiBlocking();
             writeApi.writePoint(bucket, org, point);
-
             synchronized (this) {
                 buffer.add(iotDeviceData);
                 if (buffer.size() >= 200) {

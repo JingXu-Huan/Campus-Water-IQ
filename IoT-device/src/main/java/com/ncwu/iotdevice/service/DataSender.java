@@ -6,7 +6,6 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.ncwu.iotdevice.AOP.annotation.CloseValue;
 import com.ncwu.iotdevice.AOP.annotation.NotCredible;
 import com.ncwu.iotdevice.AOP.annotation.RandomEvent;
-import com.ncwu.iotdevice.config.ServerConfig;
 import com.ncwu.iotdevice.domain.Bo.MeterDataBo;
 import com.ncwu.iotdevice.domain.Bo.WaterQualityDataBo;
 import com.ncwu.iotdevice.exception.MessageSendException;
@@ -18,8 +17,6 @@ import org.apache.rocketmq.client.producer.SendResult;
 import org.apache.rocketmq.spring.core.RocketMQTemplate;
 import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.stereotype.Service;
-
-import java.time.LocalDateTime;
 import java.time.ZoneId;
 
 import static com.ncwu.iotdevice.utils.Utils.keep3;
@@ -58,6 +55,10 @@ public class DataSender {
         long now = System.currentTimeMillis();
         if (onLineMap != null) {
             long preTime = Long.parseLong(String.valueOf(onLineMap));
+            if (preTime == -1){
+                heartBeat(deviceId, now);
+                return;
+            }
             if (deviceCurrentTime <= preTime) {
                 log.warn("检测到重复数据，跳过上报{}", deviceId);
                 heartBeat(deviceId, now);

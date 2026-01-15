@@ -62,11 +62,11 @@ public class DeviceController {
      * <p>
      * 这不过是虚拟世界罢了，祝你一切都好！
      *
-     * @param time 你要重置的时间点
+     * @param time 你要重置的时间点,以秒为单位
      * @author 景旭
      */
     @GetMapping("/timeChange")
-    public Result<String> changeTime(@Min(0) @Max(24) int time) {
+    public Result<String> changeTime(@Min(0) @Max(86400) int time) {
         return virtualMeterDeviceService.changeTime(time);
     }
 
@@ -115,5 +115,13 @@ public class DeviceController {
         } else {
             return Result.ok(SuccessCode.DEVICE_RESET_SUCCESS.getCode(), SuccessCode.DEVICE_RESET_SUCCESS.getMessage());
         }
+    }
+
+    /**
+     * 设置模拟模式 支持：leaking、burstPipe、normal三种模式
+     */
+    @GetMapping("/changeModel")
+    public Result<String> changeModel(@NotNull @NotBlank String mode){
+        return virtualMeterDeviceService.changeMode(mode);
     }
 }

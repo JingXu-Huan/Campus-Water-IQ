@@ -343,6 +343,16 @@ public class VirtualMeterDeviceServiceImpl extends ServiceImpl<DeviceMapper, Vir
         }
     }
 
+    @Override
+    public Result<String> changeMode(String mode) {
+        if (mode.equals("burstPipe") || mode.equals("leaking")||mode.equals("normal")){
+            redisTemplate.opsForValue().set("mode",mode);
+            return Result.ok(SuccessCode.METER_MODE_CHANGE_SUCCESS.getCode(),
+                    SuccessCode.METER_MODE_CHANGE_SUCCESS.getMessage());
+        }
+        return Result.fail(ErrorCode.PARAM_VALIDATION_ERROR.code(),ErrorCode.PARAM_VALIDATION_ERROR.message());
+    }
+
     /**
      * 对日志内容进行简单清洗，防止换行等导致日志注入
      */
@@ -501,35 +511,39 @@ public class VirtualMeterDeviceServiceImpl extends ServiceImpl<DeviceMapper, Vir
                 }
             }
         } else if (time > 7.25 * 3600 + offset && time <= 8 * 3600 + offset) {
-            if (ids != null) {
-                synchronized (ids) {
-                    if (ids.containsKey(id) && ids.get(id) > 0) {
-                        Integer cnt = ids.get(id);
-                        ids.put(id, --cnt);
-                        return ThreadLocalRandom.current().nextDouble(0.15, 0.2);
+            if (p>=0.93) {
+                if (ids != null) {
+                    synchronized (ids) {
+                        if (ids.containsKey(id) && ids.get(id) > 0) {
+                            Integer cnt = ids.get(id);
+                            ids.put(id, --cnt);
+                            return ThreadLocalRandom.current().nextDouble(0.15, 0.2);
+                        }
                     }
                 }
             }
         } else if (time > 8 * 3600 + offset && time <= 12.5 * 3600) {
             //剩余
-            synchronized (temp) {
-                if (temp.containsKey(id) && temp.get(id) > 0) {
-                    Integer cnt = temp.get(id);
-                    temp.put(id, --cnt);
-                    return ThreadLocalRandom.current().nextDouble(0.1, 0.15);
-                } else return 0.0;
+            if (p>=0.98) {
+                synchronized (temp) {
+                    if (temp.containsKey(id) && temp.get(id) > 0) {
+                        Integer cnt = temp.get(id);
+                        temp.put(id, --cnt);
+                        return ThreadLocalRandom.current().nextDouble(0.1, 0.15);
+                    } else return 0.0;
+                }
             }
         } else if (time > 12.5 * 3600 && time <= 18 * 3600) {
             double freCnt = 7.5 * 3600 / fre;
-            double p3 = 1 - (1.0 / freCnt);
+            double p3 = 1 - (5.0 / freCnt);
             if (p >= p3) {
                 return ThreadLocalRandom.current().nextDouble(0.05, 0.1);
             } else return 0.0;
         } else if (time >= 20 * 3600 && time <= 22 * 3600) {
             int freCnt = 3 * 3600 / fre;
-            double p4 = 1 - (1.5 / freCnt);
+            double p4 = 1 - (2.0 / freCnt);
             if (p >= p4) {
-                return ThreadLocalRandom.current().nextDouble(0.15, 0.2);
+                return ThreadLocalRandom.current().nextDouble(0.1, 0.3);
             } else return 0.0;
         } else {
             if (p > 0.9999) {

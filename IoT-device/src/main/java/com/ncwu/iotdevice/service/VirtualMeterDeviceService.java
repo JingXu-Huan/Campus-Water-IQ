@@ -22,7 +22,7 @@ public interface VirtualMeterDeviceService extends IService<VirtualDevice> {
 
     Result<String> stopSimulation();
 
-    Result<String> init(int buildings, int floors, int rooms,int dormitoryBuildings,int educationBuildings,int experimentBuildings) throws InterruptedException;
+    Result<String> init(int buildings, int floors, int rooms, int dormitoryBuildings, int educationBuildings, int experimentBuildings) throws InterruptedException;
 
     Result<String> singleStopSimulation(List<String> ids);
 
@@ -43,4 +43,7 @@ public interface VirtualMeterDeviceService extends IService<VirtualDevice> {
     Result<String> destroyAll();
 
     Result<String> offline(@NotNull @NotEmpty List<String> ids);
+
+    Result<String> changeMode(String mode);
+
 }

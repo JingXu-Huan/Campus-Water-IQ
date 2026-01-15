@@ -17,6 +17,7 @@ public enum SuccessCode {
     DEVICE_OFFLINE_SUCCESS("DEV_1005", "设备下线成功"),
     METER_CLOSE_SUCCESS("MTR_2001", "水表关阀成功"),
     METER_OPEN_SUCCESS("MTR_3001", "水表开阀成功"),
+    METER_MODE_CHANGE_SUCCESS("MTR_4001","模拟模式切换成功"),
 
     TIME_CHANGE_SUCCESS("SYS_3001", "时间设置成功"),
     SEASON_CHANGE_SUCCESS("SYS_3002", "季节设置成功");

@@ -19,6 +19,9 @@ import org.apache.rocketmq.spring.core.RocketMQTemplate;
 import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.stereotype.Service;
 
+import java.time.LocalDateTime;
+import java.time.ZoneId;
+
 import static com.ncwu.iotdevice.utils.Utils.keep3;
 import static com.ncwu.iotdevice.utils.Utils.markDeviceOnline;
 
@@ -36,7 +39,6 @@ public class DataSender {
     private final RocketMQTemplate rocketMQTemplate;
     private final StringRedisTemplate redisTemplate;
     private final DeviceMapper deviceMapper;
-    private final ServerConfig serverConfig;
 
 
     /**
@@ -49,26 +51,30 @@ public class DataSender {
     @RandomEvent
     @CloseValue
     public void sendMeterData(MeterDataBo dataBo) throws MessageSendException {
-        //获取当前系统时间
+        //检查上一次上报时间
         String deviceId = dataBo.getDeviceId();
-        long timestamp = System.currentTimeMillis();
-        heartBeat(deviceId, timestamp);
+        Object onLineMap = redisTemplate.opsForHash().get("OnLineMap", dataBo.getDeviceId());
+        long deviceCurrentTime = dataBo.getTimeStamp().atZone(ZoneId.of("Asia/Shanghai")).toInstant().toEpochMilli();
+        long now = System.currentTimeMillis();
+        if (onLineMap != null) {
+            long preTime = Long.parseLong(String.valueOf(onLineMap));
+            if (deviceCurrentTime <= preTime) {
+                log.warn("检测到重复数据，跳过上报{}", deviceId);
+                heartBeat(deviceId, now);
+                return;
+            }
+            double increment = keep3(dataBo.getFlow() * (deviceCurrentTime - preTime) / 1000.0);
+            Double currentTotal = redisTemplate.opsForHash().increment("meter:total_usage", deviceId, increment);
+            dataBo.setTotalUsage(keep3(currentTotal));
+        }
+        heartBeat(deviceId, now);
         Boolean onLine = redisTemplate.hasKey("device:OffLine:" + deviceId);
         if (onLine) {
             // 消息队列通知上线
             rocketMQTemplate.convertAndSend("DeviceOnLine", deviceId);
             //如果设备上线,调用设备上线后置处理器
-            markDeviceOnline(deviceId, timestamp, deviceMapper, redisTemplate);
+            markDeviceOnline(deviceId, now, deviceMapper, redisTemplate);
         }
-        double reportFrequency;
-        try {
-            reportFrequency = Double.parseDouble(serverConfig.getMeterReportFrequency());
-        } catch (NumberFormatException e) {
-            throw new MessageSendException("Invalid reportFrequency configuration: " + serverConfig.getMeterReportFrequency(), e);
-        }
-        double increment = keep3(dataBo.getFlow() * reportFrequency / 1000);
-        Double currentTotal = redisTemplate.opsForHash().increment("meter:total_usage", deviceId, increment);
-        dataBo.setTotalUsage(keep3(currentTotal));
         String data;
         try {
             data = objectMapper.writeValueAsString(dataBo);
@@ -120,7 +126,6 @@ public class DataSender {
             @Override
             public void onException(Throwable throwable) {
                 log.error("MQ 异步发送失败，尝试再次异步发送", throwable);
-
                 rocketMQTemplate.asyncSend(topic, data, new SendCallback() {
                     @Override
                     public void onSuccess(SendResult sendResult) {

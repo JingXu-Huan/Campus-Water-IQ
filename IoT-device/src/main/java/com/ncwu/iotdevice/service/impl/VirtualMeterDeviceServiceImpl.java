@@ -17,7 +17,6 @@ import com.ncwu.iotdevice.domain.entity.VirtualDevice;
 import com.ncwu.iotdevice.mapper.DeviceMapper;
 import com.ncwu.iotdevice.service.DataSender;
 import com.ncwu.iotdevice.service.VirtualMeterDeviceService;
-import com.ncwu.iotdevice.utils.Utils;
 import jakarta.annotation.PostConstruct;
 import jakarta.annotation.PreDestroy;
 import lombok.RequiredArgsConstructor;
@@ -71,9 +70,13 @@ public class VirtualMeterDeviceServiceImpl extends ServiceImpl<DeviceMapper, Vir
     private final ServerConfig serverConfig;
     private final DataSender dataSender;
 
+    Map<String, Integer> ids;
+    Map<String, Integer> temp;
 
     @PostConstruct
     void init() {
+        ids = chooseDormitory(0.5);
+        temp = new HashMap<>(ids);
         // 经压测验证，约 70 台虚拟设备对应 1 个调度线程即可满足精度与吞吐
         // 取 max 防止入参为 0 发生异常
         scheduler = Executors.newScheduledThreadPool(Math.max(5, (int) (this.count() / 70)));
@@ -419,16 +422,12 @@ public class VirtualMeterDeviceServiceImpl extends ServiceImpl<DeviceMapper, Vir
         return status.equals("online");
     }
 
-
     /**
      * 生成单条模拟数据并执行发送
      *
      * @param id 设备编号
      */
     private void processSingleDevice(String id) {
-        //多线程环境下应当使用原子
-        sendCnt.incrementAndGet();
-
         MeterDataBo dataBo = new MeterDataBo();
         dataBo.setDeviceId(id);
         dataBo.setDevice(1);
@@ -463,8 +462,7 @@ public class VirtualMeterDeviceServiceImpl extends ServiceImpl<DeviceMapper, Vir
             mid = 6;
             step = 2;
         }
-        dataBo.setWaterTem(waterTemperateGenerate(time * 3600L +
-                sendCnt.get() * ((double) Integer.parseInt(serverConfig.getMeterReportFrequency()) / 1000), mid, step));
+        dataBo.setWaterTem(waterTemperateGenerate(time, mid, step));
         dataBo.setIsOpen(DeviceStatus.NORMAL);
         dataBo.setStatus(DeviceStatus.NORMAL);
         dataSender.sendMeterData(dataBo);
@@ -481,45 +479,85 @@ public class VirtualMeterDeviceServiceImpl extends ServiceImpl<DeviceMapper, Vir
         } else if (buildingNum <= experiment) {
             flow = getExperimentFlow(time, deviceId);
         } else {
-            flow = getDormitoryFlow(time);
+            flow = getDormitoryFlow(time, deviceId);
         }
         return keep3(flow);
     }
 
-    private double getDormitoryFlow(int time) {
-        double flow;
-        if (time >= 0 && time <= 5) {
-            double p = Math.random();
-            if (p <= 0.8) {
-                flow = 0.0;
-            } else if (p <= 0.95) {
-                flow = ThreadLocalRandom.current().nextDouble(0, 0.15);
-            } else {
-                flow = ThreadLocalRandom.current().nextDouble(0.1, 0.15);
+
+    private double getDormitoryFlow(int time, String id) {
+        double p = Math.random();
+        int offset = ThreadLocalRandom.current().nextInt(10 * 60);
+        double v = ThreadLocalRandom.current().nextDouble(1);
+        //上报周期
+        int fre = Integer.parseInt(serverConfig.getMeterReportFrequency()) / 1000;
+        if (((time <= 7 * 3600) && (time >= 0)) || (time >= 23 * 3600) && (time <= 24 * 3600)) {
+            if (p >= 0.8) {
+                //模拟宿舍起夜上厕所行为，最多夜间两次
+                int freCnt = 7 * 3600 / fre;
+                double p1 = 1 - (2.0 / freCnt);
+                if (v >= p1) {
+                    return ThreadLocalRandom.current().nextDouble(0.1, 0.15);
+                }
             }
-        } else if (time <= 8) {
-            if (Math.random() > 0.8) {
-                flow = 0;
-            } else flow = ThreadLocalRandom.current().nextDouble(0.15, 0.25);
-        } else if (time <= 17) {
-            if (Math.random() > 0.8) {
-                flow = 0;
-            } else flow = ThreadLocalRandom.current().nextDouble(0.08, 0.15);
-        } else if (time <= 22) {
-            if (Math.random() >= 0.8) {
-                flow = 0;
-            } else flow = ThreadLocalRandom.current().nextDouble(0.2, 0.35);
+        } else if (time > 7.25 * 3600 + offset && time <= 8 * 3600 + offset) {
+            if (ids != null) {
+                synchronized (ids) {
+                    if (ids.containsKey(id) && ids.get(id) > 0) {
+                        Integer cnt = ids.get(id);
+                        ids.put(id, --cnt);
+                        return ThreadLocalRandom.current().nextDouble(0.15, 0.2);
+                    }
+                }
+            }
+        } else if (time > 8 * 3600 + offset && time <= 12.5 * 3600) {
+            //剩余
+            synchronized (temp) {
+                if (temp.containsKey(id) && temp.get(id) > 0) {
+                    Integer cnt = temp.get(id);
+                    temp.put(id, --cnt);
+                    return ThreadLocalRandom.current().nextDouble(0.1, 0.15);
+                } else return 0.0;
+            }
+        } else if (time > 12.5 * 3600 && time <= 18 * 3600) {
+            double freCnt = 7.5 * 3600 / fre;
+            double p3 = 1 - (1.0 / freCnt);
+            if (p >= p3) {
+                return ThreadLocalRandom.current().nextDouble(0.05, 0.1);
+            } else return 0.0;
+        } else if (time >= 20 * 3600 && time <= 22 * 3600) {
+            int freCnt = 3 * 3600 / fre;
+            double p4 = 1 - (1.5 / freCnt);
+            if (p >= p4) {
+                return ThreadLocalRandom.current().nextDouble(0.15, 0.2);
+            } else return 0.0;
         } else {
-            double p = Math.random();
-            if (p <= 0.6) {
-                flow = 0;
-            } else if (p <= 0.8) {
-                flow = ThreadLocalRandom.current().nextDouble(0, 0.05);
-            } else {
-                flow = ThreadLocalRandom.current().nextDouble(0, 0.15);
+            if (p > 0.9999) {
+                return ThreadLocalRandom.current().nextDouble(0.02, 0.05);
+            } else return 0.0;
+        }
+        return 0.0;
+    }
+
+    /**
+     * 方法返回约总设备的0.v倍的设备数量
+     */
+    private Map<String, Integer> chooseDormitory(double v) {
+        //宿舍楼的编号都在实验楼之后
+        int firstIndex = Integer.parseInt(Objects.requireNonNull(redisTemplate.opsForValue().get("device:experimentBuildings")));
+        Long size;
+        size = redisTemplate.opsForSet().size("device:meter");
+        if (size != null) {
+            Map<Object, Object> entries = redisTemplate.opsForHash().randomEntries("OnLineMap", (long) (size * v));
+            if (entries != null) {
+                return entries.keySet().stream()
+                        .map(Object::toString)
+                        .filter(id -> id.startsWith("1"))
+                        .filter(id -> Integer.parseInt(id.substring(1, 3)) > firstIndex)
+                        .collect(Collectors.toMap(id -> id, id -> 8));
             }
         }
-        return flow;
+        return null;
     }
 
     volatile boolean isExperimentGet = false;
@@ -552,27 +590,24 @@ public class VirtualMeterDeviceServiceImpl extends ServiceImpl<DeviceMapper, Vir
             }
         }
         if (experimentIds != null && experimentIds.contains(deviceId)) {
-            if (time >= 8 && time <= 12) {
-                return ThreadLocalRandom.current().nextDouble(0.1, 0.25);
-            } else if (time <= 15) {
+            if (time >= 8 * 3600 && time <= 12 * 3600) {
+                return ThreadLocalRandom.current().nextDouble(0.01, 0.1);
+            } else if (time > 12 * 3600 && time <= 15 * 3600) {
+                return ThreadLocalRandom.current().nextDouble(0.05, 0.1);
+            } else if (time > 15 * 3600 && time <= 18 * 3600) {
                 return ThreadLocalRandom.current().nextDouble(0.1, 0.15);
-            } else if (time <= 18) {
-                return ThreadLocalRandom.current().nextDouble(0.1, 0.25);
-            } else if (time <= 22) {
-                return ThreadLocalRandom.current().nextDouble(0.1, 0.15);
+            } else if (time > 18 * 3600 && time <= 22 * 3600) {
+                return ThreadLocalRandom.current().nextDouble(0.05, 0.1);
             } else {
                 return 0.0;
             }
-        } else {
-            //不在运行设备列表
-            return 0.0;
-        }
+        } else return 0.0;
     }
 
     private double getEducationFlow(int time, String deviceId) {
         // 教学区活跃时段（以小时为单位，0-23）
         // 假设：早上 8-12 点，下午 14-20 点
-        boolean isActiveTime = (time >= 8 && time <= 12) || (time >= 14 && time <= 20);
+        boolean isActiveTime = (time >= 8 * 3600 && time <= 12 * 3600) || (time >= 14 * 3600 && time <= 21 * 3600);
         // 教学区设备集合，只第一次获取
         synchronized (this) {
             if (!isEducationGet) {
@@ -597,14 +632,18 @@ public class VirtualMeterDeviceServiceImpl extends ServiceImpl<DeviceMapper, Vir
         if (educationIds != null && educationIds.contains(deviceId)) {
             double p = ThreadLocalRandom.current().nextDouble(); // 0-1 随机概率
             if (!isActiveTime) {
-                // 非活跃时间，绝大多数为 0，少量漏水模拟
-                return ThreadLocalRandom.current().nextDouble(0.05, 0.1);
-            } else {
-                // 活跃时间，偶尔有人使用水，流量低且离散
-                if (p <= 0.7) {
-                    return 0.0; // 大多数时间没用水
+                // 非活跃时间，绝大多数为 0
+                if (p <= 0.99991) {
+                    return 0.0;
                 } else {
                     return ThreadLocalRandom.current().nextDouble(0.1, 0.15);
+                }
+            } else {
+                // 活跃时间，偶尔有人使用水，流量低且离散
+                if (p <= 0.999) {
+                    return 0.0; // 大多数时间没用水
+                } else {
+                    return ThreadLocalRandom.current().nextDouble(0.05, 0.15);
                 }
             }
         } else {

@@ -40,6 +40,7 @@
         <hutool.version>5.8.23</hutool.version>
         <dubbo.version>3.2.3</dubbo.version>
         <lombok.version>1.18.32</lombok.version>
+        <influxdb.version>6.6.0</influxdb.version>
 
         <spring-cloud.version>2023.0.3</spring-cloud.version>
         <spring-cloud-alibaba.version>2022.0.0.0</spring-cloud-alibaba.version>
@@ -144,6 +145,11 @@
                 <scope>import</scope>
             </dependency>
 
+            <dependency>
+                <groupId>com.influxdb</groupId>
+                <artifactId>influxdb-client-java</artifactId>
+                <version>${influxdb.version}</version>
+            </dependency>
             <!-- RocketMQ starter 版本 -->
             <dependency>
                 <groupId>org.apache.rocketmq</groupId>

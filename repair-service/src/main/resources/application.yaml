@@ -1,0 +1,17 @@
+spring:
+  application:
+    name: repair-service
+  ai:
+    openai:
+      base-url: https://dashscope.aliyuncs.com/compatible-mode
+      api-key: ${OPENAI_API_KEY}
+      chat:
+        options:
+          model: qwen-max-latest
+
+logging:
+  level:
+    org.springframework.ai: debug
+    com.ncwu.repairservice: debug
+server:
+  port: 20000

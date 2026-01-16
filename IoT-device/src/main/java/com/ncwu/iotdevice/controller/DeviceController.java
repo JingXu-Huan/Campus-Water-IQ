@@ -49,10 +49,10 @@ public class DeviceController {
                                 @Min(1) @Max(99) @RequestParam(defaultValue = "1") int floors,
                                 @Min(1) @Max(999) @RequestParam(defaultValue = "10") int rooms) throws InterruptedException {
         int totalBuildings = dormitoryBuildings + educationBuildings + experimentBuildings;
-        if (totalBuildings * floors * rooms > 100000) {
+        if (3 * totalBuildings * floors * rooms > 100000) {
             throw new DeviceRegisterException("开启设备数量超过系统10万上限,请调整。");
         }
-        return virtualMeterDeviceService.init(totalBuildings, floors, rooms,dormitoryBuildings,educationBuildings,experimentBuildings);
+        return virtualMeterDeviceService.init(totalBuildings, floors, rooms, dormitoryBuildings, educationBuildings, experimentBuildings);
     }
 
     /**
@@ -121,7 +121,7 @@ public class DeviceController {
      * 设置模拟模式 支持：leaking、burstPipe、normal三种模式
      */
     @GetMapping("/changeModel")
-    public Result<String> changeModel(@NotNull @NotBlank String mode){
+    public Result<String> changeModel(@NotNull @NotBlank String mode) {
         return virtualMeterDeviceService.changeMode(mode);
     }
 }

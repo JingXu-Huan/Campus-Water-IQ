@@ -34,10 +34,9 @@ public class WaterQualityCheckerTasks {
     private final DeviceMapper deviceMapper;
     private final RocketMQTemplate rocketMQTemplate;
     private final ServerConfig serverConfig;
-    private final Utils utils;
 
 
-    @Scheduled(fixedDelay = 1000)
+    @Scheduled(fixedDelay = 3000)
     public void checkOnLineDevices() throws InterruptedException {
         Thread.sleep(12000);
 //        检查设备运行控制器

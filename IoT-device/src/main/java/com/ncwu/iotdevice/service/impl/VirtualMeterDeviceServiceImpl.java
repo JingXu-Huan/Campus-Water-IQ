@@ -29,7 +29,6 @@ import org.springframework.stereotype.Service;
 import java.time.LocalDateTime;
 import java.util.*;
 import java.util.concurrent.*;
-import java.util.concurrent.atomic.AtomicLong;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 
@@ -48,16 +47,11 @@ import static com.ncwu.iotdevice.utils.Utils.*;
 public class VirtualMeterDeviceServiceImpl extends ServiceImpl<DeviceMapper, VirtualDevice>
         implements VirtualMeterDeviceService {
 
-
     private int allSize;
     //运行中的设备集合
-    private final Set<String> runningDevices = ConcurrentHashMap.newKeySet();
-    //上报次数
-    AtomicLong sendCnt = new AtomicLong(0);
+    private volatile Set<String> runningDevices = ConcurrentHashMap.newKeySet();
     //实验楼数量
     int experiment;
-    //宿舍楼数量
-    int dormitory;
     //教学楼数量
     int education;
     final String deviceStatusPrefix = "cache:device:status:";
@@ -140,8 +134,8 @@ public class VirtualMeterDeviceServiceImpl extends ServiceImpl<DeviceMapper, Vir
             //使用Lua脚本加速redis操作！！！
             redisTemplate.execute(Lua_script, List.of(hashKey), "-1");
             // 每一个设备开启一个独立的递归流
-            ids.forEach(this::scheduleNextReport);
-            ids.forEach(this::startHeartbeat);
+            runningDevices.forEach(this::scheduleNextReport);
+            runningDevices.forEach(this::startHeartbeat);
             log.info("成功开启 {} 台设备的模拟数据流", ids.size());
             //可以受检
             redisTemplate.opsForValue().set("MeterChecked", "1");
@@ -162,19 +156,19 @@ public class VirtualMeterDeviceServiceImpl extends ServiceImpl<DeviceMapper, Vir
                     ErrorCode.DEVICE_INIT_ERROR.message());
         }
         if (ids != null && !ids.isEmpty()) {
+            //删除缓存
+            ids.forEach(id -> redisTemplate.delete(deviceStatusPrefix + id));
+            runningDevices.addAll(ids);
+            // 每一个设备开启一个独立的递归流
+            ids.forEach(id -> redisTemplate.opsForHash().put("OnLineMap", id, String.valueOf(System.currentTimeMillis())));
+            ids.forEach(this::startHeartbeat);
+            ids.forEach(this::scheduleNextReport);
             pool.submit(() -> {
                 this.lambdaUpdate().in(VirtualDevice::getDeviceCode, ids)
                         .eq(VirtualDevice::getIsRunning, false)
                         .set(VirtualDevice::getIsRunning, true)
                         .set(VirtualDevice::getStatus, true).update();
             });
-            //删除缓存
-            ids.forEach(id -> redisTemplate.delete(deviceStatusPrefix + id));
-            runningDevices.addAll(ids);
-            // 每一个设备开启一个独立的递归流
-            ids.forEach(id -> redisTemplate.opsForHash().put("OnLineMap", id, "-1"));
-            ids.forEach(this::scheduleNextReport);
-            ids.forEach(this::startHeartbeat);
             log.info("批量：成功开启 {} 台设备的模拟数据流", ids.size());
 
             return Result.ok("成功开启" + ids.size() + "台设备");
@@ -325,13 +319,13 @@ public class VirtualMeterDeviceServiceImpl extends ServiceImpl<DeviceMapper, Vir
     @Override
     public Result<String> offline(List<String> ids) {
         log.info("下线设备：{}", sanitizeForLog(ids.toString()));
+        ids.forEach(runningDevices::remove);
         boolean updateResult = lambdaUpdate()
                 .in(VirtualDevice::getDeviceCode, ids)
                 .set(VirtualDevice::getStatus, "offline")
                 .set(VirtualDevice::getIsRunning, false)
                 .update();
         if (updateResult) {
-            ids.forEach(runningDevices::remove);
             return Result.ok(SuccessCode.DEVICE_OFFLINE_SUCCESS.getCode(),
                     SuccessCode.DEVICE_OFFLINE_SUCCESS.getMessage());
         } else {
@@ -366,12 +360,13 @@ public class VirtualMeterDeviceServiceImpl extends ServiceImpl<DeviceMapper, Vir
         int time = Integer.parseInt(serverConfig.getMeterReportFrequency()) / 1000;
         int offset = Integer.parseInt(serverConfig.getMeterTimeOffset()) / 1000;
         scheduler.scheduleAtFixedRate(() -> {
+            long now = System.currentTimeMillis();
             Long reportTime = this.reportTime.get(deviceId);
-            if (reportTime == null) {
+            if (reportTime == null || !runningDevices.contains(deviceId)) {
                 return;
             }
+            reportTime = now - reportTime >= 10_000L ? now : reportTime;
             try {
-                if (!isDeviceOnline(deviceId)) return;
                 dataSender.heartBeat(deviceId, reportTime);
             } catch (Exception e) {
                 log.error("心跳发送异常: {}", e.getMessage(), e);
@@ -380,7 +375,7 @@ public class VirtualMeterDeviceServiceImpl extends ServiceImpl<DeviceMapper, Vir
     }
 
     /**
-     * 核心递归调度逻辑（含心跳上报）
+     * 核心递归调度逻辑
      */
     private void scheduleNextReport(String deviceId) {
         String sanitizedDeviceId = sanitizeForLog(deviceId);
@@ -520,7 +515,7 @@ public class VirtualMeterDeviceServiceImpl extends ServiceImpl<DeviceMapper, Vir
             }
             if (p >= 0.93) {
                 if (ids != null) {
-                    synchronized (ids) {
+                    synchronized (lock) {
                         if (ids.containsKey(id) && ids.get(id) > 0) {
                             Integer cnt = ids.get(id);
                             ids.put(id, --cnt);
@@ -532,7 +527,7 @@ public class VirtualMeterDeviceServiceImpl extends ServiceImpl<DeviceMapper, Vir
         } else if (time > 8 * 3600 + offset && time <= 12.5 * 3600) {
             //剩余
             if (p >= 0.98) {
-                synchronized (temp) {
+                synchronized (lock) {
                     if (temp.containsKey(id) && temp.get(id) > 0) {
                         Integer cnt = temp.get(id);
                         temp.put(id, --cnt);
@@ -600,6 +595,7 @@ public class VirtualMeterDeviceServiceImpl extends ServiceImpl<DeviceMapper, Vir
         //正在运行试验的教室，用水量可能一直存在
         double p = ThreadLocalRandom.current().nextDouble(1);
         if (time >= 8 * 3600 && time <= 12 * 3600) {
+            //这里两次检查的目的是提高并发能力。只有一个线程是需要加锁的，其他线程无需加锁，因此在外部只需检查标志位
             if (!flag1) {
                 synchronized (lock1) {
                     if (!flag1) {
@@ -648,6 +644,7 @@ public class VirtualMeterDeviceServiceImpl extends ServiceImpl<DeviceMapper, Vir
                 return returnFlow(deviceId, 0.05, 0.1);
             } else return 0;
         } else if (time >= 23 * 3600 && time <= 24 * 3600) {
+            //重置标志位，以便第二天选取不同的运行集合
             reset();
             return 0;
         } else {
@@ -791,7 +788,7 @@ public class VirtualMeterDeviceServiceImpl extends ServiceImpl<DeviceMapper, Vir
         build(meterDeviceIds, meterList, 1);
         build(waterQualityDeviceIds, waterList, 2);
 
-        ExecutorService executor = Executors.newFixedThreadPool(4);
+        ExecutorService executor = Executors.newFixedThreadPool(5);
         VirtualMeterDeviceServiceImpl proxy = (VirtualMeterDeviceServiceImpl) AopContext.currentProxy();
         executor.submit(() -> proxy.saveBatch(meterList, 2000));
         executor.submit(() -> proxy.saveBatch(waterList, 2000));
@@ -799,7 +796,7 @@ public class VirtualMeterDeviceServiceImpl extends ServiceImpl<DeviceMapper, Vir
         executor.awaitTermination(10, TimeUnit.MINUTES);
         this.isInit = true;
         waterQualityDeviceService.setInit(true);
-        log.info("设备注册完成：楼宇 {} 层数 {} 房间 {}", buildings, floors, rooms);
+        log.info("设备注册完成：校区 3 楼宇 {} 层数 {} 房间 {}", buildings, floors, rooms);
         this.allSize = buildings * floors * rooms;
         return Result.ok(SuccessCode.DEVICE_REGISTER_SUCCESS.getCode(),
                 SuccessCode.DEVICE_REGISTER_SUCCESS.getMessage());

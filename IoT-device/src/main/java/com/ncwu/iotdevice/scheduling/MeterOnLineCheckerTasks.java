@@ -20,7 +20,6 @@ import java.util.Objects;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
-import java.util.concurrent.atomic.AtomicLong;
 
 
 /**
@@ -44,12 +43,11 @@ public class MeterOnLineCheckerTasks {
     private final ServerConfig serverConfig;
     private final Utils utils;
 
-    @Scheduled(fixedDelay = 1000)
+    @Scheduled(fixedDelay = 10000)
     public void checkOnLineDevices() throws InterruptedException {
         Thread.sleep(12000);
 //        检查设备运行控制器
         long meterChecked = Long.parseLong(Objects.requireNonNull(redisTemplate.opsForValue().get("MeterChecked")));
-
         if (meterChecked == 0) {
             return;
         }

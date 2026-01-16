@@ -51,7 +51,7 @@ public class MeterDataConsumer extends ServiceImpl<IotDataMapper, IotDeviceData>
 
     @Override
     public void onMessage(String s) {
-        String bucket = "test06";
+        String bucket = "test08";
         String org = "jingxu";
         System.out.println(s);
         try {

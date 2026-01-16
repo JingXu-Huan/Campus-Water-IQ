@@ -54,15 +54,13 @@ public class Utils {
         Map<String, String> meterMap = new HashMap<>();
         List<String> meterDeviceIds = new ArrayList<>();
         List<String> waterQualityDeviceIds = new ArrayList<>();
-        for (int b = 1; b <= buildings; b++) {
-            // 每栋楼 1 台水质传感器
-            String sensorId = String.format("2%02d00001", b);
-            waterQualityDeviceIds.add(sensorId);
-            for (int f = 1; f <= floors; f++) {
-                for (int r = 1; r <= rooms; r++) {
-                    String meterId = String.format("1%02d%02d%03d", b, f, r);
-                    meterMap.put(meterId, "0");
-                    meterDeviceIds.add(meterId);
+        for (int i = 1; i <= 3; i++) {
+            for (int b = 1; b <= buildings; b++) {
+                waterQualityDeviceIds.add(String.format("2%d%02d%02d001", i, b, floors));
+                for (int f = 1; f <= floors; f++) {
+                    for (int r = 1; r <= rooms; r++) {
+                        meterDeviceIds.add(String.format("1%d%02d%02d%03d", i, b, f, r));
+                    }
                 }
             }
         }

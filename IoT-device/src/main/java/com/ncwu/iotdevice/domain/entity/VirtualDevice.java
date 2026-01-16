@@ -21,6 +21,9 @@ public class VirtualDevice {
     @TableField("device_type")
     private Integer deviceType; // 1: 水表, 2: 传感器
 
+    @TableField("campus_no")
+    private String campusNo;//1:花园校区,2:龙子湖,3:江淮校区
+    
     @TableField("building_no")
     private String buildingNo; // 楼宇编号（对应 BC）
 

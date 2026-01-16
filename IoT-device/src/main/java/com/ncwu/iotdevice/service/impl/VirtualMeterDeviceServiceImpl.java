@@ -70,13 +70,9 @@ public class VirtualMeterDeviceServiceImpl extends ServiceImpl<DeviceMapper, Vir
     private final ServerConfig serverConfig;
     private final DataSender dataSender;
 
-    Map<String, Integer> ids;
-    Map<String, Integer> temp;
 
     @PostConstruct
     void init() {
-        ids = chooseDormitory(0.5);
-        temp = new HashMap<>(ids);
         // 经压测验证，约 70 台虚拟设备对应 1 个调度线程即可满足精度与吞吐
         // 取 max 防止入参为 0 发生异常
         scheduler = Executors.newScheduledThreadPool(Math.max(5, (int) (this.count() / 70)));
@@ -345,12 +341,12 @@ public class VirtualMeterDeviceServiceImpl extends ServiceImpl<DeviceMapper, Vir
 
     @Override
     public Result<String> changeMode(String mode) {
-        if (mode.equals("burstPipe") || mode.equals("leaking")||mode.equals("normal")){
-            redisTemplate.opsForValue().set("mode",mode);
+        if (mode.equals("burstPipe") || mode.equals("leaking") || mode.equals("normal")) {
+            redisTemplate.opsForValue().set("mode", mode);
             return Result.ok(SuccessCode.METER_MODE_CHANGE_SUCCESS.getCode(),
                     SuccessCode.METER_MODE_CHANGE_SUCCESS.getMessage());
         }
-        return Result.fail(ErrorCode.PARAM_VALIDATION_ERROR.code(),ErrorCode.PARAM_VALIDATION_ERROR.message());
+        return Result.fail(ErrorCode.PARAM_VALIDATION_ERROR.code(), ErrorCode.PARAM_VALIDATION_ERROR.message());
     }
 
     /**
@@ -482,7 +478,7 @@ public class VirtualMeterDeviceServiceImpl extends ServiceImpl<DeviceMapper, Vir
      * 根据每天不同时段和不同的楼宇生成水流量的水流生成器
      */
     private double waterFlowGenerate(int time, String deviceId) {
-        int buildingNum = Integer.parseInt(deviceId.substring(1, 3));
+        int buildingNum = Integer.parseInt(deviceId.substring(2, 4));
         double flow;
         if (buildingNum <= education) {
             flow = getEducationFlow(time, deviceId);
@@ -494,6 +490,10 @@ public class VirtualMeterDeviceServiceImpl extends ServiceImpl<DeviceMapper, Vir
         return keep3(flow);
     }
 
+    Map<String, Integer> ids;
+    Map<String, Integer> temp;
+    volatile boolean flag = false;
+    final Object lock = new Object();
 
     private double getDormitoryFlow(int time, String id) {
         double p = Math.random();
@@ -511,26 +511,33 @@ public class VirtualMeterDeviceServiceImpl extends ServiceImpl<DeviceMapper, Vir
                 }
             }
         } else if (time > 7.25 * 3600 + offset && time <= 8 * 3600 + offset) {
-            if (p>=0.93) {
+            synchronized (lock) {
+                if (!flag) {
+                    ids = chooseDormitory(0.5);
+                    temp = new HashMap<>(ids);
+                    flag = true;
+                }
+            }
+            if (p >= 0.93) {
                 if (ids != null) {
                     synchronized (ids) {
                         if (ids.containsKey(id) && ids.get(id) > 0) {
                             Integer cnt = ids.get(id);
                             ids.put(id, --cnt);
-                            return ThreadLocalRandom.current().nextDouble(0.15, 0.2);
+                            return ThreadLocalRandom.current().nextDouble(0.15, 0.25);
                         }
                     }
                 }
             }
         } else if (time > 8 * 3600 + offset && time <= 12.5 * 3600) {
             //剩余
-            if (p>=0.98) {
+            if (p >= 0.98) {
                 synchronized (temp) {
                     if (temp.containsKey(id) && temp.get(id) > 0) {
                         Integer cnt = temp.get(id);
                         temp.put(id, --cnt);
                         return ThreadLocalRandom.current().nextDouble(0.1, 0.15);
-                    } else return 0.0;
+                    } else return 0;
                 }
             }
         } else if (time > 12.5 * 3600 && time <= 18 * 3600) {
@@ -538,17 +545,22 @@ public class VirtualMeterDeviceServiceImpl extends ServiceImpl<DeviceMapper, Vir
             double p3 = 1 - (5.0 / freCnt);
             if (p >= p3) {
                 return ThreadLocalRandom.current().nextDouble(0.05, 0.1);
-            } else return 0.0;
+            } else return 0;
         } else if (time >= 20 * 3600 && time <= 22 * 3600) {
             int freCnt = 3 * 3600 / fre;
             double p4 = 1 - (2.0 / freCnt);
             if (p >= p4) {
                 return ThreadLocalRandom.current().nextDouble(0.1, 0.3);
-            } else return 0.0;
+            } else {
+                return 0;
+            }
+        } else if (time >= 23.5 * 3600 && time <= 24 * 3600) {
+            flag = true;
+            return 0;
         } else {
             if (p > 0.9999) {
                 return ThreadLocalRandom.current().nextDouble(0.02, 0.05);
-            } else return 0.0;
+            } else return 0;
         }
         return 0.0;
     }
@@ -567,7 +579,7 @@ public class VirtualMeterDeviceServiceImpl extends ServiceImpl<DeviceMapper, Vir
                 return entries.keySet().stream()
                         .map(Object::toString)
                         .filter(id -> id.startsWith("1"))
-                        .filter(id -> Integer.parseInt(id.substring(1, 3)) > firstIndex)
+                        .filter(id -> Integer.parseInt(id.substring(2, 4)) > firstIndex)
                         .collect(Collectors.toMap(id -> id, id -> 8));
             }
         }
@@ -576,46 +588,110 @@ public class VirtualMeterDeviceServiceImpl extends ServiceImpl<DeviceMapper, Vir
 
     volatile boolean isExperimentGet = false;
     volatile boolean isEducationGet = false;
-    Set<String> educationIds = null;
-    Set<String> experimentIds = null;
+    volatile Set<String> educationIds;
+    volatile Map<String, Integer> experimentIds;
+    final Object lock1 = new Object();
+    volatile boolean flag1 = false;
+    volatile boolean flag2 = false;
+    volatile boolean flag3 = false;
+    volatile boolean flag4 = false;
 
     private double getExperimentFlow(int time, String deviceId) {
         //正在运行试验的教室，用水量可能一直存在
-        //为什么这里使用重量级锁：由于以下同步代码块只执行一次。
-        synchronized (this) {
+        double p = ThreadLocalRandom.current().nextDouble(1);
+        if (time >= 8 * 3600 && time <= 12 * 3600) {
+            if (!flag1) {
+                synchronized (lock1) {
+                    if (!flag1) {
+                        assignRunnableDevice();
+                        flag1 = true;
+                    }
+                }
+            }
+            if (p >= 0.95) {
+                return returnFlow(deviceId, 0.01, 0.05);
+            } else return 0;
+        } else if (time > 12 * 3600 && time <= 15 * 3600) {
+            if (!flag2) {
+                synchronized (lock1) {
+                    if (!flag2) {
+                        assignRunnableDevice();
+                        flag2 = true;
+                    }
+                }
+            }
+            if (p >= 0.95) {
+                return returnFlow(deviceId, 0.01, 0.05);
+            } else return 0;
+        } else if (time > 15 * 3600 && time <= 18 * 3600) {
+            if (!flag3) {
+                synchronized (lock1) {
+                    if (!flag3) {
+                        assignRunnableDevice();
+                        flag3 = true;
+                    }
+                }
+            }
+            if (p >= 0.95) {
+                return returnFlow(deviceId, 0.1, 0.15);
+            } else return 0;
+        } else if (time > 18 * 3600 && time <= 22 * 3600) {
+            if (!flag4) {
+                synchronized (lock1) {
+                    if (!flag4) {
+                        assignRunnableDevice();
+                        flag4 = true;
+                    }
+                }
+            }
+            if (p >= 0.95) {
+                return returnFlow(deviceId, 0.05, 0.1);
+            } else return 0;
+        } else if (time >= 23 * 3600 && time <= 24 * 3600) {
+            reset();
+            return 0;
+        } else {
+            return 0;
+        }
+    }
+
+    private void reset() {
+        flag1 = true;
+        flag2 = true;
+        flag3 = true;
+        flag4 = true;
+    }
+
+    private double returnFlow(String deviceId, double origin, double bound) {
+        Integer cnt = experimentIds.get(deviceId);
+        if (cnt != null && cnt > 0) {
+            experimentIds.put(deviceId, --cnt);
+            return ThreadLocalRandom.current().nextDouble(origin, bound);
+        } else return 0;
+    }
+
+    private void assignRunnableDevice() {
+        synchronized (lock1) {
             if (!isExperimentGet) {
                 //设备全量列表
                 Set<String> members = Objects.requireNonNull(redisTemplate.opsForSet().members("device:meter"));
                 //是实验楼的所有设备数量
                 int canRunning = (int) members.stream().filter(id -> {
-                    int buildingNum = Integer.parseInt(id.substring(1, 3));
+                    int buildingNum = Integer.parseInt(id.substring(2, 4));
                     return buildingNum > education && buildingNum <= experiment;
                 }).count();
                 //选择的所有运行设备
                 experimentIds = members
                         .stream()
                         .filter(id -> {
-                            int buildingNum = Integer.parseInt(id.substring(1, 3));
+                            int buildingNum = Integer.parseInt(id.substring(2, 4));
                             return buildingNum > education && buildingNum <= experiment;
                         })
                         .limit(Math.max(1, canRunning / 3))
-                        .collect(Collectors.toSet());
+                        .collect(Collectors.toMap(id -> id, id -> 60));
                 isExperimentGet = true;
             }
         }
-        if (experimentIds != null && experimentIds.contains(deviceId)) {
-            if (time >= 8 * 3600 && time <= 12 * 3600) {
-                return ThreadLocalRandom.current().nextDouble(0.01, 0.1);
-            } else if (time > 12 * 3600 && time <= 15 * 3600) {
-                return ThreadLocalRandom.current().nextDouble(0.05, 0.1);
-            } else if (time > 15 * 3600 && time <= 18 * 3600) {
-                return ThreadLocalRandom.current().nextDouble(0.1, 0.15);
-            } else if (time > 18 * 3600 && time <= 22 * 3600) {
-                return ThreadLocalRandom.current().nextDouble(0.05, 0.1);
-            } else {
-                return 0.0;
-            }
-        } else return 0.0;
     }
 
     private double getEducationFlow(int time, String deviceId) {
@@ -628,13 +704,13 @@ public class VirtualMeterDeviceServiceImpl extends ServiceImpl<DeviceMapper, Vir
                 Set<String> members = Objects.requireNonNull(redisTemplate.opsForSet().members("device:meter"));
                 int canRunning = (int) members.stream()
                         .filter(id -> {
-                            int building = Integer.parseInt(id.substring(1, 3));
+                            int building = Integer.parseInt(id.substring(2, 4));
                             return building <= education;
                         })
                         .count();
                 educationIds = members.stream()
                         .filter(id -> {
-                            int building = Integer.parseInt(id.substring(1, 3));
+                            int building = Integer.parseInt(id.substring(2, 4));
                             return building <= education;
                         })
                         .limit(Math.max(1, canRunning / 2))
@@ -690,7 +766,8 @@ public class VirtualMeterDeviceServiceImpl extends ServiceImpl<DeviceMapper, Vir
      */
     @Time
     @Override
-    public Result<String> init(int buildings, int floors, int rooms, int dormitoryBuildings, int educationBuildings, int experimentBuildings) throws InterruptedException {
+    public Result<String> init(int buildings, int floors, int rooms, int dormitoryBuildings,
+                               int educationBuildings, int experimentBuildings) throws InterruptedException {
         if (isRunning()) {
             return Result.fail(ErrorCode.DEVICE_DEVICE_RUNNING_NOW_ERROR.code(),
                     ErrorCode.DEVICE_DEVICE_RUNNING_NOW_ERROR.message());
@@ -740,9 +817,10 @@ public class VirtualMeterDeviceServiceImpl extends ServiceImpl<DeviceMapper, Vir
             String sn = "JX" + UUID.fastUUID().toString().substring(0, 18).toUpperCase();
             virtualDevice.setInstallDate(now);
             virtualDevice.setSnCode(sn);
-            virtualDevice.setBuildingNo(id.substring(1, 3));
-            virtualDevice.setFloorNo(id.substring(3, 5));
-            virtualDevice.setRoomNo(id.substring(5, 8));
+            virtualDevice.setCampusNo(id.substring(1, 2));
+            virtualDevice.setBuildingNo(id.substring(2, 4));
+            virtualDevice.setFloorNo(id.substring(4, 6));
+            virtualDevice.setRoomNo(id.substring(6, 9));
             virtualDevice.setStatus("online");
             virtualDevice.setIsRunning(false);
             virtualDeviceList.add(virtualDevice);

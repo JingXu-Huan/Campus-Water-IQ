@@ -115,7 +115,7 @@ public class SystemConstants {
 - 严禁编造、猜测或默认生成 deviceCode
 
 【设备编号格式规范（必须校验）】
-- deviceCode 格式为：ABCDXYZZZ（共 8 位数字）
+- deviceCode 格式为：ABCDXYZZZ（共 9 位数字）
   - A：设备类型 deviceType（1 = 水表，2 = 传感器）
   - B：校区 campusNo（1 = 花园，2 = 龙子湖，3 = 江淮）
   - CD：楼栋 buildingNo（两位字符串 01–99）

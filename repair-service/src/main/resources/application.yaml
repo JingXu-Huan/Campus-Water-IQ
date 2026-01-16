@@ -3,12 +3,11 @@ spring:
     name: repair-service
   ai:
     openai:
-      base-url: https://dashscope.aliyuncs.com/compatible-mode
-      api-key: ${OPENAI_API_KEY}
+      base-url: http://127.0.0.1:11434
+      api-key: ollama
       chat:
         options:
-          model: qwen-max-latest
-
+          model: qwen2.5:7b
 logging:
   level:
     org.springframework.ai: debug

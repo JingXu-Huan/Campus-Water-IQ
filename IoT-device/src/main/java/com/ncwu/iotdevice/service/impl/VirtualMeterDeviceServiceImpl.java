@@ -653,10 +653,10 @@ public class VirtualMeterDeviceServiceImpl extends ServiceImpl<DeviceMapper, Vir
     }
 
     private void reset() {
-        flag1 = true;
-        flag2 = true;
-        flag3 = true;
-        flag4 = true;
+        flag1 = false;
+        flag2 = false;
+        flag3 = false;
+        flag4 = false;
     }
 
     private double returnFlow(String deviceId, double origin, double bound) {

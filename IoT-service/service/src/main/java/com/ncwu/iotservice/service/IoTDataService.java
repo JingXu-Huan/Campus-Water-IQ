@@ -1,6 +1,7 @@
 package com.ncwu.iotservice.service;
 
 import com.baomidou.mybatisplus.extension.service.IService;
+import com.ncwu.common.VO.Result;
 import com.ncwu.iotservice.entity.IotDeviceData;
 
 /**
@@ -9,4 +10,5 @@ import com.ncwu.iotservice.entity.IotDeviceData;
  * @since 2025/12/20
  */
 public interface IoTDataService extends IService<IotDeviceData> {
+    Result<Integer> getRangeUsage(long start, long end);
 }

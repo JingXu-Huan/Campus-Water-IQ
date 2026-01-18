@@ -1,7 +1,6 @@
 package com.ncwu.iotdevice.controller;
 
-import com.ncwu.common.VO.Result;
-import com.ncwu.iotdevice.scheduling.MeterOnLineCheckerTasks;
+import com.ncwu.common.vo.Result;
 import com.ncwu.iotdevice.service.VirtualMeterDeviceService;
 import jakarta.validation.constraints.*;
 import lombok.RequiredArgsConstructor;
@@ -39,6 +38,7 @@ public class MeterIoTDeviceController {
      */
     @PostMapping("/startList")
     public Result<String> startListSimulator(@NotNull @NotEmpty @RequestBody List<@NotBlank String> ids) {
+
         return virtualMeterDeviceService.startList(ids);
     }
 

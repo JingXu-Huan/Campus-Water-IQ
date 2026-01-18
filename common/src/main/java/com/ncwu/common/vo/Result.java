@@ -1,4 +1,4 @@
-package com.ncwu.common.VO;
+package com.ncwu.common.vo;
 
 import lombok.Data;
 

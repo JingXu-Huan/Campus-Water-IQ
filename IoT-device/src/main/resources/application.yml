@@ -1,3 +1,14 @@
 spring:
   application:
     name: iot-device
+dubbo:
+  application:
+    name: iot-device
+  registry:
+    address: nacos://101.42.157.163:8848
+    username: nacos
+    password: nacos
+    register-mode: instance
+  protocol:
+    name: tri
+    port: 50052

@@ -53,6 +53,8 @@ public class WaterQualityDataConsumer extends ServiceImpl<IotDataMapper, IotDevi
     @Override
     public void onMessage(String s) {
         System.out.println(s);
+        String bucket = "test08";
+        String org = "jingxu";
         try {
             //消息反序列化为对象
             WaterQualityDataBo waterQualityDataBo = objectMapper.readValue(s, WaterQualityDataBo.class);
@@ -63,13 +65,14 @@ public class WaterQualityDataConsumer extends ServiceImpl<IotDataMapper, IotDevi
             iotDeviceData.setCollectTime(waterQualityDataBo.getTimeStamp());
             ZonedDateTime zdt = waterQualityDataBo.getTimeStamp().atZone(ZoneId.of("Asia/Shanghai"));
             //上报到 influxdb
-            Point point = Point.measurement(waterQualityDataBo.getDeviceId())
-                    .addField("Ph", waterQualityDataBo.getPh())
+            Point point = Point.measurement("water_quality")
+                    .addTag("deviceId", waterQualityDataBo.getDeviceId())
+                    .addField("ph", waterQualityDataBo.getPh())
                     .addField("chlorine", waterQualityDataBo.getChlorine())
                     .addField("turbidity", waterQualityDataBo.getTurbidity())
                     .time(zdt.toInstant(), WritePrecision.MS);
             WriteApiBlocking writeApiBlocking = influxDBClient.getWriteApiBlocking();
-            writeApiBlocking.writePoint(point);
+            writeApiBlocking.writePoint(bucket, org, point);
             synchronized (this) {
                 buffer.add(iotDeviceData);
                 if (buffer.size() >= 200) {

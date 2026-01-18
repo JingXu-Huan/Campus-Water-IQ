@@ -69,7 +69,8 @@ public class MeterDataConsumer extends ServiceImpl<IotDataMapper, IotDeviceData>
             //流量，送到influxdb
             ZonedDateTime zdt = meterDataBo.getTimeStamp().atZone(ZoneId.of("Asia/Shanghai"));
             Point point = Point
-                    .measurement(meterDataBo.getDeviceId())
+                    .measurement("water_meter")
+                    .addTag("deviceId",meterDataBo.getDeviceId())
                     .addField("flow", meterDataBo.getFlow())
                     .addField("usage", meterDataBo.getTotalUsage())
                     .addField("tem", meterDataBo.getWaterTem())

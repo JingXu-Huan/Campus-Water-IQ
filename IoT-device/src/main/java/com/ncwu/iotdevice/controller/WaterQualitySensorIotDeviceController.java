@@ -1,6 +1,6 @@
 package com.ncwu.iotdevice.controller;
 
-import com.ncwu.common.VO.Result;
+import com.ncwu.common.vo.Result;
 import com.ncwu.iotdevice.service.VirtualWaterQualityDeviceService;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;

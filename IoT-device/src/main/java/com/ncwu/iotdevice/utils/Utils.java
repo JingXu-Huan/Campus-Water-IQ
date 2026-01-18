@@ -10,6 +10,8 @@ import com.ncwu.iotdevice.domain.entity.VirtualDevice;
 import com.ncwu.iotdevice.exception.DeviceRegisterException;
 import com.ncwu.iotdevice.mapper.DeviceMapper;
 import lombok.RequiredArgsConstructor;
+import org.redisson.api.RBloomFilter;
+import org.redisson.api.RedissonClient;
 import org.springframework.data.redis.core.Cursor;
 import org.springframework.data.redis.core.ScanOptions;
 import org.springframework.data.redis.core.StringRedisTemplate;
@@ -35,7 +37,6 @@ import static com.ncwu.iotdevice.AOP.Aspects.InitLuaScript.Lua_script;
 public class Utils {
     private final StringRedisTemplate redisTemplate;
 
-
     /**
      * 此方法用于向 redis中初始化设备 id
      *
@@ -46,7 +47,7 @@ public class Utils {
      * @throws DeviceRegisterException 设备注册失败异常
      */
     public static DeviceIdList initAllRedisData(int buildings, int floors, int rooms,
-                                                StringRedisTemplate redisTemplate) {
+                                                StringRedisTemplate redisTemplate,RedissonClient redissonClient) {
 
         if (buildings <= 0 || floors <= 0 || rooms <= 0) {
             throw new DeviceRegisterException("楼宇、楼层、房间数量必须大于 0");
@@ -64,9 +65,15 @@ public class Utils {
                 }
             }
         }
+        RBloomFilter<String> bloomFilter = redissonClient.getBloomFilter("device:bloom");
+        bloomFilter.tryInit(100000,0.01);
+        bloomFilter.add(meterDeviceIds);
+        bloomFilter.add(waterQualityDeviceIds);
         Map<String, String> map = Stream.concat(meterDeviceIds.stream(), waterQualityDeviceIds.stream())
                 .collect(Collectors.toMap(Function.identity(), id -> "-1"));
         try {
+            //初始化标志位
+            redisTemplate.opsForValue().set("isInit","1");
             //水表总用水量
             redisTemplate.opsForHash().putAll("meter:total_usage", meterMap);
             //水表设备 id 集合
@@ -92,11 +99,12 @@ public class Utils {
     }
 
     /**
-     * 方法清除 redis 中对应的 set 集合
+     * 方法清除 redis 中对应的旧数据
      */
     public static void clearRedisData(StringRedisTemplate redisTemplate, DeviceMapper deviceMapper) {
         String prefix = "device:";
         try {
+            redisTemplate.opsForValue().set("isInit","0");
             redisTemplate.delete(prefix + "meter");
             redisTemplate.delete(prefix + "sensor");
             redisTemplate.delete("meter:total_usage");

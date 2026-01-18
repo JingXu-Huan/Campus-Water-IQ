@@ -39,7 +39,7 @@ import java.util.List;
 public class MeterDataConsumer extends ServiceImpl<IotDataMapper, IotDeviceData> implements RocketMQListener<String>, IService<IotDeviceData> {
 
     private final ObjectMapper objectMapper;
-    private final List<IotDeviceData> buffer = new ArrayList<>(200);
+    private final List<IotDeviceData> buffer = new ArrayList<>(2000);
     private InfluxDBClient influxDBClient;
 
     @PostConstruct
@@ -69,7 +69,8 @@ public class MeterDataConsumer extends ServiceImpl<IotDataMapper, IotDeviceData>
             //流量，送到influxdb
             ZonedDateTime zdt = meterDataBo.getTimeStamp().atZone(ZoneId.of("Asia/Shanghai"));
             Point point = Point
-                    .measurement(meterDataBo.getDeviceId())
+                    .measurement("water_meter")
+                    .addTag("deviceId",meterDataBo.getDeviceId())
                     .addField("flow", meterDataBo.getFlow())
                     .addField("usage", meterDataBo.getTotalUsage())
                     .addField("tem", meterDataBo.getWaterTem())

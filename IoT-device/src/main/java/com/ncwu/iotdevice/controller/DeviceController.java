@@ -1,7 +1,7 @@
 package com.ncwu.iotdevice.controller;
 
 
-import com.ncwu.common.VO.Result;
+import com.ncwu.common.vo.Result;
 import com.ncwu.common.enums.ErrorCode;
 import com.ncwu.common.enums.SuccessCode;
 import com.ncwu.iotdevice.exception.DeviceRegisterException;

@@ -46,14 +46,12 @@
         <rocketmq.version>2.3.4</rocketmq.version>
         <knife4j.version>4.4.0</knife4j.version>
         <hutool.version>5.8.23</hutool.version>
-        <dubbo.version>3.2.3</dubbo.version>
+        <dubbo.version>3.3.6</dubbo.version>
         <lombok.version>1.18.32</lombok.version>
         <influxdb.version>6.6.0</influxdb.version>
-
+        <redission.version>3.52.0</redission.version>
         <spring-cloud.version>2023.0.3</spring-cloud.version>
         <spring-cloud-alibaba.version>2022.0.0.0</spring-cloud-alibaba.version>
-
-        <!-- RocketMQ：starter 2.3.0 + client 5.x（关键！避免你之前 4.9.4 导致 MessageModel 找不到） -->
         <rocketmq.spring.version>2.3.0</rocketmq.spring.version>
         <rocketmq.client.version>5.2.0</rocketmq.client.version>
 
@@ -67,7 +65,6 @@
         </snapshotRepository>
     </distributionManagement>
 
-    <!-- 这里放“父工程也要用”的通用依赖（注意：不要放 boot starter 版本号） -->
     <dependencies>
         <dependency>
             <groupId>org.springframework.cloud</groupId>
@@ -129,6 +126,16 @@
     <dependencyManagement>
         <dependencies>
             <dependency>
+                <groupId>org.apache.dubbo</groupId>
+                <artifactId>dubbo-spring-boot-starter</artifactId>
+                <version>${dubbo.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>org.redisson</groupId>
+                <artifactId>redisson-spring-boot-starter</artifactId>
+                <version>${redission.version}</version>
+            </dependency>
+            <dependency>
                 <groupId>org.springframework.ai</groupId>
                 <artifactId>spring-ai-bom</artifactId>
                 <version>${ollama.version}</version>
@@ -143,7 +150,6 @@
                 <type>pom</type>
                 <scope>import</scope>
             </dependency>
-
             <dependency>
                 <groupId>com.alibaba.cloud</groupId>
                 <artifactId>spring-cloud-alibaba-dependencies</artifactId>
@@ -157,8 +163,6 @@
                 <artifactId>spring-boot-starter</artifactId>
                 <version>${spring-boot.version}</version>
             </dependency>
-
-            <!-- Web 开发依赖，包含 Spring MVC 和 Tomcat -->
             <dependency>
                 <groupId>com.influxdb</groupId>
                 <artifactId>influxdb-client-java</artifactId>
@@ -170,8 +174,6 @@
                 <artifactId>rocketmq-spring-boot-starter</artifactId>
                 <version>${rocketmq.spring.version}</version>
             </dependency>
-
-            <!-- 强制 RocketMQ client 走 5.x，防止被别的依赖拉回 4.9.4 -->
             <dependency>
                 <groupId>org.apache.rocketmq</groupId>
                 <artifactId>rocketmq-client</artifactId>
@@ -187,7 +189,6 @@
                 <artifactId>rocketmq-common</artifactId>
                 <version>${rocketmq.client.version}</version>
             </dependency>
-            <!-- 单元测试和集成测试工具 -->
             <dependency>
                 <groupId>com.google.guava</groupId>
                 <artifactId>guava</artifactId>

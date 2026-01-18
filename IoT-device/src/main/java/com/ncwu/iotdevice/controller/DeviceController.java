@@ -1,12 +1,15 @@
 package com.ncwu.iotdevice.controller;
 
 
+import com.ncwu.common.validator.annotations.Bloom;
 import com.ncwu.common.vo.Result;
 import com.ncwu.common.enums.ErrorCode;
 import com.ncwu.common.enums.SuccessCode;
+import com.ncwu.iotdevice.domain.IdsDTO;
 import com.ncwu.iotdevice.exception.DeviceRegisterException;
 import com.ncwu.iotdevice.service.VirtualMeterDeviceService;
 import com.ncwu.iotdevice.service.VirtualWaterQualityDeviceService;
+import jakarta.validation.Valid;
 import jakarta.validation.constraints.*;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -89,17 +92,6 @@ public class DeviceController {
 
 
     /**
-     * 查看某台设备当前运行状态
-     *
-     * @param ids 设备列表
-     */
-    @PostMapping("/status")
-    public Result<Map<String, String>> checkDeviceStatus(@NotNull @NotEmpty @RequestBody List<@NotBlank String> ids) {
-
-        return virtualMeterDeviceService.checkDeviceStatus(ids);
-    }
-
-    /**
      * 重置全部设备
      */
     @GetMapping("/destroyAll")
@@ -115,6 +107,17 @@ public class DeviceController {
         } else {
             return Result.ok(SuccessCode.DEVICE_RESET_SUCCESS.getCode(), SuccessCode.DEVICE_RESET_SUCCESS.getMessage());
         }
+    }
+
+    /**
+     * 查看某台设备当前运行状态
+     *
+     * @param ids 设备列表
+     */
+    @PostMapping("/status")
+    public Result<Map<String, String>> checkDeviceStatus(@NotNull @RequestBody @Valid IdsDTO ids) {
+
+        return virtualMeterDeviceService.checkDeviceStatus(ids.getIds());
     }
 
     /**

@@ -1,14 +1,12 @@
 package com.ncwu.iotdevice.controller;
 
 import com.ncwu.common.vo.Result;
+import com.ncwu.common.dto.IdsDTO;
 import com.ncwu.iotdevice.service.VirtualWaterQualityDeviceService;
-import jakarta.validation.constraints.NotBlank;
-import jakarta.validation.constraints.NotNull;
+import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.web.bind.annotation.*;
-
-import java.util.List;
 
 /**
  * 水质传感器的控制器
@@ -39,8 +37,8 @@ public class WaterQualitySensorIotDeviceController {
      * @param ids 设备列表
      */
     @PostMapping("/startList")
-    public Result<String> startList(@NotNull @RequestBody List<@NotBlank String> ids) {
-        return waterQualityDeviceService.startList(ids);
+    public Result<String> startList(@RequestBody @Valid IdsDTO ids) {
+        return waterQualityDeviceService.startList(ids.getIds());
     }
 
     /**
@@ -49,8 +47,8 @@ public class WaterQualitySensorIotDeviceController {
      * @param ids 设备列表
      */
     @PostMapping("/stopList")
-    public Result<String> stopList(@NotNull @RequestBody List<@NotBlank String> ids) {
-        return waterQualityDeviceService.stopList(ids);
+    public Result<String> stopList(@RequestBody @Valid IdsDTO ids) {
+        return waterQualityDeviceService.stopList(ids.getIds());
     }
 
     /**
@@ -67,7 +65,7 @@ public class WaterQualitySensorIotDeviceController {
      * @param ids 设备列表
      */
     @PostMapping("/stopAll")
-    public Result<String> offLineAll(@NotNull @RequestBody List<@NotBlank String> ids) {
-        return waterQualityDeviceService.offLine(ids);
+    public Result<String> offLineAll(@RequestBody @Valid IdsDTO ids) {
+        return waterQualityDeviceService.offLine(ids.getIds());
     }
 }

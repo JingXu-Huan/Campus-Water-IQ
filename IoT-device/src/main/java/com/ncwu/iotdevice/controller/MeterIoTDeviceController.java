@@ -1,7 +1,7 @@
 package com.ncwu.iotdevice.controller;
 
-import com.ncwu.common.validator.annotations.Bloom;
 import com.ncwu.common.vo.Result;
+import com.ncwu.common.dto.IdsDTO;
 import com.ncwu.iotdevice.service.VirtualMeterDeviceService;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.*;
@@ -39,14 +39,9 @@ public class MeterIoTDeviceController {
      * 单设备或设备列表开始模拟任务
      */
     @PostMapping("/startList")
-    public Result<String> startListSimulator(@NotNull @NotEmpty @RequestBody  @Valid
-           @Bloom
-           List<@Pattern(
-           regexp = "^[12][1-3](0[1-9]|[1-9][0-9])(0[1-9]|[1-9][0-9])(00[1-9]|0[1-9][0-9]|[1-9][0-9]{2})$",message = "参数格式错误"
-           )
-           String> ids) {
+    public Result<String> startListSimulator(@RequestBody @Valid IdsDTO ids) {
 
-        return virtualMeterDeviceService.startList(ids);
+        return virtualMeterDeviceService.startList(ids.getIds());
     }
 
 
@@ -64,14 +59,8 @@ public class MeterIoTDeviceController {
      * @param ids 设备列表
      */
     @PostMapping("/endList")
-    public Result<String> endList(@NotNull @NotEmpty @RequestBody
-           @Valid
-           @Bloom
-           List<@Pattern(
-           regexp = "^[12][1-3](0[1-9]|[1-9][0-9])(0[1-9]|[1-9][0-9])(00[1-9]|0[1-9][0-9]|[1-9][0-9]{2})$",message = "参数格式错误"
-           )
-           String> ids) {
-        return virtualMeterDeviceService.singleStopSimulation(ids);
+    public Result<String> endList(@NotNull  @RequestBody @Valid IdsDTO ids) {
+        return virtualMeterDeviceService.singleStopSimulation(ids.getIds());
     }
 
     /**
@@ -80,13 +69,8 @@ public class MeterIoTDeviceController {
      * @param ids 设备列表
      */
     @PostMapping("/offLine")
-    public Result<String> offline(@NotNull @NotEmpty @RequestBody  @Valid
-           @Bloom
-           List<@Pattern(
-           regexp = "^[12][1-3](0[1-9]|[1-9][0-9])(0[1-9]|[1-9][0-9])(00[1-9]|0[1-9][0-9]|[1-9][0-9]{2})$",message = "参数格式错误"
-           )
-           String> ids) {
-        return virtualMeterDeviceService.offline(ids);
+    public Result<String> offline(@RequestBody @Valid IdsDTO ids) {
+        return virtualMeterDeviceService.offline(ids.getIds());
     }
 
     /**

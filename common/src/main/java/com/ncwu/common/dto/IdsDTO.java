@@ -1,11 +1,9 @@
-package com.ncwu.iotdevice.domain;
+package com.ncwu.common.dto;
 
 
 import com.ncwu.common.validator.annotations.Bloom;
 import jakarta.validation.Valid;
-import jakarta.validation.constraints.NotBlank;
-import jakarta.validation.constraints.NotEmpty;
-import jakarta.validation.constraints.Pattern;
+import jakarta.validation.constraints.*;
 import lombok.Data;
 
 import java.util.List;
@@ -18,6 +16,8 @@ import java.util.List;
 @Data
 public class IdsDTO {
     @Valid
+    @NotNull(message = "设备ID不能为空")
+    @Size(min = 1, message = "设备ID不能为空")
     @Bloom
     private List<
             @NotBlank(message = "设备ID不能为空")

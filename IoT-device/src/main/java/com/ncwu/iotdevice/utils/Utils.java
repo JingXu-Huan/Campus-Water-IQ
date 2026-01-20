@@ -65,7 +65,9 @@ public class Utils {
                 }
             }
         }
+        // 先删除旧的布隆过滤器，避免残留数据影响
         RBloomFilter<String> bloomFilter = redissonClient.getBloomFilter("device:bloom");
+        bloomFilter.delete();
         bloomFilter.tryInit(100000,0.01);
         bloomFilter.add(meterDeviceIds);
         bloomFilter.add(waterQualityDeviceIds);

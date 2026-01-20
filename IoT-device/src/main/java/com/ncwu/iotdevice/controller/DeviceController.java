@@ -1,11 +1,10 @@
 package com.ncwu.iotdevice.controller;
 
 
-import com.ncwu.common.validator.annotations.Bloom;
 import com.ncwu.common.vo.Result;
 import com.ncwu.common.enums.ErrorCode;
 import com.ncwu.common.enums.SuccessCode;
-import com.ncwu.iotdevice.domain.IdsDTO;
+import com.ncwu.common.dto.IdsDTO;
 import com.ncwu.iotdevice.exception.DeviceRegisterException;
 import com.ncwu.iotdevice.service.VirtualMeterDeviceService;
 import com.ncwu.iotdevice.service.VirtualWaterQualityDeviceService;
@@ -15,7 +14,6 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.web.bind.annotation.*;
 
-import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 

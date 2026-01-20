@@ -3,21 +3,21 @@ package com.ncwu.iotservice.controller;
 
 import apis.BloomFilterService;
 import cn.hutool.core.date.DateUtil;
+import com.ncwu.common.dto.IdsDTO;
 import com.ncwu.common.enums.ErrorCode;
 import com.ncwu.common.vo.Result;
 import com.ncwu.iotservice.service.IoTDataService;
+import jakarta.validation.Valid;
 import jakarta.validation.constraints.Min;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.dubbo.config.annotation.DubboReference;
-import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RequestParam;
-import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
+import java.util.Map;
 
 /**
  * IoT设备数据的控制层
@@ -59,6 +59,17 @@ public class IoTDataController {
         } else return Result.fail(ErrorCode.PARAM_VALIDATION_ERROR.code(), ErrorCode.PARAM_VALIDATION_ERROR.message());
     }
 
+    /**
+     * 得到设备列表的总用水量
+     */
+    @PostMapping("/sumWaterUsage")
+    public Result<Map<String, Double>> getSumWaterUsage(@RequestBody @Valid IdsDTO ids) {
+        return ioTDataService.getSumWaterUsage(ids.getIds());
+    }
+
+    /**
+     * 得到某设备的总用水量
+     */
     @GetMapping("/TotalWaterUsage")
     public Result<Double> getTotalUsage(String deviceId) {
         return ioTDataService.getTotalUsage(deviceId);

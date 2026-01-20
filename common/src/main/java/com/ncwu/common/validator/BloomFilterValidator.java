@@ -23,7 +23,7 @@ public class BloomFilterValidator implements ConstraintValidator<Bloom, List<Str
 
     @Override
     public boolean isValid(List<String> list, ConstraintValidatorContext constraintValidatorContext) {
-        RBloomFilter<String> bloomFilter = redissonClient.getBloomFilter("deviceId:bloom");
+        RBloomFilter<String> bloomFilter = redissonClient.getBloomFilter("device:bloom");
         boolean isValid = bloomFilter.contains(list) == list.size();
         
         if (!isValid) {

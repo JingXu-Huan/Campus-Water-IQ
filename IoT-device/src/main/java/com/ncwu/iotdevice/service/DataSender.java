@@ -56,19 +56,17 @@ public class DataSender {
         if (onLineMap != null) {
             long preTime = Long.parseLong(String.valueOf(onLineMap));
             if (preTime == -1){
-//                heartBeat(deviceId, now);
+                heartBeat(deviceId, now);
                 return;
             }
             if (deviceCurrentTime <= preTime) {
                 log.warn("检测到重复数据，跳过上报{}", deviceId);
-//                heartBeat(deviceId, now);
                 return;
             }
             double increment = keep3(dataBo.getFlow() * (deviceCurrentTime - preTime) / 1000.0);
             Double currentTotal = redisTemplate.opsForHash().increment("meter:total_usage", deviceId, increment);
             dataBo.setTotalUsage(keep3(currentTotal));
         }
-       heartBeat(deviceId, now);
         Boolean onLine = redisTemplate.hasKey("device:OffLine:" + deviceId);
         if (onLine) {
             // 消息队列通知上线
@@ -93,8 +91,6 @@ public class DataSender {
     public void sendWaterQualityData(WaterQualityDataBo dataBo) throws MessageSendException {
         String deviceId = dataBo.getDeviceId();
         long timestamp = System.currentTimeMillis();
-        heartBeat(deviceId, timestamp);
-
         //每次接到上报的数据，就查询redis的离线列表，看看有没有离线设备重新上报数据(重新上线)
         Boolean onLine = redisTemplate.hasKey("device:OffLine:" + deviceId);
         if (onLine) {

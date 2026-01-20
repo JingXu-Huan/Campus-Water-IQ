@@ -16,6 +16,7 @@ import lombok.extern.slf4j.Slf4j;
 import org.apache.dubbo.config.annotation.DubboReference;
 import org.springframework.web.bind.annotation.*;
 
+import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Map;
 
@@ -41,12 +42,12 @@ public class IoTDataController {
      * 得到一段时间的用水量
      */
     @GetMapping("/Waterusage")
-    public Result<Double> getRangeWaterUsed(@Min(1L) @RequestParam(value = "start") long start,
-                                            @Min(1L) @RequestParam(value = "end") long end,
+    public Result<Double> getRangeWaterUsed(@Min(1L) @RequestParam(value = "start") LocalDateTime start,
+                                            @Min(1L) @RequestParam(value = "end") LocalDateTime end,
                                             @NotNull @NotBlank String deviceId) {
         if (bloomFilterService.mightContains(List.of(deviceId))) {
-            long now = System.currentTimeMillis();
-            if (start >= now || end >= now) {
+            LocalDateTime now = LocalDateTime.now();
+            if (end.isBefore(start) || end.isAfter(now)) {
                 return Result.fail("Data_1000", "传入时间非法");
             }
             try {
@@ -72,6 +73,15 @@ public class IoTDataController {
      */
     @GetMapping("/TotalWaterUsage")
     public Result<Double> getTotalUsage(String deviceId) {
-        return ioTDataService.getTotalUsage(deviceId);
+        if (bloomFilterService.mightContains(List.of(deviceId))) {
+            return ioTDataService.getTotalUsage(deviceId);
+        } else return Result.fail(ErrorCode.PARAM_VALIDATION_ERROR.code(), ErrorCode.PARAM_VALIDATION_ERROR.message());
+    }
+    /**
+     * 得到某设备的最近一条水流量
+     */
+    @GetMapping("/getFlowNow")
+    public Result<Double> getFlow(String deviceId) {
+        return ioTDataService.getFlowNow(deviceId);
     }
 }

@@ -77,13 +77,13 @@ public class ChangeTheData {
         MeterDataBo dataBo = getMeterDataBo(point);
 
         double dp = keep3(ThreadLocalRandom.current().nextDouble(0.25, 0.35));
-        double df = keep3(ThreadLocalRandom.current().nextDouble(3, 5));
+        double df = keep3(ThreadLocalRandom.current().nextDouble(0.25, 0.35));
         Double originalPressure = dataBo.getPressure();
         Double originalFlow = dataBo.getFlow();
 
         double modifiedPressure = Math.max(originalPressure - dp, 0.12);
         dataBo.setPressure(modifiedPressure);
-        double modifiedFlow = Math.min(keep3(df * originalFlow), 0.5);
+        double modifiedFlow = Math.min(keep3(df), 0.5);
 
         dataBo.setFlow(modifiedFlow);
         return dataBo;

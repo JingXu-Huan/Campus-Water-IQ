@@ -14,6 +14,9 @@ import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.stereotype.Service;
 
 import java.time.Instant;
+import java.time.LocalDateTime;
+import java.time.ZoneId;
+import java.time.ZoneOffset;
 import java.time.format.DateTimeFormatter;
 import java.util.*;
 import java.util.stream.Collectors;
@@ -31,20 +34,21 @@ import static com.ncwu.common.utils.Utils.keep2;
 public class IoTDataServiceImpl extends ServiceImpl<IoTDeviceDataMapper, IotDeviceData> implements IoTDataService {
 
     private final InfluxDBClient influxDBClient;
-    private final StringRedisTemplate stringRedisTemplate;
-
-    private final RedisTemplate<String, Double> redisTemplate;
+    private final StringRedisTemplate redisTemplate;
 
     @Override
-    public Result<Double> getRangeUsage(long start, long end, String deviceId) {
+    public Result<Double> getRangeUsage(LocalDateTime start, LocalDateTime end, String deviceId) {
+        ZoneId zoneId = ZoneOffset.UTC; // InfluxDB Flux 要求 UTC
+        Instant startInstant = start.atZone(zoneId).toInstant();
+        Instant endInstant = end.atZone(zoneId).toInstant();
         // 转换时间戳为 RFC3339
-        String startTime = DateTimeFormatter.ISO_INSTANT.format(Instant.ofEpochSecond(start));
-        String endTime = DateTimeFormatter.ISO_INSTANT.format(Instant.ofEpochSecond(end));
+        String startTime = DateTimeFormatter.ISO_INSTANT.format(startInstant);
+        String endTime = DateTimeFormatter.ISO_INSTANT.format(endInstant);
         // Flux 查询一次拿到 start 和 end 的累计值
         String fluxQuery = String.format("""
                 from(bucket:"test08")
                   |> range(start: %s, stop: %s)
-                  |> filter(fn: (r) => r._measurement == "water_meter" and r._field == "usage" and r.deviceId == %s)
+                  |> filter(fn: (r) => r._measurement == "water_meter" and r._field == "usage" and r.deviceId == "%s")
                   |> keep(columns: ["_time", "_value"])
                 """, startTime, endTime, deviceId);
 
@@ -68,7 +72,8 @@ public class IoTDataServiceImpl extends ServiceImpl<IoTDeviceDataMapper, IotDevi
 
     @Override
     public Result<Double> getTotalUsage(String deviceId) {
-        Double value = Double.valueOf( Objects.requireNonNull(redisTemplate.opsForHash().get("meter:total_usage", deviceId)).toString());
+        Double value = Double.valueOf(Objects.requireNonNull(redisTemplate.opsForHash()
+                .get("meter:total_usage", deviceId)).toString());
         return Result.ok(value);
     }
 
@@ -78,5 +83,27 @@ public class IoTDataServiceImpl extends ServiceImpl<IoTDeviceDataMapper, IotDevi
         Map<String, Double> collect = IntStream.range(0, ids.size()).boxed()
                 .collect(Collectors.toMap(ids::get, i -> Double.valueOf(values.get(i).toString())));
         return Result.ok(collect);
+    }
+
+    @Override
+    public Result<Double> getFlowNow(String deviceId) {
+        String fluxQuery = String.format("""
+                from(bucket: "test08")
+                |> range(start: -1m)
+                |> filter(fn: (r) =>
+                                r._measurement == "water_meter" and
+                        r._field == "flow" and
+                        r.deviceId == "%s"
+                   )
+                |> last()
+                |> keep(columns: ["_time", "_value"])
+                """, deviceId);
+        List<Double> list = influxDBClient.getQueryApi().query(fluxQuery).stream().flatMap(t -> t.getRecords().stream())
+                .map(record -> record.getValue() != null ? ((Number) record.getValue()).doubleValue() : 0).toList();
+        if (list.isEmpty()) {
+            return Result.ok(0.0);
+        }
+        return Result.ok(list.getFirst());
+
     }
 }

@@ -7,6 +7,7 @@ import jakarta.validation.Valid;
 import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Size;
 
+import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Map;
 
@@ -16,9 +17,11 @@ import java.util.Map;
  * @since 2025/12/20
  */
 public interface IoTDataService extends IService<IotDeviceData> {
-    Result<Double> getRangeUsage(long start, long end,String deviceId);
+    Result<Double> getRangeUsage(LocalDateTime start, LocalDateTime end, String deviceId);
 
     Result<Double> getTotalUsage(String deviceId);
 
     Result<Map<String, Double>> getSumWaterUsage(@Valid @NotNull(message = "设备ID不能为空") @Size(min = 1, message = "设备ID不能为空") List<String> ids);
+
+    Result<Double> getFlowNow(String deviceId);
 }

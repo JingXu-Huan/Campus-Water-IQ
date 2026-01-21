@@ -8,6 +8,7 @@ import com.ncwu.common.enums.ErrorCode;
 import com.ncwu.common.vo.Result;
 import com.ncwu.iotservice.service.IoTDataService;
 import jakarta.validation.Valid;
+import jakarta.validation.constraints.Max;
 import jakarta.validation.constraints.Min;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
@@ -39,7 +40,7 @@ public class IoTDataController {
     private BloomFilterService bloomFilterService;
 
     /**
-     * 得到一段时间的用水量
+     * 得到某设备一段时间的用水量
      */
     @GetMapping("/Waterusage")
     public Result<Double> getRangeWaterUsed(@Min(1L) @RequestParam(value = "start") LocalDateTime start,
@@ -60,6 +61,23 @@ public class IoTDataController {
         } else return Result.fail(ErrorCode.PARAM_VALIDATION_ERROR.code(), ErrorCode.PARAM_VALIDATION_ERROR.message());
     }
 
+    @GetMapping("/schoolUsage")
+    public Result<Double> getSchoolUsage(@Valid @Min(1) @Max(3) int school,
+                                         @Min(1L) @RequestParam(value = "start") LocalDateTime start,
+                                         @Min(1L) @RequestParam(value = "end") LocalDateTime end) {
+        LocalDateTime now = LocalDateTime.now();
+        if (end.isBefore(start) || end.isAfter(now)) {
+            return Result.fail("Data_1000", "传入时间非法");
+        }
+        try {
+            DateUtil.date(start);
+            DateUtil.date(end);
+        } catch (Exception e) {
+            return Result.fail("Data_1001", "传入时间非法");
+        }
+        return ioTDataService.getSchoolUsage(school,start,end);
+    }
+
     /**
      * 得到设备列表的总用水量
      */
@@ -77,6 +95,7 @@ public class IoTDataController {
             return ioTDataService.getTotalUsage(deviceId);
         } else return Result.fail(ErrorCode.PARAM_VALIDATION_ERROR.code(), ErrorCode.PARAM_VALIDATION_ERROR.message());
     }
+
     /**
      * 得到某设备的最近一条水流量
      */

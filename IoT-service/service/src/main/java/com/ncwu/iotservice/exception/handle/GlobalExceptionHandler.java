@@ -2,6 +2,7 @@ package com.ncwu.iotservice.exception.handle;
 
 import com.ncwu.common.vo.Result;
 import com.ncwu.common.enums.ErrorCode;
+import com.ncwu.iotservice.exception.QueryFailedException;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpStatus;
 import org.springframework.validation.BindException;
@@ -15,7 +16,7 @@ import java.util.stream.Collectors;
 
 /**
  * 全局异常处理器
- * 
+ *
  * @author jingxu
  * @version 1.0.0
  * @since 2026/1/20
@@ -33,7 +34,7 @@ public class GlobalExceptionHandler {
         String message = e.getBindingResult().getFieldErrors().stream()
                 .map(FieldError::getDefaultMessage)
                 .collect(Collectors.joining("; "));
-        
+
         log.warn("参数校验失败: {}", message);
         return Result.fail(ErrorCode.PARAM_VALIDATION_ERROR.code(), message);
     }
@@ -47,7 +48,7 @@ public class GlobalExceptionHandler {
         String message = e.getBindingResult().getFieldErrors().stream()
                 .map(FieldError::getDefaultMessage)
                 .collect(Collectors.joining("; "));
-        
+
         log.warn("参数绑定失败: {}", message);
         return Result.fail(ErrorCode.PARAM_VALIDATION_ERROR.code(), message);
     }
@@ -56,9 +57,14 @@ public class GlobalExceptionHandler {
      * 处理其他异常
      */
     @ExceptionHandler(Exception.class)
-    @ResponseStatus(HttpStatus.INTERNAL_SERVER_ERROR)
     public Result<?> handleException(Exception e) {
         log.error("系统异常", e);
         return Result.fail(ErrorCode.SYSTEM_ERROR.code(), ErrorCode.SYSTEM_ERROR.message());
+    }
+
+    @ExceptionHandler(QueryFailedException.class)
+    public Result<?> handleQueryFailedException(QueryFailedException e) {
+        String message = e.getMessage();
+        return Result.fail(ErrorCode.SYSTEM_ERROR.code(), message);
     }
 }

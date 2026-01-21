@@ -4,6 +4,8 @@ import com.baomidou.mybatisplus.extension.service.IService;
 import com.ncwu.common.vo.Result;
 import com.ncwu.iotservice.entity.IotDeviceData;
 import jakarta.validation.Valid;
+import jakarta.validation.constraints.Max;
+import jakarta.validation.constraints.Min;
 import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Size;
 
@@ -24,4 +26,6 @@ public interface IoTDataService extends IService<IotDeviceData> {
     Result<Map<String, Double>> getSumWaterUsage(@Valid @NotNull(message = "设备ID不能为空") @Size(min = 1, message = "设备ID不能为空") List<String> ids);
 
     Result<Double> getFlowNow(String deviceId);
+
+    Result<Double> getSchoolUsage(int school, @Min(1L) LocalDateTime start, @Min(1L) LocalDateTime end);
 }

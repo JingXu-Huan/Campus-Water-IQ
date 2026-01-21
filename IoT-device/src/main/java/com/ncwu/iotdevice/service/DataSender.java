@@ -17,6 +17,7 @@ import org.apache.rocketmq.client.producer.SendResult;
 import org.apache.rocketmq.spring.core.RocketMQTemplate;
 import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.stereotype.Service;
+
 import java.time.ZoneId;
 
 import static com.ncwu.iotdevice.utils.Utils.keep3;
@@ -55,7 +56,7 @@ public class DataSender {
         long now = System.currentTimeMillis();
         if (onLineMap != null) {
             long preTime = Long.parseLong(String.valueOf(onLineMap));
-            if (preTime == -1){
+            if (preTime == -1) {
                 heartBeat(deviceId, now);
                 return;
             }
@@ -63,7 +64,7 @@ public class DataSender {
                 log.warn("检测到重复数据，跳过上报{}", deviceId);
                 return;
             }
-            double increment = keep3(dataBo.getFlow() * (deviceCurrentTime - preTime) / 1000.0);
+            double increment = keep3(keep3(dataBo.getFlow() * (deviceCurrentTime - preTime)) / 1000.0);
             Double currentTotal = redisTemplate.opsForHash().increment("meter:total_usage", deviceId, increment);
             dataBo.setTotalUsage(keep3(currentTotal));
         }

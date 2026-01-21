@@ -48,6 +48,7 @@ public class IoTDataServiceImpl extends ServiceImpl<IoTDeviceDataMapper, IotDevi
                   |> range(start: %s, stop: %s)
                   |> filter(fn: (r) => r._measurement == "water_meter" and r._field == "usage" and r.deviceId == "%s")
                   |> keep(columns: ["_time", "_value"])
+                  |> sort(columns:["_time"])
                 """, result.startTime(), result.endTime(), deviceId);
 
         QueryApi queryApi = influxDBClient.getQueryApi();
@@ -55,7 +56,6 @@ public class IoTDataServiceImpl extends ServiceImpl<IoTDeviceDataMapper, IotDevi
         List<Double> values = queryApi.query(fluxQuery).stream()
                 .flatMap(t -> t.getRecords().stream())
                 .map(r -> r.getValue() != null ? ((Number) r.getValue()).doubleValue() : 0)
-                .sorted()
                 .toList();
         if (values.isEmpty()) {
             return Result.fail("Data_1002", "时间段内没有数据");
@@ -71,7 +71,7 @@ public class IoTDataServiceImpl extends ServiceImpl<IoTDeviceDataMapper, IotDevi
      * 将本地时区格式转化成 UTC 格式
      */
     private static @NonNull DateFormatBo getDateFormatBo(LocalDateTime start, LocalDateTime end) {
-        ZoneId zoneId = ZoneOffset.UTC; // InfluxDB Flux 要求 UTC
+        ZoneId zoneId = ZoneId.of("Asia/Shanghai"); // InfluxDB Flux 要求 UTC
         Instant startInstant = start.atZone(zoneId).toInstant();
         Instant endInstant = end.atZone(zoneId).toInstant();
         // 转换时间戳为 RFC3339
@@ -135,6 +135,8 @@ public class IoTDataServiceImpl extends ServiceImpl<IoTDeviceDataMapper, IotDevi
         String endTime = dateFormatBo.endTime();
 
         String fluxQuery = String.format("""
+                import "strings"
+                
                 from(bucket: "test08")
                   |> range(start: %s, stop: %s)
                   |> filter(fn: (r) =>
@@ -145,8 +147,8 @@ public class IoTDataServiceImpl extends ServiceImpl<IoTDeviceDataMapper, IotDevi
                   |> sort(columns: ["_time"])
                   |> reduce(
                       identity: {first: 0.0, last: 0.0, isFirst: true},
-                      fn: (r, acc) => ({
-                          first: if acc.isFirst then r._value else acc.first,
+                      fn: (r, accumulator) => ({
+                          first: if accumulator.isFirst then r._value else accumulator.first,
                           last: r._value,
                           isFirst: false
                       })
@@ -155,24 +157,23 @@ public class IoTDataServiceImpl extends ServiceImpl<IoTDeviceDataMapper, IotDevi
                       deviceId: r.deviceId,
                       usage: r.last - r.first
                   }))
-                  |> filter(fn: (r) => substring(v: r.deviceId, start: 1, end: 2) == "%s")
+                  |> filter(fn: (r) =>
+                      strings.substring(v: r.deviceId, start: 1, end: 2) == "%s"
+                  )
                   |> group()
                   |> sum(column: "usage")
+                  |> map(fn: (r) => ({ _value: r.usage }))
                 """, startTime, endTime, school);
 
+
         Double usage;
-        try {
-            usage = influxDBClient.getQueryApi().query(fluxQuery)
-                    .stream()
-                    .flatMap(table -> table.getRecords().stream())
-                    .map(record -> (record.getValue() != null ? ((Number) record.getValue()).doubleValue() : 0.0))
-                    .findFirst()
-                    .orElse(0.0);
-        } catch (Exception e) {
-            LocalDateTime now = LocalDateTime.now();
-            log.error("{} 查询失败，请重试",now);
-            throw new QueryFailedException("查询失败，请重试");
-        }
+
+        usage = influxDBClient.getQueryApi().query(fluxQuery)
+                .stream()
+                .flatMap(table -> table.getRecords().stream())
+                .map(record -> (record.getValue() != null ? ((Number) record.getValue()).doubleValue() : 0.0))
+                .findFirst()
+                .orElse(0.0);
         return Result.ok(usage);
     }
 }

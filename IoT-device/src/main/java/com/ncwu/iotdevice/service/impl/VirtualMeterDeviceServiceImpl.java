@@ -4,6 +4,8 @@ package com.ncwu.iotdevice.service.impl;
 import cn.hutool.core.lang.UUID;
 import com.baomidou.mybatisplus.core.conditions.update.LambdaUpdateWrapper;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
+import com.github.benmanes.caffeine.cache.Cache;
+import com.github.benmanes.caffeine.cache.Caffeine;
 import com.ncwu.common.vo.Result;
 import com.ncwu.common.enums.ErrorCode;
 import com.ncwu.common.enums.SuccessCode;
@@ -22,7 +24,6 @@ import jakarta.annotation.PreDestroy;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.rocketmq.spring.core.RocketMQTemplate;
-import org.redisson.Redisson;
 import org.redisson.api.RedissonClient;
 import org.springframework.aop.framework.AopContext;
 import org.springframework.data.redis.core.StringRedisTemplate;
@@ -51,11 +52,7 @@ public class VirtualMeterDeviceServiceImpl extends ServiceImpl<DeviceMapper, Vir
 
     private int allSize;
     //运行中的设备集合
-    private volatile Set<String> runningDevices = ConcurrentHashMap.newKeySet();
-    //实验楼数量
-//    int experiment;
-//    //教学楼数量
-//    int education;
+    private final Set<String> runningDevices = ConcurrentHashMap.newKeySet();
     final String deviceStatusPrefix = "cache:device:status:";
 
     private ScheduledExecutorService scheduler;
@@ -66,6 +63,7 @@ public class VirtualMeterDeviceServiceImpl extends ServiceImpl<DeviceMapper, Vir
     private final ServerConfig serverConfig;
     private final DataSender dataSender;
     private final RedissonClient redissonClient;
+    Cache<String, String> cache;
 
 
     @PostConstruct
@@ -73,7 +71,11 @@ public class VirtualMeterDeviceServiceImpl extends ServiceImpl<DeviceMapper, Vir
         // 经压测验证，约 70 台虚拟设备对应 1 个调度线程即可满足精度与吞吐
         // 取 max 防止入参为 0 发生异常
         scheduler = Executors.newScheduledThreadPool(Math.max(5, (int) (this.count() / 70)));
-
+        //初始化本地缓存
+        cache = Caffeine.newBuilder()
+                .maximumSize(10_000)
+                .expireAfterWrite(5, TimeUnit.MINUTES)
+                .build();
     }
 
     private static final Random RANDOM = new Random();
@@ -141,6 +143,9 @@ public class VirtualMeterDeviceServiceImpl extends ServiceImpl<DeviceMapper, Vir
             log.info("成功开启 {} 台设备的模拟数据流", ids.size());
             //可以受检
             redisTemplate.opsForValue().set("MeterChecked", "1");
+            //失效和清除缓存
+            cache.invalidateAll();
+            redisScanDel(deviceStatusPrefix + "*", 100, redisTemplate);
             return Result.ok("成功开启" + ids.size() + "台设备");
         }
         return Result.fail(ErrorCode.UNKNOWN.code(), ErrorCode.UNKNOWN.message());
@@ -200,6 +205,7 @@ public class VirtualMeterDeviceServiceImpl extends ServiceImpl<DeviceMapper, Vir
         rocketMQTemplate.convertAndSend("OpsForDataBase", "LetAllMetersStopRunning");
         //删状态缓存
         //此方法是安全的，使用scan进行删除
+        cache.invalidateAll();
         redisScanDel(deviceStatusPrefix + "*", 100, redisTemplate);
         deviceTasks.clear();
         log.info("已停止所有模拟数据上报任务");
@@ -230,37 +236,56 @@ public class VirtualMeterDeviceServiceImpl extends ServiceImpl<DeviceMapper, Vir
                     .set(VirtualDevice::getIsRunning, false);
             deviceMapper.update(running);
         });
+        cache.invalidateAll(ids);
+        ids.forEach(id -> redisTemplate.delete(deviceStatusPrefix + id));
         return Result.ok(SuccessCode.DEVICE_STOP_SUCCESS.getCode(),
                 SuccessCode.DEVICE_STOP_SUCCESS.getMessage());
     }
 
     @Override
+
     public Result<Map<String, String>> checkDeviceStatus(List<String> ids) {
-        HashMap<String, String> map = new HashMap<>();
-        //这个 map 标记哪些元素存在于 redis
-        Map<String, String> map1 = ids.stream()
-                .collect(Collectors.toMap(Function.identity(), id -> "UNKNOWN"));
-        Iterator<Map.Entry<String, String>> it = map1.entrySet().iterator();
-        while (it.hasNext()) {
-            Map.Entry<String, String> entry = it.next();
-            String status = redisTemplate.opsForValue().get(deviceStatusPrefix + entry.getKey());
-            if (status != null) {
-                map.put(entry.getKey(), status);
-                it.remove();
+        Map<String, String> result = new HashMap<>();
+        Set<String> remaining = new HashSet<>(ids);
+
+        for (String id : ids) {
+            String value = cache.getIfPresent(id);
+            if (value != null) {
+                result.put(id, value);
+                remaining.remove(id);
             }
         }
+
+        for (String id : new HashSet<>(remaining)) {
+            String key = deviceStatusPrefix + id;
+            String value = redisTemplate.opsForValue().get(key);
+            if (value != null) {
+                result.put(id, value);
+                cache.put(id, value);
+                remaining.remove(id);
+            }
+        }
+
         int offset = RANDOM.nextInt(120 + 1);
-        map1.forEach((id, v) -> {
+        for (String id : remaining) {
             VirtualDevice one = this.lambdaQuery()
                     .select(VirtualDevice::getStatus, VirtualDevice::getIsRunning)
-                    .eq(VirtualDevice::getDeviceCode, id).one();
+                    .eq(VirtualDevice::getDeviceCode, id)
+                    .one();
+            if (one == null) {
+                continue;
+            }
             String value = one.getStatus() + "," + one.getIsRunning();
-            map.put(id, value);
-            //加偏移量，防止缓存雪崩
-            redisTemplate.opsForValue().set(deviceStatusPrefix + id, value, 180 + offset, TimeUnit.SECONDS);
-        });
-        return Result.ok(map);
+            String key = deviceStatusPrefix + id;
+            result.put(id, value);
+            redisTemplate.opsForValue()
+                    .set(key, value, 180 + offset, TimeUnit.SECONDS);
+            cache.put(id, value);
+        }
+
+        return Result.ok(result);
     }
+
 
     @Override
     public Result<String> changeTime(int time) {
@@ -477,7 +502,6 @@ public class VirtualMeterDeviceServiceImpl extends ServiceImpl<DeviceMapper, Vir
     private double waterFlowGenerate(int time, String deviceId) {
         int buildingNum = Integer.parseInt(deviceId.substring(2, 4));
         double flow;
-
         int education = Integer.parseInt(Objects.requireNonNull(redisTemplate.opsForValue().get("device:educationBuildings")));
         int experiment = Integer.parseInt(Objects.requireNonNull(redisTemplate.opsForValue().get("device:experimentBuildings")));
 
@@ -525,7 +549,7 @@ public class VirtualMeterDeviceServiceImpl extends ServiceImpl<DeviceMapper, Vir
                         if (ids.containsKey(id) && ids.get(id) > 0) {
                             Integer cnt = ids.get(id);
                             ids.put(id, --cnt);
-                            return ThreadLocalRandom.current().nextDouble(0.15, 0.25);
+                            return ThreadLocalRandom.current().nextDouble(0.17, 0.25);
                         }
                     }
                 }
@@ -537,7 +561,7 @@ public class VirtualMeterDeviceServiceImpl extends ServiceImpl<DeviceMapper, Vir
                     if (temp.containsKey(id) && temp.get(id) > 0) {
                         Integer cnt = temp.get(id);
                         temp.put(id, --cnt);
-                        return ThreadLocalRandom.current().nextDouble(0.1, 0.15);
+                        return ThreadLocalRandom.current().nextDouble(0.12, 0.15);
                     } else return 0;
                 }
             }
@@ -545,13 +569,13 @@ public class VirtualMeterDeviceServiceImpl extends ServiceImpl<DeviceMapper, Vir
             double freCnt = 7.5 * 3600 / fre;
             double p3 = 1 - (5.0 / freCnt);
             if (p >= p3) {
-                return ThreadLocalRandom.current().nextDouble(0.05, 0.1);
+                return ThreadLocalRandom.current().nextDouble(0.07, 0.1);
             } else return 0;
         } else if (time >= 20 * 3600 && time <= 22 * 3600) {
             int freCnt = 3 * 3600 / fre;
             double p4 = 1 - (2.0 / freCnt);
             if (p >= p4) {
-                return ThreadLocalRandom.current().nextDouble(0.1, 0.3);
+                return ThreadLocalRandom.current().nextDouble(0.12, 0.3);
             } else {
                 return 0;
             }
@@ -559,7 +583,7 @@ public class VirtualMeterDeviceServiceImpl extends ServiceImpl<DeviceMapper, Vir
             flag = false;
             return 0;
         } else {
-            if (p > 0.9999) {
+            if (p > 0.99995) {
                 return ThreadLocalRandom.current().nextDouble(0.02, 0.05);
             } else return 0;
         }
@@ -571,7 +595,8 @@ public class VirtualMeterDeviceServiceImpl extends ServiceImpl<DeviceMapper, Vir
      */
     private Map<String, Integer> chooseDormitory(double v) {
         //宿舍楼的编号都在实验楼之后
-        int firstIndex = Integer.parseInt(Objects.requireNonNull(redisTemplate.opsForValue().get("device:experimentBuildings")));
+        int firstIndex = Integer.parseInt(Objects.requireNonNull(redisTemplate.opsForValue()
+                .get("device:experimentBuildings")));
         Long size;
         size = redisTemplate.opsForSet().size("device:meter");
         if (size != null) {
@@ -736,7 +761,7 @@ public class VirtualMeterDeviceServiceImpl extends ServiceImpl<DeviceMapper, Vir
                 }
             } else {
                 // 活跃时间，偶尔有人使用水，流量低且离散
-                if (p <= 0.999) {
+                if (p <= 0.9995) {
                     return 0.0; // 大多数时间没用水
                 } else {
                     return ThreadLocalRandom.current().nextDouble(0.05, 0.15);
@@ -787,7 +812,7 @@ public class VirtualMeterDeviceServiceImpl extends ServiceImpl<DeviceMapper, Vir
         clearRedisData(redisTemplate, deviceMapper);
         redisTemplate.opsForValue().set(prefix + "educationBuildings", String.valueOf(educationBuildings));
         redisTemplate.opsForValue().set(prefix + "experimentBuildings", String.valueOf(educationBuildings + experimentBuildings));
-        DeviceIdList deviceIdList = initAllRedisData(buildings, floors, rooms, redisTemplate,redissonClient);
+        DeviceIdList deviceIdList = initAllRedisData(buildings, floors, rooms, redisTemplate, redissonClient);
 
         List<String> meterDeviceIds = deviceIdList.getMeterDeviceIds();
         List<String> waterQualityDeviceIds = deviceIdList.getWaterQualityDeviceIds();

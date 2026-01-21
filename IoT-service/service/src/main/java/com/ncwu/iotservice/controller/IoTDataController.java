@@ -15,6 +15,7 @@ import jakarta.validation.constraints.NotNull;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.dubbo.config.annotation.DubboReference;
+import org.springframework.format.annotation.DateTimeFormat;
 import org.springframework.web.bind.annotation.*;
 
 import java.time.LocalDateTime;
@@ -63,8 +64,8 @@ public class IoTDataController {
 
     @GetMapping("/schoolUsage")
     public Result<Double> getSchoolUsage(@Valid @Min(1) @Max(3) int school,
-                                         @Min(1L) @RequestParam(value = "start") LocalDateTime start,
-                                         @Min(1L) @RequestParam(value = "end") LocalDateTime end) {
+                                         @RequestParam(value = "start") @DateTimeFormat(pattern = "yyyy-MM-dd HH:mm:ss")LocalDateTime start,
+                                         @RequestParam(value = "end") @DateTimeFormat(pattern = "yyyy-MM-dd HH:mm:ss")LocalDateTime end) {
         LocalDateTime now = LocalDateTime.now();
         if (end.isBefore(start) || end.isAfter(now)) {
             return Result.fail("Data_1000", "传入时间非法");

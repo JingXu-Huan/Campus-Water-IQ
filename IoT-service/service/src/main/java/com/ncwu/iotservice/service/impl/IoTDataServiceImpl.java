@@ -4,6 +4,8 @@ package com.ncwu.iotservice.service.impl;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import com.influxdb.client.InfluxDBClient;
 import com.influxdb.client.QueryApi;
+import com.ncwu.common.enums.ErrorCode;
+import com.ncwu.common.enums.SuccessCode;
 import com.ncwu.common.vo.Result;
 import com.ncwu.iotservice.entity.IotDeviceData;
 import com.ncwu.iotservice.exception.QueryFailedException;
@@ -15,10 +17,7 @@ import org.jspecify.annotations.NonNull;
 import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.stereotype.Service;
 
-import java.time.Instant;
-import java.time.LocalDateTime;
-import java.time.ZoneId;
-import java.time.ZoneOffset;
+import java.time.*;
 import java.time.format.DateTimeFormatter;
 import java.util.*;
 import java.util.stream.Collectors;
@@ -53,12 +52,18 @@ public class IoTDataServiceImpl extends ServiceImpl<IoTDeviceDataMapper, IotDevi
 
         QueryApi queryApi = influxDBClient.getQueryApi();
 
-        List<Double> values = queryApi.query(fluxQuery).stream()
-                .flatMap(t -> t.getRecords().stream())
-                .map(r -> r.getValue() != null ? ((Number) r.getValue()).doubleValue() : 0)
-                .toList();
+        List<Double> values;
+        try {
+            values = queryApi.query(fluxQuery).stream()
+                    .flatMap(t -> t.getRecords().stream())
+                    .map(r -> r.getValue() != null ? ((Number) r.getValue()).doubleValue() : 0)
+                    .toList();
+        } catch (Exception e) {
+            throw new QueryFailedException(null);
+        }
+
         if (values.isEmpty()) {
-            return Result.fail("Data_1002", "时间段内没有数据");
+            return Result.ok(SuccessCode.DATA_EMPTY.getCode(), SuccessCode.DATA_EMPTY.getMessage());
         }
 
         double startValue = values.getFirst(); // 第一条 = start 时间点累计量
@@ -175,5 +180,33 @@ public class IoTDataServiceImpl extends ServiceImpl<IoTDeviceDataMapper, IotDevi
                 .findFirst()
                 .orElse(0.0);
         return Result.ok(usage);
+    }
+
+    @Override
+    public Result<Double> getAnnulus(String deviceId) {
+        LocalDateTime todayAtThisTime = LocalDateTime.now();
+        LocalDateTime yestDayZeroTime = LocalDate.now().minusDays(1).atStartOfDay();
+        LocalDateTime yestDayAtThisTime = todayAtThisTime.minusDays(1);
+        LocalDateTime todayZeroTime = yestDayZeroTime.plusDays(1);
+
+
+        Result<Double> yestDayUsage = getRangeUsage(yestDayZeroTime, yestDayAtThisTime, deviceId);
+        Result<Double> todayUsage = getRangeUsage(todayZeroTime, todayAtThisTime, deviceId);
+
+        //检查是否失败
+        if (Objects.equals(yestDayUsage.getCode(), ErrorCode.QUERY_FAILED_ERROR.code()) ||
+                Objects.equals(todayUsage.getCode(), ErrorCode.QUERY_FAILED_ERROR.code())) {
+            return Result.fail(ErrorCode.QUERY_FAILED_ERROR.code(), ErrorCode.QUERY_FAILED_ERROR.message());
+        }
+
+        //检查是否有有效数据
+        if (Objects.equals(yestDayUsage.getCode(), SuccessCode.DATA_EMPTY.getCode()) ||
+                Objects.equals(todayUsage.getCode(), SuccessCode.DATA_EMPTY.getCode()) || yestDayUsage.getData() <= 0) {
+
+            return Result.ok(Double.NaN,SuccessCode.DATA_EMPTY.getCode(), SuccessCode.DATA_EMPTY.getMessage());
+        }
+        //计算环比
+        double annulus = (todayUsage.getData() - yestDayUsage.getData()) / yestDayUsage.getData();
+        return Result.ok(annulus);
     }
 }

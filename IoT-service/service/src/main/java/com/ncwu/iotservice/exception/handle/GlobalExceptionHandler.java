@@ -65,6 +65,8 @@ public class GlobalExceptionHandler {
     @ExceptionHandler(QueryFailedException.class)
     public Result<?> handleQueryFailedException(QueryFailedException e) {
         String message = e.getMessage();
-        return Result.fail(ErrorCode.SYSTEM_ERROR.code(), message);
+        return Result.fail(ErrorCode.QUERY_FAILED_ERROR.code(), message == null ?
+
+                ErrorCode.QUERY_FAILED_ERROR.message() : message);
     }
 }

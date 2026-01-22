@@ -11,7 +11,7 @@ import com.ncwu.common.enums.ErrorCode;
 import com.ncwu.common.enums.SuccessCode;
 import com.ncwu.iotdevice.AOP.annotation.InitLuaScript;
 import com.ncwu.iotdevice.AOP.annotation.Time;
-import com.ncwu.iotdevice.Constants.DeviceStatus;
+import com.ncwu.common.Constants.DeviceStatus;
 import com.ncwu.iotdevice.config.ServerConfig;
 import com.ncwu.iotdevice.domain.Bo.DeviceIdList;
 import com.ncwu.iotdevice.domain.Bo.MeterDataBo;
@@ -32,9 +32,9 @@ import org.springframework.stereotype.Service;
 import java.time.LocalDateTime;
 import java.util.*;
 import java.util.concurrent.*;
-import java.util.function.Function;
 import java.util.stream.Collectors;
 
+import static com.ncwu.common.Constants.DeviceStatus.UNKNOWN_START_ALL_DEVICE;
 import static com.ncwu.iotdevice.AOP.Aspects.InitLuaScript.Lua_script;
 import static com.ncwu.iotdevice.utils.Utils.*;
 
@@ -148,7 +148,8 @@ public class VirtualMeterDeviceServiceImpl extends ServiceImpl<DeviceMapper, Vir
             redisScanDel(deviceStatusPrefix + "*", 100, redisTemplate);
             return Result.ok("成功开启" + ids.size() + "台设备");
         }
-        return Result.fail(ErrorCode.UNKNOWN.code(), ErrorCode.UNKNOWN.message());
+        log.error("");
+        return Result.fail(UNKNOWN_START_ALL_DEVICE, ErrorCode.UNKNOWN.code(), ErrorCode.UNKNOWN.message());
     }
 
     @Override

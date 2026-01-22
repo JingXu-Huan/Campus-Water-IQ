@@ -1,4 +1,4 @@
-package com.ncwu.iotdevice.Constants;
+package com.ncwu.common.Constants;
 
 
 import lombok.Data;
@@ -13,4 +13,5 @@ public class DeviceStatus {
     public static final String NORMAL = "normal";
     public static final String CLOSE = "close";
     public static final String FAILURE = "failure";
+    public static final String UNKNOWN_START_ALL_DEVICE = "未知错误-全部设备启动";
 }

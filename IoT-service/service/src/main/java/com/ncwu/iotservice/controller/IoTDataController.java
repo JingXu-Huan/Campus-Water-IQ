@@ -15,6 +15,7 @@ import jakarta.validation.constraints.NotNull;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.dubbo.config.annotation.DubboReference;
+import org.jspecify.annotations.Nullable;
 import org.springframework.format.annotation.DateTimeFormat;
 import org.springframework.web.bind.annotation.*;
 
@@ -47,25 +48,16 @@ public class IoTDataController {
     public Result<Double> getRangeWaterUsed(@Min(1L) @RequestParam(value = "start") LocalDateTime start,
                                             @Min(1L) @RequestParam(value = "end") LocalDateTime end,
                                             @NotNull @NotBlank String deviceId) {
-        if (bloomFilterService.mightContains(List.of(deviceId))) {
-            LocalDateTime now = LocalDateTime.now();
-            if (end.isBefore(start) || end.isAfter(now)) {
-                return Result.fail("Data_1000", "传入时间非法");
-            }
-            try {
-                DateUtil.date(start);
-                DateUtil.date(end);
-            } catch (Exception e) {
-                return Result.fail("Data_1001", "传入时间非法");
-            }
-            return ioTDataService.getRangeUsage(start, end, deviceId);
-        } else return Result.fail(ErrorCode.PARAM_VALIDATION_ERROR.code(), ErrorCode.PARAM_VALIDATION_ERROR.message());
+        Result<Double> fail = checkDateAndDeviceId(start, end, deviceId);
+        if (fail != null) return fail;
+        else return ioTDataService.getRangeUsage(start, end, deviceId);
     }
 
-    @GetMapping("/schoolUsage")
-    public Result<Double> getSchoolUsage(@Valid @Min(1) @Max(3) int school,
-                                         @RequestParam(value = "start") @DateTimeFormat(pattern = "yyyy-MM-dd HH:mm:ss")LocalDateTime start,
-                                         @RequestParam(value = "end") @DateTimeFormat(pattern = "yyyy-MM-dd HH:mm:ss")LocalDateTime end) {
+    /**
+     * 校验时间和 id 是否合法
+     */
+    private @Nullable Result<Double> checkDateAndDeviceId(LocalDateTime start, LocalDateTime end, String deviceId) {
+        //校验时间
         LocalDateTime now = LocalDateTime.now();
         if (end.isBefore(start) || end.isAfter(now)) {
             return Result.fail("Data_1000", "传入时间非法");
@@ -76,32 +68,74 @@ public class IoTDataController {
         } catch (Exception e) {
             return Result.fail("Data_1001", "传入时间非法");
         }
-        return ioTDataService.getSchoolUsage(school,start,end);
+        //校验设备号
+        if (!bloomFilterService.mightContains(List.of(deviceId))) {
+            return Result.fail(ErrorCode.PARAM_VALIDATION_ERROR.code(), ErrorCode.PARAM_VALIDATION_ERROR.message());
+        }
+        return null;
     }
 
     /**
-     * 得到设备列表的总用水量
+     * 校验时间是否合法
      */
-    @PostMapping("/sumWaterUsage")
-    public Result<Map<String, Double>> getSumWaterUsage(@RequestBody @Valid IdsDTO ids) {
-        return ioTDataService.getSumWaterUsage(ids.getIds());
+    private  Result<Double> checkDate(LocalDateTime start, LocalDateTime end) {
+        //校验时间
+        LocalDateTime now = LocalDateTime.now();
+        if (end.isBefore(start) || end.isAfter(now)) {
+            return Result.fail("Data_1000", "传入时间非法");
+        }
+        try {
+            DateUtil.date(start);
+            DateUtil.date(end);
+        } catch (Exception e) {
+            return Result.fail("Data_1001", "传入时间非法");
+        }
+        return null;
     }
+        @GetMapping("/schoolUsage")
+        public Result<Double> getSchoolUsage ( @Valid @Min(1) @Max(3) int school,
+        @RequestParam(value = "start") @DateTimeFormat(pattern = "yyyy-MM-dd HH:mm:ss") LocalDateTime start,
+        @RequestParam(value = "end") @DateTimeFormat(pattern = "yyyy-MM-dd HH:mm:ss") LocalDateTime end){
+            Result<Double> fail = checkDate(start, end);
+            if (fail != null) return fail;
+            return ioTDataService.getSchoolUsage(school, start, end);
+        }
 
-    /**
-     * 得到某设备的总用水量
-     */
-    @GetMapping("/TotalWaterUsage")
-    public Result<Double> getTotalUsage(String deviceId) {
-        if (bloomFilterService.mightContains(List.of(deviceId))) {
-            return ioTDataService.getTotalUsage(deviceId);
-        } else return Result.fail(ErrorCode.PARAM_VALIDATION_ERROR.code(), ErrorCode.PARAM_VALIDATION_ERROR.message());
-    }
+        /**
+         * 得到设备列表的总用水量
+         */
+        @PostMapping("/sumWaterUsage")
+        public Result<Map<String, Double>> getSumWaterUsage (@RequestBody @Valid IdsDTO ids){
+            return ioTDataService.getSumWaterUsage(ids.getIds());
+        }
 
-    /**
-     * 得到某设备的最近一条水流量
-     */
-    @GetMapping("/getFlowNow")
-    public Result<Double> getFlow(String deviceId) {
-        return ioTDataService.getFlowNow(deviceId);
+        /**
+         * 得到某设备的总用水量
+         */
+        @GetMapping("/TotalWaterUsage")
+        public Result<Double> getTotalUsage (String deviceId){
+            if (bloomFilterService.mightContains(List.of(deviceId))) {
+                return ioTDataService.getTotalUsage(deviceId);
+            } else
+                return Result.fail(ErrorCode.PARAM_VALIDATION_ERROR.code(), ErrorCode.PARAM_VALIDATION_ERROR.message());
+        }
+
+        /**
+         * 得到某设备的最近一条水流量
+         */
+        @GetMapping("/getFlowNow")
+        public Result<Double> getFlow (String deviceId){
+            return ioTDataService.getFlowNow(deviceId);
+        }
+
+        /**
+         * 得到某设备的环比增长率
+         */
+        @GetMapping("/getAnnulus")
+        public Result<Double> getAnnulus (String deviceId){
+            if (bloomFilterService.mightContains(List.of(deviceId))){
+                return ioTDataService.getAnnulus(deviceId);
+            }
+            else return Result.fail(ErrorCode.PARAM_VALIDATION_ERROR.code(),ErrorCode.PARAM_VALIDATION_ERROR.message());
+        }
     }
-}

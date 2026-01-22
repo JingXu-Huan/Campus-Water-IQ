@@ -28,4 +28,6 @@ public interface IoTDataService extends IService<IotDeviceData> {
     Result<Double> getFlowNow(String deviceId);
 
     Result<Double> getSchoolUsage(int school, @Min(1L) LocalDateTime start, @Min(1L) LocalDateTime end);
+
+    Result<Double> getAnnulus(String deviceId);
 }

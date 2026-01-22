@@ -20,6 +20,7 @@ public enum SuccessCode {
     METER_MODE_CHANGE_SUCCESS("MTR_4001","模拟模式切换成功"),
 
     TIME_CHANGE_SUCCESS("SYS_3001", "时间设置成功"),
+    DATA_EMPTY("Data_1005","时间段内没有数据"),
     SEASON_CHANGE_SUCCESS("SYS_3002", "季节设置成功");
 
 

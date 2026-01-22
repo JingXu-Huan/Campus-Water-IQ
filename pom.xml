@@ -42,7 +42,7 @@
         <druid.version>1.2.20</druid.version>
         <mybatis.version>3.5.14</mybatis.version>
         <spring-cloud.version>2023.0.3</spring-cloud.version>
-        <spring-cloud-alibaba.version>2022.0.0.0</spring-cloud-alibaba.version>
+        <spring-cloud-alibaba.version>2025.0.0.0</spring-cloud-alibaba.version>
         <rocketmq.version>2.3.4</rocketmq.version>
         <knife4j.version>4.4.0</knife4j.version>
         <hutool.version>5.8.23</hutool.version>
@@ -52,7 +52,7 @@
         <influxdb.version>6.6.0</influxdb.version>
         <redission.version>3.52.0</redission.version>
         <spring-cloud.version>2023.0.3</spring-cloud.version>
-        <spring-cloud-alibaba.version>2022.0.0.0</spring-cloud-alibaba.version>
+        <spring-cloud-alibaba.version>2025.0.0.0</spring-cloud-alibaba.version>
         <rocketmq.spring.version>2.3.0</rocketmq.spring.version>
         <rocketmq.client.version>5.2.0</rocketmq.client.version>
 

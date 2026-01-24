@@ -9,6 +9,7 @@ import com.influxdb.client.InfluxDBClientFactory;
 import com.influxdb.client.WriteApiBlocking;
 import com.influxdb.client.domain.WritePrecision;
 import com.influxdb.client.write.Point;
+import com.ncwu.common.Bo.ErrorDataMessageBO;
 import com.ncwu.common.Bo.MeterDataBo;
 import com.ncwu.ingestgroup.entity.IotDeviceData;
 import com.ncwu.ingestgroup.mapper.IotDataMapper;
@@ -17,10 +18,10 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.rocketmq.spring.annotation.RocketMQMessageListener;
 import org.apache.rocketmq.spring.core.RocketMQListener;
+import org.apache.rocketmq.spring.core.RocketMQTemplate;
 import org.springframework.aop.framework.AopContext;
 import org.springframework.stereotype.Component;
 
-import java.time.Instant;
 import java.time.LocalDateTime;
 import java.time.ZoneId;
 import java.time.ZonedDateTime;
@@ -41,6 +42,7 @@ public class MeterDataConsumer extends ServiceImpl<IotDataMapper, IotDeviceData>
     private final ObjectMapper objectMapper;
     private final List<IotDeviceData> buffer = new ArrayList<>(2000);
     private InfluxDBClient influxDBClient;
+    private final RocketMQTemplate rocketMQTemplate;
 
     @PostConstruct
     public void init() {
@@ -57,7 +59,14 @@ public class MeterDataConsumer extends ServiceImpl<IotDataMapper, IotDeviceData>
         try {
             MeterDataBo meterDataBo = objectMapper.readValue(s, MeterDataBo.class);
             if (meterDataBo.getStatus().equals("error")) {
-                //todo 这里以后要自行检测数据状态，检查取值范围。
+                LocalDateTime now = LocalDateTime.now();
+                ErrorDataMessageBO errorDataMessageBO = new ErrorDataMessageBO();
+                errorDataMessageBO.setDeviceId(meterDataBo.getDeviceId());
+                errorDataMessageBO.setPayLoad(s);
+                /* 序列化 errorDataMessageBO 对象 */
+                String data = objectMapper.writeValueAsString(errorDataMessageBO);
+                rocketMQTemplate.convertAndSend("ErrorData",data);
+                //TODO 这里以后要自行检测数据状态，检查取值范围。
                 return;
             }
             IotDeviceData iotDeviceData = new IotDeviceData();
@@ -70,7 +79,7 @@ public class MeterDataConsumer extends ServiceImpl<IotDataMapper, IotDeviceData>
             ZonedDateTime zdt = meterDataBo.getTimeStamp().atZone(ZoneId.of("Asia/Shanghai"));
             Point point = Point
                     .measurement("water_meter")
-                    .addTag("deviceId",meterDataBo.getDeviceId())
+                    .addTag("deviceId", meterDataBo.getDeviceId())
                     .addField("flow", meterDataBo.getFlow())
                     .addField("usage", meterDataBo.getTotalUsage())
                     .addField("tem", meterDataBo.getWaterTem())

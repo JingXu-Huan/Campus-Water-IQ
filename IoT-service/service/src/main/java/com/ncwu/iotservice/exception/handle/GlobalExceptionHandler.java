@@ -3,6 +3,7 @@ package com.ncwu.iotservice.exception.handle;
 import com.ncwu.common.vo.Result;
 import com.ncwu.common.enums.ErrorCode;
 import com.ncwu.iotservice.exception.QueryFailedException;
+import com.ncwu.iotservice.exception.DeserializationFailedException;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpStatus;
 import org.springframework.validation.BindException;
@@ -62,11 +63,17 @@ public class GlobalExceptionHandler {
         return Result.fail(ErrorCode.SYSTEM_ERROR.code(), ErrorCode.SYSTEM_ERROR.message());
     }
 
+    //influxdb 查询失败异常
     @ExceptionHandler(QueryFailedException.class)
     public Result<?> handleQueryFailedException(QueryFailedException e) {
         String message = e.getMessage();
         return Result.fail(ErrorCode.QUERY_FAILED_ERROR.code(), message == null ?
-
                 ErrorCode.QUERY_FAILED_ERROR.message() : message);
+    }
+
+    //反序列化失败异常
+    @ExceptionHandler(DeserializationFailedException.class)
+    public Result<?> handelDeserializationFailedException(DeserializationFailedException e) {
+        return Result.fail(ErrorCode.DESERIALIZATION_ERROR.code(), ErrorCode.DESERIALIZATION_ERROR.message());
     }
 }

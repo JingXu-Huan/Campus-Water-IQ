@@ -60,4 +60,10 @@ public class IotDeviceEvent {
      * 创建时间
      */
     private LocalDateTime createTime;
+
+    /*父告警 id*/
+    private Long parentId;
+
+    /*告警次数*/
+    private Integer cnt;
 }

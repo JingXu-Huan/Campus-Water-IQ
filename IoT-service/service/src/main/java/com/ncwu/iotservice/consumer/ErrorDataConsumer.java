@@ -1,7 +1,6 @@
 package com.ncwu.iotservice.consumer;
 
 
-import cn.hutool.core.date.DateTime;
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.core.conditions.update.LambdaUpdateWrapper;
 import com.fasterxml.jackson.core.JsonProcessingException;
@@ -16,9 +15,6 @@ import org.apache.rocketmq.spring.core.RocketMQListener;
 import org.springframework.stereotype.Component;
 
 import java.time.LocalDateTime;
-import java.time.temporal.Temporal;
-import java.time.temporal.TemporalUnit;
-import java.util.concurrent.TimeUnit;
 
 /**
  * @author jingxu
@@ -42,28 +38,48 @@ public class ErrorDataConsumer implements RocketMQListener<String> {
             throw new DeserializationFailedException("反序列化失败");
         }
         String deviceId = errorDataMessageBO.getDeviceId();
-        IotDeviceEvent iotDeviceEvent = new IotDeviceEvent();
-        generateDTO(iotDeviceEvent, deviceId, "WARN");
         //判定是否短时间内多次上报，避免未来告警风暴
-        LambdaQueryWrapper<IotDeviceEvent> eq = new LambdaQueryWrapper<IotDeviceEvent>().select()
+        //（设备号，告警程度，描述） 可以唯一确定一条告警
+        LambdaQueryWrapper<IotDeviceEvent> eq = new LambdaQueryWrapper<IotDeviceEvent>()
+                .select()
                 .eq(IotDeviceEvent::getDeviceCode, deviceId)
                 .eq(IotDeviceEvent::getEventLevel, "WARN")
                 .eq(IotDeviceEvent::getEventDesc, "设备上报数据出现异常")
-                .orderByDesc(IotDeviceEvent::getEventTime);
-        LocalDateTime eventTime = ioTDeviceEventMapper.selectOne(eq).getEventTime();
-
-        if (eventTime.minusMinutes(30).isAfter(LocalDateTime.now())) {
-            iotDeviceEvent.setCreateTime(LocalDateTime.now());
+                .orderByDesc(IotDeviceEvent::getEventTime)
+                .last("limit 1");
+        //查找最近一条告警信息
+        IotDeviceEvent preEvent = ioTDeviceEventMapper.selectOne(eq);
+        if (preEvent == null) {
+            IotDeviceEvent iotDeviceEvent = new IotDeviceEvent();
+            generateDTO(iotDeviceEvent, deviceId);
             ioTDeviceEventMapper.insert(iotDeviceEvent);
+            return;
+        }
+        LocalDateTime eventTime = preEvent.getEventTime();
+        Long id = preEvent.getId();
+        //如果当前告警事件与数据库最新数据的时差超过30分钟，则插入一条新告警，将它的 ParentId 指向上一条
+        if (eventTime.isBefore(LocalDateTime.now().minusMinutes(30))) {
+            IotDeviceEvent iotDeviceEvent = new IotDeviceEvent();
+            generateDTO(iotDeviceEvent, deviceId);
+            //设置它的前驱
+            iotDeviceEvent.setParentId(id);
+            ioTDeviceEventMapper.insert(iotDeviceEvent);
+        } else {
+            LambdaUpdateWrapper<IotDeviceEvent> update = new LambdaUpdateWrapper<IotDeviceEvent>()
+                    .eq(IotDeviceEvent::getId, id)
+                    .setSql("cnt = cnt + 1");
+            ioTDeviceEventMapper.update(update);
         }
     }
 
-    private static void generateDTO(IotDeviceEvent iotDeviceEvent, String deviceId, String level) {
+    private static void generateDTO(IotDeviceEvent iotDeviceEvent, String deviceId) {
         iotDeviceEvent.setDeviceCode(deviceId);
         iotDeviceEvent.setDeviceType("METER");
         iotDeviceEvent.setEventType("ABNORMAL");
-        iotDeviceEvent.setEventLevel(level);
+        iotDeviceEvent.setEventLevel("WARN");
         iotDeviceEvent.setEventDesc("设备上报数据出现异常");
+        //表示根节点
+        iotDeviceEvent.setParentId(null);
         LocalDateTime now = LocalDateTime.now();
         iotDeviceEvent.setEventTime(now);
     }

@@ -209,4 +209,34 @@ public class IoTDataServiceImpl extends ServiceImpl<IoTDeviceDataMapper, IotDevi
         double annulus = (todayUsage.getData() - yestDayUsage.getData()) / yestDayUsage.getData();
         return Result.ok(annulus);
     }
+
+    @Override
+    public Result<Double> getOfflineRate() {
+        return null;
+    }
+
+    @Override
+    public Result<Double> getWaterQuality(String deviceId) {
+        return null;
+    }
+
+    @Override
+    public Result<Double> getTurbidity(String deviceId, LocalDateTime time) {
+        return null;
+    }
+
+    @Override
+    public Result<Double> getPh(String deviceId, LocalDateTime time) {
+        return null;
+    }
+
+    @Override
+    public Result<Double> getChlorine(String deviceId, LocalDateTime time) {
+        return null;
+    }
+
+    @Override
+    public Result<Map<LocalDateTime, Double>> getFlowTendency(LocalDateTime start, LocalDateTime end, String deviceId) {
+        return null;
+    }
 }

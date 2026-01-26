@@ -12,6 +12,7 @@ import com.influxdb.client.write.Point;
 import com.ncwu.common.Bo.ErrorDataMessageBO;
 import com.ncwu.common.Bo.MeterDataBo;
 import com.ncwu.ingestgroup.entity.IotDeviceData;
+import com.ncwu.ingestgroup.exception.DeserializationFailedException;
 import com.ncwu.ingestgroup.mapper.IotDataMapper;
 import jakarta.annotation.PostConstruct;
 import lombok.RequiredArgsConstructor;
@@ -56,50 +57,59 @@ public class MeterDataConsumer extends ServiceImpl<IotDataMapper, IotDeviceData>
         String bucket = "test08";
         String org = "jingxu";
         System.out.println(s);
+        MeterDataBo meterDataBo = null;
         try {
-            MeterDataBo meterDataBo = objectMapper.readValue(s, MeterDataBo.class);
-            if (meterDataBo.getStatus().equals("error")) {
-                LocalDateTime now = LocalDateTime.now();
-                ErrorDataMessageBO errorDataMessageBO = new ErrorDataMessageBO();
-                errorDataMessageBO.setDeviceId(meterDataBo.getDeviceId());
-                errorDataMessageBO.setPayLoad(s);
-                /* 序列化 errorDataMessageBO 对象 */
-                String data = objectMapper.writeValueAsString(errorDataMessageBO);
-                rocketMQTemplate.convertAndSend("ErrorData",data);
-                //TODO 这里以后要自行检测数据状态，检查取值范围。
-                return;
-            }
-            IotDeviceData iotDeviceData = new IotDeviceData();
-            iotDeviceData.setDataPayload(s);
-            iotDeviceData.setDeviceCode(meterDataBo.getDeviceId());
-            iotDeviceData.setCollectTime(meterDataBo.getTimeStamp());
-            iotDeviceData.setDeviceType("WATER_METER");
-
-            //流量，送到influxdb
-            ZonedDateTime zdt = meterDataBo.getTimeStamp().atZone(ZoneId.of("Asia/Shanghai"));
-            Point point = Point
-                    .measurement("water_meter")
-                    .addTag("deviceId", meterDataBo.getDeviceId())
-                    .addField("flow", meterDataBo.getFlow())
-                    .addField("usage", meterDataBo.getTotalUsage())
-                    .addField("tem", meterDataBo.getWaterTem())
-                    .time(zdt.toInstant(), WritePrecision.MS);
-
-            WriteApiBlocking writeApi = influxDBClient.getWriteApiBlocking();
-            writeApi.writePoint(bucket, org, point);
-            synchronized (this) {
-                buffer.add(iotDeviceData);
-                if (buffer.size() >= 200) {
-                    MeterDataConsumer meterDataConsumer = (MeterDataConsumer) AopContext.currentProxy();
-                    meterDataConsumer.saveBatch(buffer);
-                    buffer.clear();
-                }
-            }
-
+            meterDataBo = objectMapper.readValue(s, MeterDataBo.class);
         } catch (JsonProcessingException e) {
-            // 日志记录即可，不阻塞消费
-            log.error("JSON解析失败：{}", s);
+            log.error("反序列化失败");
+            throw new DeserializationFailedException("反序列化失败");
         }
+
+        IotDeviceData iotDeviceData = new IotDeviceData();
+        iotDeviceData.setDataPayload(s);
+        iotDeviceData.setDeviceCode(meterDataBo.getDeviceId());
+        iotDeviceData.setCollectTime(meterDataBo.getTimeStamp());
+        iotDeviceData.setDeviceType("WATER_METER");
+        //批量保存原始数据到数据库
+        synchronized (this) {
+            buffer.add(iotDeviceData);
+            if (buffer.size() >= 200) {
+                MeterDataConsumer meterDataConsumer = (MeterDataConsumer) AopContext.currentProxy();
+                meterDataConsumer.saveBatch(buffer);
+                buffer.clear();
+            }
+        }
+
+        //检查数据状态
+        if (meterDataBo.getStatus().equals("error")) {
+            LocalDateTime now = LocalDateTime.now();
+            ErrorDataMessageBO errorDataMessageBO = new ErrorDataMessageBO();
+            errorDataMessageBO.setDeviceId(meterDataBo.getDeviceId());
+            errorDataMessageBO.setPayLoad(s);
+            /* 序列化 errorDataMessageBO 对象 */
+            String data;
+            try {
+                data = objectMapper.writeValueAsString(errorDataMessageBO);
+            } catch (JsonProcessingException e) {
+                throw new DeserializationFailedException("序列化失败");
+            }
+            if (data != null) {
+                rocketMQTemplate.convertAndSend("ErrorData", data);
+            }
+            return;
+        }
+        //流量，送到influxdb
+        ZonedDateTime zdt = meterDataBo.getTimeStamp().atZone(ZoneId.of("Asia/Shanghai"));
+        Point point = Point
+                .measurement("water_meter")
+                .addTag("deviceId", meterDataBo.getDeviceId())
+                .addField("flow", meterDataBo.getFlow())
+                .addField("usage", meterDataBo.getTotalUsage())
+                .addField("tem", meterDataBo.getWaterTem())
+                .time(zdt.toInstant(), WritePrecision.MS);
+
+        WriteApiBlocking writeApi = influxDBClient.getWriteApiBlocking();
+        writeApi.writePoint(bucket, org, point);
     }
 
 }

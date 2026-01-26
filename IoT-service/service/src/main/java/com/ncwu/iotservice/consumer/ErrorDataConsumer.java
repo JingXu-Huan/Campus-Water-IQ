@@ -1,6 +1,5 @@
 package com.ncwu.iotservice.consumer;
 
-
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.core.conditions.update.LambdaUpdateWrapper;
 import com.fasterxml.jackson.core.JsonProcessingException;
@@ -9,6 +8,7 @@ import com.ncwu.common.Bo.ErrorDataMessageBO;
 import com.ncwu.iotservice.entity.IotDeviceEvent;
 import com.ncwu.iotservice.exception.DeserializationFailedException;
 import com.ncwu.iotservice.mapper.IoTDeviceEventMapper;
+import com.ncwu.iotservice.service.WeChatNotifyService;
 import lombok.RequiredArgsConstructor;
 import org.apache.rocketmq.spring.annotation.RocketMQMessageListener;
 import org.apache.rocketmq.spring.core.RocketMQListener;
@@ -26,6 +26,7 @@ import java.time.LocalDateTime;
 @RocketMQMessageListener(topic = "ErrorData", consumerGroup = "ErrorDataGroup")
 public class ErrorDataConsumer implements RocketMQListener<String> {
 
+    private final WeChatNotifyService weChatNotifyService;
     private final IoTDeviceEventMapper ioTDeviceEventMapper;
     private final ObjectMapper objectMapper;
 
@@ -52,6 +53,7 @@ public class ErrorDataConsumer implements RocketMQListener<String> {
         if (preEvent == null) {
             IotDeviceEvent iotDeviceEvent = new IotDeviceEvent();
             generateDTO(iotDeviceEvent, deviceId);
+            weChatNotifyService.sendText("WARN:"+deviceId+"数据异常,已记录到数据库,请及时处理");
             ioTDeviceEventMapper.insert(iotDeviceEvent);
             return;
         }
@@ -63,6 +65,7 @@ public class ErrorDataConsumer implements RocketMQListener<String> {
             generateDTO(iotDeviceEvent, deviceId);
             //设置它的前驱
             iotDeviceEvent.setParentId(id);
+            weChatNotifyService.sendText("WARN:"+deviceId+"数据异常,已记录到数据库,请及时处理");
             ioTDeviceEventMapper.insert(iotDeviceEvent);
         } else {
             LambdaUpdateWrapper<IotDeviceEvent> update = new LambdaUpdateWrapper<IotDeviceEvent>()
@@ -82,5 +85,6 @@ public class ErrorDataConsumer implements RocketMQListener<String> {
         iotDeviceEvent.setParentId(null);
         LocalDateTime now = LocalDateTime.now();
         iotDeviceEvent.setEventTime(now);
+        iotDeviceEvent.setCnt(1);
     }
 }

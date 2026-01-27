@@ -16,7 +16,18 @@ import java.io.Serializable;
 public class ErrorDataMessageBO implements Serializable {
     @Serial
     private static final long serialVersionUID = 1L;
+    //设备类型
+    String deviceType;
+    //告警等级
+    String level;
+    //设备Id
     String deviceId;
+    //原始数据载荷
     String payLoad;
-    String message = "数据异常";
+    //错误信息描述
+    String desc = "数据异常";
+    //错误类型 ：OFFLINE ABNORMAL THRESHOLD
+    String errorType;
+    //建议操作
+    String suggestion;
 }

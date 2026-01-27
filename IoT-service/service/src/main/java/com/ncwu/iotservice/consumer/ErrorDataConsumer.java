@@ -15,6 +15,7 @@ import org.apache.rocketmq.spring.core.RocketMQListener;
 import org.springframework.stereotype.Component;
 
 import java.time.LocalDateTime;
+import java.time.format.DateTimeFormatter;
 
 /**
  * @author jingxu
@@ -52,8 +53,10 @@ public class ErrorDataConsumer implements RocketMQListener<String> {
         IotDeviceEvent preEvent = ioTDeviceEventMapper.selectOne(eq);
         if (preEvent == null) {
             IotDeviceEvent iotDeviceEvent = new IotDeviceEvent();
-            generateDTO(iotDeviceEvent, deviceId);
-            weChatNotifyService.sendText("WARN:设备："+deviceId+"数据异常,已记录到数据库,请及时处理");
+            generateDTO(iotDeviceEvent, errorDataMessageBO);
+            weChatNotifyService.sendMdText(errorDataMessageBO.getDeviceId()
+                    , errorDataMessageBO.getLevel(), errorDataMessageBO.getDesc()
+                    , dateFormatter(LocalDateTime.now()), errorDataMessageBO.getSuggestion());
             ioTDeviceEventMapper.insert(iotDeviceEvent);
             return;
         }
@@ -62,10 +65,12 @@ public class ErrorDataConsumer implements RocketMQListener<String> {
         //如果当前告警事件与数据库最新数据的时差超过30分钟，则插入一条新告警，将它的 ParentId 指向上一条
         if (eventTime.isBefore(LocalDateTime.now().minusMinutes(30))) {
             IotDeviceEvent iotDeviceEvent = new IotDeviceEvent();
-            generateDTO(iotDeviceEvent, deviceId);
+            generateDTO(iotDeviceEvent, errorDataMessageBO);
             //设置它的前驱
             iotDeviceEvent.setParentId(id);
-            weChatNotifyService.sendText("WARN:设备："+deviceId+"数据异常,已记录到数据库,请及时处理");
+            weChatNotifyService.sendMdText(errorDataMessageBO.getDeviceId()
+                    , errorDataMessageBO.getLevel(), errorDataMessageBO.getDesc()
+                    , dateFormatter(LocalDateTime.now()), errorDataMessageBO.getSuggestion());
             ioTDeviceEventMapper.insert(iotDeviceEvent);
         } else {
             LambdaUpdateWrapper<IotDeviceEvent> update = new LambdaUpdateWrapper<IotDeviceEvent>()
@@ -75,16 +80,24 @@ public class ErrorDataConsumer implements RocketMQListener<String> {
         }
     }
 
-    private static void generateDTO(IotDeviceEvent iotDeviceEvent, String deviceId) {
-        iotDeviceEvent.setDeviceCode(deviceId);
-        iotDeviceEvent.setDeviceType("METER");
-        iotDeviceEvent.setEventType("ABNORMAL");
-        iotDeviceEvent.setEventLevel("WARN");
-        iotDeviceEvent.setEventDesc("设备上报数据出现异常");
+    private static void generateDTO(IotDeviceEvent iotDeviceEvent, ErrorDataMessageBO errorDataMessageBO) {
+        iotDeviceEvent.setDeviceCode(errorDataMessageBO.getDeviceId());
+        iotDeviceEvent.setDeviceType(errorDataMessageBO.getDeviceType());
+        iotDeviceEvent.setEventType(errorDataMessageBO.getErrorType());
+        iotDeviceEvent.setEventLevel(errorDataMessageBO.getLevel());
+        iotDeviceEvent.setEventDesc(errorDataMessageBO.getDesc());
         //表示根节点
         iotDeviceEvent.setParentId(null);
         LocalDateTime now = LocalDateTime.now();
         iotDeviceEvent.setEventTime(now);
         iotDeviceEvent.setCnt(1);
+    }
+
+    /**
+     * 简单的时间格式化工具
+     */
+    private String dateFormatter(LocalDateTime time) {
+        DateTimeFormatter formatter = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss");
+        return time.format(formatter);
     }
 }

@@ -47,8 +47,8 @@ public class GlobalExceptionHandler {
 
     //    @ExceptionHandler(DeviceRegisterException)
 //    public Result<String> deviceInitException(DeviceRegisterException e){
-//        return Result.fail(e.getMessage(),ErrorCode.BUSINESS_INIT_ERROR.code()
-//                ,ErrorCode.BUSINESS_INIT_ERROR.message());
+//        return Result.fail(e.getDesc(),ErrorCode.BUSINESS_INIT_ERROR.code()
+//                ,ErrorCode.BUSINESS_INIT_ERROR.desc());
 //    }
     @ExceptionHandler({MethodArgumentNotValidException.class})
     public Result<?> handleMethodArgumentNotValid(
@@ -94,14 +94,14 @@ public class GlobalExceptionHandler {
 //    public Result<?> handleGeneralException(Exception e) {
 //        // 记录异常信息用于调试
 //        System.err.println("异常类型: " + e.getClass().getName());
-//        System.err.println("异常信息: " + e.getMessage());
+//        System.err.println("异常信息: " + e.getDesc());
 //        e.printStackTrace();
 //
 //        // 如果是验证相关的异常，尝试提取错误信息
-//        if (e.getMessage() != null && e.getMessage().contains("Validation failure")) {
+//        if (e.getDesc() != null && e.getDesc().contains("Validation failure")) {
 //            return Result.fail("VALIDATION_ERROR", "参数验证失败");
 //        }
 //
-//        return Result.fail("Sys0003", e.getMessage());
+//        return Result.fail("Sys0003", e.getDesc());
 //    }
 }

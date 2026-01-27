@@ -85,6 +85,7 @@ public class ChangeTheData {
         double modifiedFlow = Math.min(keep3(df), 0.5);
 
         dataBo.setFlow(modifiedFlow);
+        dataBo.setStatus("burstPipe");
         return dataBo;
     }
 

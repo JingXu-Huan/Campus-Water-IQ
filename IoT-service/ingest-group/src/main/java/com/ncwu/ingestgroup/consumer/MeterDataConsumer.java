@@ -23,7 +23,6 @@ import org.apache.rocketmq.spring.core.RocketMQTemplate;
 import org.springframework.aop.framework.AopContext;
 import org.springframework.stereotype.Component;
 
-import java.time.LocalDateTime;
 import java.time.ZoneId;
 import java.time.ZonedDateTime;
 import java.util.ArrayList;
@@ -41,7 +40,7 @@ import java.util.List;
 public class MeterDataConsumer extends ServiceImpl<IotDataMapper, IotDeviceData> implements RocketMQListener<String>, IService<IotDeviceData> {
 
     private final ObjectMapper objectMapper;
-    private final List<IotDeviceData> buffer = new ArrayList<>(2000);
+    private final List<IotDeviceData> buffer = new ArrayList<>(200);
     private InfluxDBClient influxDBClient;
     private final RocketMQTemplate rocketMQTemplate;
 
@@ -57,7 +56,7 @@ public class MeterDataConsumer extends ServiceImpl<IotDataMapper, IotDeviceData>
         String bucket = "test08";
         String org = "jingxu";
         System.out.println(s);
-        MeterDataBo meterDataBo = null;
+        MeterDataBo meterDataBo;
         try {
             meterDataBo = objectMapper.readValue(s, MeterDataBo.class);
         } catch (JsonProcessingException e) {
@@ -79,26 +78,34 @@ public class MeterDataConsumer extends ServiceImpl<IotDataMapper, IotDeviceData>
                 buffer.clear();
             }
         }
-
         //检查数据状态
         if (meterDataBo.getStatus().equals("error")) {
-            LocalDateTime now = LocalDateTime.now();
-            ErrorDataMessageBO errorDataMessageBO = new ErrorDataMessageBO();
-            errorDataMessageBO.setDeviceId(meterDataBo.getDeviceId());
-            errorDataMessageBO.setPayLoad(s);
-            /* 序列化 errorDataMessageBO 对象 */
+            generateAndSendErrorBO(s, meterDataBo);
+            //异常数据不送时序数据库
+            return;
+        } else if (meterDataBo.getStatus().equals("burstPipe")) {
             String data;
             try {
-                data = objectMapper.writeValueAsString(errorDataMessageBO);
+                data = objectMapper.writeValueAsString(meterDataBo);
             } catch (JsonProcessingException e) {
                 throw new DeserializationFailedException("序列化失败");
             }
-            if (data != null) {
-                rocketMQTemplate.convertAndSend("ErrorData", data);
-            }
+            String deviceId = meterDataBo.getDeviceId();
+            ErrorDataMessageBO errorDataMessageBO = new ErrorDataMessageBO();
+
+            errorDataMessageBO.setDeviceId(deviceId);
+            errorDataMessageBO.setLevel("CRITICAL");
+            errorDataMessageBO.setErrorType("THRESHOLD");
+            errorDataMessageBO.setDeviceType("METER");
+            errorDataMessageBO.setDesc("设备" + deviceId + "可能发生爆管事件。");
+            errorDataMessageBO.setPayLoad(data);
+            errorDataMessageBO.setSuggestion("请检查管网是否有破损。");
+
+            rocketMQTemplate.convertAndSend("ErrorData", errorDataMessageBO);
+            //异常数据不送时序数据库
             return;
         }
-        //流量，送到influxdb
+        //正常数据：送到influxdb
         ZonedDateTime zdt = meterDataBo.getTimeStamp().atZone(ZoneId.of("Asia/Shanghai"));
         Point point = Point
                 .measurement("water_meter")
@@ -107,9 +114,21 @@ public class MeterDataConsumer extends ServiceImpl<IotDataMapper, IotDeviceData>
                 .addField("usage", meterDataBo.getTotalUsage())
                 .addField("tem", meterDataBo.getWaterTem())
                 .time(zdt.toInstant(), WritePrecision.MS);
-
         WriteApiBlocking writeApi = influxDBClient.getWriteApiBlocking();
         writeApi.writePoint(bucket, org, point);
+    }
+
+    private void generateAndSendErrorBO(String s, MeterDataBo meterDataBo) {
+        String deviceId = meterDataBo.getDeviceId();
+        ErrorDataMessageBO errorDataMessageBO = new ErrorDataMessageBO();
+        errorDataMessageBO.setDesc("设备" + deviceId + "数据异常");
+        errorDataMessageBO.setErrorType("ABNORMAL");
+        errorDataMessageBO.setDeviceId(deviceId);
+        errorDataMessageBO.setPayLoad(s);
+        errorDataMessageBO.setDeviceType("METER");
+        errorDataMessageBO.setLevel("WARN");
+        errorDataMessageBO.setSuggestion("请断电重启，并且检查传感器是否正常工作。");
+        rocketMQTemplate.convertAndSend("ErrorData", errorDataMessageBO);
     }
 
 }

@@ -40,9 +40,12 @@ public class WaterQualityCheckerTasks {
     public void checkOnLineDevices() throws InterruptedException {
         Thread.sleep(12000);
 //        检查设备运行控制器
-        long meterChecked = Long.parseLong(Objects.requireNonNull(redisTemplate.opsForValue().get("WaterQualityChecked")));
-
-        if (meterChecked == 0) {
+        String s = redisTemplate.opsForValue().get("isInit");
+        if (s == null || Integer.parseInt(s) == 0) {
+            return;
+        }
+        int waterQualityChecked = Integer.parseInt(Objects.requireNonNull(redisTemplate.opsForValue().get("WaterQualityChecked")));
+        if (waterQualityChecked == 0){
             return;
         }
         log.warn("传感器--开始检测");
@@ -86,7 +89,7 @@ public class WaterQualityCheckerTasks {
         LambdaUpdateWrapper<VirtualDevice> updateWrapper = new LambdaUpdateWrapper<VirtualDevice>()
                 .eq(VirtualDevice::getDeviceCode, deviceId)
                 .eq(VirtualDevice::getStatus, "online")
-                .set(VirtualDevice::getIsRunning,true)
+                .set(VirtualDevice::getIsRunning, true)
                 .set(VirtualDevice::getStatus, "offline");
         deviceMapper.update(updateWrapper);
         redisTemplate.delete("cache:device:status:" + deviceId);

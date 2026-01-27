@@ -45,9 +45,13 @@ public class MeterOnLineCheckerTasks {
 
     @Scheduled(fixedDelay = 10000)
     public void checkOnLineDevices() throws InterruptedException {
-        Thread.sleep(12000);
+        Thread.sleep(10000);
 //        检查设备运行控制器
-        long meterChecked = Long.parseLong(Objects.requireNonNull(redisTemplate.opsForValue().get("MeterChecked")));
+        String s = redisTemplate.opsForValue().get("isInit");
+        if (s == null || Integer.parseInt(s) == 0) {
+            return;
+        }
+        int meterChecked = Integer.parseInt(Objects.requireNonNull(redisTemplate.opsForValue().get("MeterChecked")));
         if (meterChecked == 0) {
             return;
         }

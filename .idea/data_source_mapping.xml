@@ -2,5 +2,6 @@
 <project version="4">
   <component name="DataSourcePerFileMappings">
     <file url="file://$PROJECT_DIR$/IoT-device/virtual_device.sql" value="c94d6d6c-3fd3-4714-a26c-88d275ecf7e7" />
+    <file url="file://$PROJECT_DIR$/IoT-service/service/src/main/java/com/ncwu/iotservice/mapper/IoTDeviceDataMapper.java" value="c94d6d6c-3fd3-4714-a26c-88d275ecf7e7" />
   </component>
 </project>

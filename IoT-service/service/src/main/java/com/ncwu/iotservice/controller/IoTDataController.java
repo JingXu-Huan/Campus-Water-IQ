@@ -183,24 +183,24 @@ public class IoTDataController {
      * 获得浊度
      */
     @GetMapping("/getTurbidity")
-    public Result<Double> getTurbidity(String deviceId, LocalDateTime time) {
-        return ioTDataService.getTurbidity(deviceId, time);
+    public Result<Double> getTurbidity(String deviceId) {
+        return ioTDataService.getTurbidity(deviceId);
     }
 
     /**
      * 获得酸碱度
      */
     @GetMapping("/getPh")
-    public Result<Double> getPh(String deviceId, LocalDateTime time) {
-        return ioTDataService.getPh(deviceId, time);
+    public Result<Double> getPh(String deviceId) {
+        return ioTDataService.getPh(deviceId);
     }
 
     /**
      * 获得含氯量
      */
     @GetMapping("getChlorine")
-    public Result<Double> getChlorine(String deviceId, LocalDateTime time) {
-        return ioTDataService.getChlorine(deviceId, time);
+    public Result<Double> getChlorine(String deviceId) {
+        return ioTDataService.getChlorine(deviceId);
     }
 
 

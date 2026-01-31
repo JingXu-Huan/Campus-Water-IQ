@@ -34,11 +34,11 @@ public interface IoTDataService extends IService<IotDeviceData> {
 
     Result<Double> getWaterQuality(String deviceId);
 
-    Result<Double> getTurbidity(String deviceId, LocalDateTime time);
+    Result<Double> getTurbidity(String deviceId);
 
-    Result<Double> getPh(String deviceId, LocalDateTime time);
+    Result<Double> getPh(String deviceId);
 
-    Result<Double> getChlorine(String deviceId, LocalDateTime time);
+    Result<Double> getChlorine(String deviceId);
 
     Result<Map<LocalDateTime, Double>> getFlowTendency(LocalDateTime start, LocalDateTime end, String deviceId);
 }

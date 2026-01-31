@@ -4,6 +4,7 @@ package com.ncwu.iotservice.mapper;
 import com.baomidou.mybatisplus.core.mapper.BaseMapper;
 import com.ncwu.iotservice.entity.IotDeviceData;
 import org.apache.ibatis.annotations.Mapper;
+import org.apache.ibatis.annotations.Select;
 
 /**
  * @author jingxu
@@ -12,4 +13,7 @@ import org.apache.ibatis.annotations.Mapper;
  */
 @Mapper
 public interface IoTDeviceDataMapper extends BaseMapper<IotDeviceData> {
+
+    @Select("select sum(status='offline')*1.0/count(*) from virtual_device where status!='scrap'")
+    double getOffLineRate();
 }

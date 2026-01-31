@@ -4,6 +4,8 @@ package com.ncwu.iotservice.service.impl;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import com.influxdb.client.InfluxDBClient;
 import com.influxdb.client.QueryApi;
+import com.influxdb.query.FluxRecord;
+import com.influxdb.query.FluxTable;
 import com.ncwu.common.enums.ErrorCode;
 import com.ncwu.common.enums.SuccessCode;
 import com.ncwu.common.vo.Result;
@@ -22,6 +24,7 @@ import java.time.format.DateTimeFormatter;
 import java.util.*;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
+import java.util.stream.Stream;
 
 import static com.ncwu.common.utils.Utils.keep2;
 
@@ -37,13 +40,14 @@ public class IoTDataServiceImpl extends ServiceImpl<IoTDeviceDataMapper, IotDevi
 
     private final InfluxDBClient influxDBClient;
     private final StringRedisTemplate redisTemplate;
+    private final IoTDeviceDataMapper ioTDeviceDataMapper;
 
     @Override
     public Result<Double> getRangeUsage(LocalDateTime start, LocalDateTime end, String deviceId) {
         DateFormatBo result = getDateFormatBo(start, end);
         // Flux 查询一次拿到 start 和 end 的累计值
         String fluxQuery = String.format("""
-                from(bucket:"test08")
+                from(bucket:"water")
                   |> range(start: %s, stop: %s)
                   |> filter(fn: (r) => r._measurement == "water_meter" and r._field == "usage" and r.deviceId == "%s")
                   |> keep(columns: ["_time", "_value"])
@@ -106,7 +110,7 @@ public class IoTDataServiceImpl extends ServiceImpl<IoTDeviceDataMapper, IotDevi
     @Override
     public Result<Double> getFlowNow(String deviceId) {
         String fluxQuery = String.format("""
-                from(bucket: "test08")
+                from(bucket: "water")
                 |> range(start: -1m)
                 |> filter(fn: (r) =>
                                 r._measurement == "water_meter" and
@@ -117,7 +121,7 @@ public class IoTDataServiceImpl extends ServiceImpl<IoTDeviceDataMapper, IotDevi
                 |> keep(columns: ["_time", "_value"])
                 """, deviceId);
 
-        Double flow = null;
+        Double flow;
         try {
             flow = influxDBClient.getQueryApi().query(fluxQuery).stream()
                     .flatMap(t -> t.getRecords().stream())
@@ -142,7 +146,7 @@ public class IoTDataServiceImpl extends ServiceImpl<IoTDeviceDataMapper, IotDevi
         String fluxQuery = String.format("""
                 import "strings"
                 
-                from(bucket: "test08")
+                from(bucket: "water")
                   |> range(start: %s, stop: %s)
                   |> filter(fn: (r) =>
                       r._measurement == "water_meter" and
@@ -203,7 +207,7 @@ public class IoTDataServiceImpl extends ServiceImpl<IoTDeviceDataMapper, IotDevi
         if (Objects.equals(yestDayUsage.getCode(), SuccessCode.DATA_EMPTY.getCode()) ||
                 Objects.equals(todayUsage.getCode(), SuccessCode.DATA_EMPTY.getCode()) || yestDayUsage.getData() <= 0) {
 
-            return Result.ok(Double.NaN,SuccessCode.DATA_EMPTY.getCode(), SuccessCode.DATA_EMPTY.getMessage());
+            return Result.ok(Double.NaN, SuccessCode.DATA_EMPTY.getCode(), SuccessCode.DATA_EMPTY.getMessage());
         }
         //计算环比
         double annulus = (todayUsage.getData() - yestDayUsage.getData()) / yestDayUsage.getData();
@@ -212,7 +216,8 @@ public class IoTDataServiceImpl extends ServiceImpl<IoTDeviceDataMapper, IotDevi
 
     @Override
     public Result<Double> getOfflineRate() {
-        return null;
+        double offLineRate = ioTDeviceDataMapper.getOffLineRate();
+        return Result.ok(offLineRate);
     }
 
     @Override
@@ -221,22 +226,100 @@ public class IoTDataServiceImpl extends ServiceImpl<IoTDeviceDataMapper, IotDevi
     }
 
     @Override
-    public Result<Double> getTurbidity(String deviceId, LocalDateTime time) {
-        return null;
+    public Result<Double> getTurbidity(String deviceId) {
+        String flux = String.format("""
+                    from(bucket: "water")
+                      |> range(start: -1m)
+                      |> filter(fn: (r) =>
+                        r._measurement == "water_quality" and
+                        r._field == "turbidity" and
+                        r.deviceId == "%s"
+                      )
+                      |> last()
+                      |> keep(columns: ["_time", "_value"])
+                """, deviceId);
+        return getQueryResult(flux);
+    }
+
+    @NonNull
+    private Result<Double> getQueryResult(String flux) {
+        List<FluxTable> query = influxDBClient.getQueryApi().query(flux);
+        Double v = query.stream().flatMap(t -> t.getRecords().stream())
+                .map(r -> r.getValue() != null ? ((Number) r.getValue()).doubleValue() : Double.NaN)
+                .findFirst()
+                .orElse(Double.NaN);
+        return Result.ok(v);
     }
 
     @Override
-    public Result<Double> getPh(String deviceId, LocalDateTime time) {
-        return null;
+    public Result<Double> getPh(String deviceId) {
+        String flux = String.format("""
+                    from(bucket: "water")
+                      |> range(start: -1m)
+                      |> filter(fn: (r) =>
+                        r._measurement == "water_quality" and
+                        r._field == "ph" and
+                        r.deviceId == "%s"
+                      )
+                      |> last()
+                      |> keep(columns: ["_time", "_value"])
+                """, deviceId);
+        return getQueryResult(flux);
     }
 
     @Override
-    public Result<Double> getChlorine(String deviceId, LocalDateTime time) {
-        return null;
+    public Result<Double> getChlorine(String deviceId) {
+        String flux = String.format("""
+                    from(bucket: "water")
+                      |> range(start: -1m)
+                      |> filter(fn: (r) =>
+                        r._measurement == "water_quality" and
+                        r._field == "chlorine" and
+                        r.deviceId == "%s"
+                      )
+                      |> last()
+                      |> keep(columns: ["_time", "_value"])
+                """, deviceId);
+        return getQueryResult(flux);
     }
 
     @Override
-    public Result<Map<LocalDateTime, Double>> getFlowTendency(LocalDateTime start, LocalDateTime end, String deviceId) {
-        return null;
+    public Result<Map<LocalDateTime, Double>> getFlowTendency(
+            LocalDateTime start,
+            LocalDateTime end,
+            String deviceId) {
+
+        String flux = String.format("""
+            from(bucket: "water")
+              |> range(start: %s, end: %s)
+              |> filter(fn: (r) =>
+                r._measurement == "water_quality" and
+                r._field == "flow" and
+                r.deviceId == "%s"
+              )
+              |> keep(columns: ["_time", "_value"])
+            """, start, end, deviceId);
+
+        List<FluxTable> tables = influxDBClient.getQueryApi().query(flux);
+
+        // ① 先把 Stream 变成 List，避免二次消费
+        List<FluxRecord> records = tables.stream()
+                .flatMap(t -> t.getRecords().stream())
+                .toList();
+
+        // ② 组装时间 -> 值
+        Map<LocalDateTime, Double> resultMap = records.stream()
+                .collect(Collectors.toMap(
+                        r -> LocalDateTime.ofInstant(
+                                Objects.requireNonNull(r.getTime()),
+                                ZoneId.systemDefault()
+                        ),
+                        r -> r.getValue() != null
+                                ? ((Number) r.getValue()).doubleValue()
+                                : 0.0,
+                        (v1, v2) -> v2,              // 时间重复时取后者
+                        LinkedHashMap::new           // 保留时间顺序
+                ));
+        return Result.ok(resultMap);
     }
 }

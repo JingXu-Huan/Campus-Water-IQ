@@ -1,6 +1,6 @@
 CREATE TABLE `virtual_device` (
                                  `id` BIGINT NOT NULL AUTO_INCREMENT COMMENT '自增唯一主键',
-                                 `device_code` CHAR(8) NOT NULL COMMENT '业务唯一编码 (ABCXYZZZ)',
+                                 `device_code` CHAR(10) NOT NULL COMMENT '业务唯一编码 (AXBCXYZZZ)',
                                  `sn_code` VARCHAR(50) DEFAULT NULL COMMENT '设备物理序列号（出厂唯一码）',
                                  `device_type` TINYINT NOT NULL COMMENT '1: 水表, 2: 传感器',
                                  `building_no` CHAR(2) NOT NULL COMMENT '楼宇编号（对应 BC）',

@@ -58,8 +58,8 @@ public class WaterQualityDataConsumer extends ServiceImpl<IotDataMapper, IotDevi
     @Override
     public void onMessage(String s) {
         System.out.println(s);
-        String bucket = "test08";
-        String org = "jingxu";
+        String bucket = "water";
+        String org = "ncwu";
         WaterQualityDataBo waterQualityDataBo;
         try {
             //消息反序列化为对象

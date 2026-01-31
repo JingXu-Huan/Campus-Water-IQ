@@ -17,6 +17,6 @@ public class InfluxDbConfig {
     @Bean
     public InfluxDBClient influxDBClient(){
         char[] influxTokens = System.getenv("INFLUX_TOKEN").toCharArray();
-        return InfluxDBClientFactory.create("http://localhost:8086",influxTokens,"jingxu","test08");
+        return InfluxDBClientFactory.create("http://localhost:8086",influxTokens,"jingxu","water");
     }
 }

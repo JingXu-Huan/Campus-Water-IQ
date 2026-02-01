@@ -35,7 +35,7 @@
     <!-- ===== 全局属性 ===== -->
     <properties>
         <java.version>21</java.version>
-
+        <canal.version>1.2.1-RELEASE</canal.version>
         <guava.version>33.5.0-jre</guava.version>
         <ollama.version>1.1.2</ollama.version>
         <spring-boot.version>3.2.2</spring-boot.version>
@@ -199,6 +199,11 @@
                 <groupId>com.google.guava</groupId>
                 <artifactId>guava</artifactId>
                 <version>${guava.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>top.javatool</groupId>
+                <artifactId>canal-spring-boot-starter</artifactId>
+                <version>${canal.version}</version>
             </dependency>
         </dependencies>
     </dependencyManagement>

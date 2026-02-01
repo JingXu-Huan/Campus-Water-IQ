@@ -41,4 +41,7 @@ public interface IoTDataService extends IService<IotDeviceData> {
     Result<Double> getChlorine(String deviceId);
 
     Result<Map<LocalDateTime, Double>> getFlowTendency(LocalDateTime start, LocalDateTime end, String deviceId);
+
+    Result<Double> getHealthyScoreOfDevices();
+
 }

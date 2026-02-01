@@ -125,4 +125,9 @@ public class DeviceController {
     public Result<String> changeModel(@NotNull @NotBlank String mode) {
         return virtualMeterDeviceService.changeMode(mode);
     }
+
+    @GetMapping("/getDevicesNum")
+    public Result<Integer> getNums(){
+        return virtualMeterDeviceService.getDeviceNums();
+    }
 }

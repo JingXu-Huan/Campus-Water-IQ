@@ -16,4 +16,10 @@ public interface IoTDeviceDataMapper extends BaseMapper<IotDeviceData> {
 
     @Select("select sum(status='offline')*1.0/count(*) from virtual_device where status!='scrap'")
     double getOffLineRate();
+
+    @Select("select count(*) from iot_device_event")
+    int countAll();
+
+    @Select("select count(*) from iot_device_event where handled_flag == 0")
+    int countUnhandledAbnormalEvents();
 }

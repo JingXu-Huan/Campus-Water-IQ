@@ -68,6 +68,7 @@ public class ErrorDataConsumer implements RocketMQListener<String> {
             generateDTO(iotDeviceEvent, errorDataMessageBO);
             //设置它的前驱
             iotDeviceEvent.setParentId(id);
+            //企业微信告警
             weChatNotifyService.sendMdText(errorDataMessageBO.getDeviceId()
                     , errorDataMessageBO.getLevel(), errorDataMessageBO.getDesc()
                     , dateFormatter(LocalDateTime.now()), errorDataMessageBO.getSuggestion());

@@ -23,6 +23,7 @@ import jakarta.annotation.PostConstruct;
 import jakarta.annotation.PreDestroy;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.apache.dubbo.config.annotation.DubboService;
 import org.apache.rocketmq.spring.core.RocketMQTemplate;
 import org.redisson.api.RedissonClient;
 import org.springframework.aop.framework.AopContext;
@@ -46,9 +47,10 @@ import static com.ncwu.iotdevice.utils.Utils.*;
 
 @Slf4j
 @Service
+@DubboService(interfaceClass = apis.iot_device.VirtualMeterDeviceService.class,version = "1.0.0")
 @RequiredArgsConstructor
 public class VirtualMeterDeviceServiceImpl extends ServiceImpl<DeviceMapper, VirtualDevice>
-        implements VirtualMeterDeviceService {
+        implements VirtualMeterDeviceService, apis.iot_device.VirtualMeterDeviceService {
 
     private int allSize;
     //运行中的设备集合
@@ -63,6 +65,7 @@ public class VirtualMeterDeviceServiceImpl extends ServiceImpl<DeviceMapper, Vir
     private final ServerConfig serverConfig;
     private final DataSender dataSender;
     private final RedissonClient redissonClient;
+    //本地缓存
     Cache<String, String> cache;
 
 
@@ -340,7 +343,7 @@ public class VirtualMeterDeviceServiceImpl extends ServiceImpl<DeviceMapper, Vir
             return Result.fail(ErrorCode.DEVICE_CANT_RESET_ERROR.code(), ErrorCode.DEVICE_CANT_RESET_ERROR.message());
         }
         this.isInit = false;
-        redisTemplate.opsForValue().set("isInit","0");
+        redisTemplate.opsForValue().set("isInit", "0");
         return Result.ok(SuccessCode.DEVICE_RESET_SUCCESS.getCode(), SuccessCode.DEVICE_RESET_SUCCESS.getMessage());
     }
 
@@ -370,6 +373,11 @@ public class VirtualMeterDeviceServiceImpl extends ServiceImpl<DeviceMapper, Vir
                     SuccessCode.METER_MODE_CHANGE_SUCCESS.getMessage());
         }
         return Result.fail(ErrorCode.PARAM_VALIDATION_ERROR.code(), ErrorCode.PARAM_VALIDATION_ERROR.message());
+    }
+
+    @Override
+    public Result<Integer> getDeviceNums() {
+        return Result.ok(Integer.parseInt(Objects.requireNonNull(redisTemplate.opsForValue().get("allDeviceNums"))));
     }
 
     /**
@@ -835,6 +843,9 @@ public class VirtualMeterDeviceServiceImpl extends ServiceImpl<DeviceMapper, Vir
         waterQualityDeviceService.setInit(true);
         log.info("设备注册完成：校区 3 楼宇 {} 层数 {} 房间 {}", buildings, floors, rooms);
         this.allSize = buildings * floors * rooms;
+        //总数量写入redis
+        redisTemplate.opsForValue().set("allDeviceNums", String.valueOf(allSize));
+
         return Result.ok(SuccessCode.DEVICE_REGISTER_SUCCESS.getCode(),
                 SuccessCode.DEVICE_REGISTER_SUCCESS.getMessage());
     }

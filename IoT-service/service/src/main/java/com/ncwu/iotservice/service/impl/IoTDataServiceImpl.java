@@ -1,7 +1,6 @@
 package com.ncwu.iotservice.service.impl;
 
-
-import cn.hutool.core.text.StrBuilder;
+import apis.iot_device.VirtualMeterDeviceService;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import com.influxdb.client.InfluxDBClient;
 import com.influxdb.client.QueryApi;
@@ -16,6 +15,7 @@ import com.ncwu.iotservice.mapper.IoTDeviceDataMapper;
 import com.ncwu.iotservice.service.IoTDataService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.apache.dubbo.config.annotation.DubboReference;
 import org.jspecify.annotations.NonNull;
 import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.stereotype.Service;
@@ -44,6 +44,9 @@ public class IoTDataServiceImpl extends ServiceImpl<IoTDeviceDataMapper, IotDevi
     private final InfluxDBClient influxDBClient;
     private final StringRedisTemplate redisTemplate;
     private final IoTDeviceDataMapper ioTDeviceDataMapper;
+
+    @DubboReference(version = "1.0.0")
+    private VirtualMeterDeviceService virtualMeterDeviceService;
 
     @Override
     public Result<Double> getRangeUsage(LocalDateTime start, LocalDateTime end, String deviceId) {
@@ -243,46 +246,50 @@ public class IoTDataServiceImpl extends ServiceImpl<IoTDeviceDataMapper, IotDevi
                 //不合格
                 return Result.ok(0.0);
             } else {
-//                double T = 1 - turbidityData;
-//                double P = 1 - (Math.abs(phData - 7.0)) / 1.5;
-//                double C = 1 - (Math.abs(chlorineData - 0.3)) / 0.7;
-                String pythonExecutable = "C:/Users/24053/AppData/Local/Programs/Python/Python314/python.exe";  // 使用系统的 Python 路径
-                String pythonScriptPath = "C:/Users/24053/IdeaProjects/Campus-Water-IQ/IoT-service/service/src/main/resources/water_quality.py";  // 你的 Python 脚本路径
+                String pythonExecutable = "python";
+                String pythonScriptPath = Objects.requireNonNull(getClass().getClassLoader()
+                        .getResource("water_quality.py")).getPath();
+                // 处理Windows路径中的URL编码
+                pythonScriptPath = pythonScriptPath.replace("/", "\\");
+                if (pythonScriptPath.startsWith("\\")) {
+                    pythonScriptPath = pythonScriptPath.substring(1);
+                }
                 String[] cmd = {
                         pythonExecutable,
-                        pythonScriptPath,  // 直接传递绝对路径
+                        pythonScriptPath,
                         String.valueOf(turbidityData),
                         String.valueOf(phData),
                         String.valueOf(chlorineData)
                 };
+                System.out.println("Python命令: " + String.join(" ", cmd));
                 ProcessBuilder processBuilder = new ProcessBuilder(cmd);
                 try {
-
                     Process pr = processBuilder.start();
                     BufferedReader reader = new BufferedReader(new InputStreamReader(pr.getInputStream()));
+                    BufferedReader errorReader = new BufferedReader(new InputStreamReader(pr.getErrorStream()));
                     String line;
                     StringBuilder output = new StringBuilder();
+                    StringBuilder errorOutput = new StringBuilder();
+
+                    // 读取标准输出
                     while ((line = reader.readLine()) != null) {
                         output.append(line);
                     }
-                    BufferedReader errorReader = new BufferedReader(new InputStreamReader(pr.getErrorStream()));
-                    String errorLine;
-                    StringBuilder errorOutput = new StringBuilder();
-                    while ((errorLine = errorReader.readLine()) != null) {
-                        errorOutput.append(errorLine);
+
+                    // 读取错误输出
+                    while ((line = errorReader.readLine()) != null) {
+                        errorOutput.append(line).append("\n");
                     }
-                    System.out.println("Python 错误输出: " + errorOutput);
-                    System.out.println("Python 标准输出: " + output.toString());
+
+                    System.out.println("Python 标准输出: " + output);
+                    if (!errorOutput.isEmpty()) {
+                        System.out.println("Python 错误输出: " + errorOutput);
+                    }
                     pr.waitFor();
-                    
+
                     String resultStr = output.toString().trim();
-                    if (resultStr.isEmpty()) {
-                        System.out.println("Python 脚本返回空结果");
-                        return Result.fail(Double.NaN, ErrorCode.QUERY_FAILED_ERROR.code(), "Python script returned empty result");
-                    }
-                    
                     try {
-                        double result = Double.parseDouble(resultStr);
+                        double result = keep2(Double.parseDouble(resultStr)) * 100;
                         return Result.ok(result);
                     } catch (NumberFormatException e) {
                         System.out.println("无法解析Python输出为数字: " + resultStr);
@@ -396,5 +403,37 @@ public class IoTDataServiceImpl extends ServiceImpl<IoTDeviceDataMapper, IotDevi
                         LinkedHashMap::new           // 保留时间顺序
                 ));
         return Result.ok(resultMap);
+    }
+
+    @Override
+    public Result<Double> getHealthyScoreOfDevices() {
+        //根据离线率，和异常事件的占比评价集群设备健康度
+        Result<Double> offlineRate = getOfflineRate();
+        Double offlineRateData = offlineRate.getData();
+        // 获取总设备数
+        Result<Integer> deviceNums = virtualMeterDeviceService.getDeviceNums();
+        Integer nums = deviceNums.getData();
+        if (nums == 0) {
+            return Result.ok(0.0);
+        }
+        // 获取未处理的异常事件数
+        int unhandledAbnormalEvents = ioTDeviceDataMapper.countUnhandledAbnormalEvents();
+
+        // 计算异常事件率（每台设备的平均异常事件数，上限设为5）
+        double abnormalEventRate = Math.min((double) unhandledAbnormalEvents / nums, 5.0);
+
+        if (offlineRateData != null) {
+            // 健康度评分计算：
+            // 基础分100分
+            // 离线率扣分：离线率 * 40分（离线率影响最大）
+            // 异常事件扣分：异常事件率 * 12分（每台设备平均1个异常事件扣12分）
+            double healthScore = 100.0 - (offlineRateData * 40.0) - (abnormalEventRate * 12.0);
+
+            // 确保分数在0-100范围内
+            healthScore = Math.max(0.0, Math.min(100.0, healthScore));
+
+            return Result.ok(keep2(healthScore));
+        }
+        return Result.fail(Double.NaN, ErrorCode.GET_HEALTHY_SCORE_ERROR.code(), ErrorCode.GET_HEALTHY_SCORE_ERROR.message());
     }
 }

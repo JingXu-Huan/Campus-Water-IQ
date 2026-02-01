@@ -1,18 +1,20 @@
-CREATE TABLE iot_device_event (
-                                  id BIGINT PRIMARY KEY AUTO_INCREMENT COMMENT '主键',
+create table water.iot_device_event
+(
+    id           bigint auto_increment comment '主键'
+        primary key,
+    device_code  varchar(64)                        not null comment '设备编号',
+    device_type  varchar(32)                        not null comment '设备类型',
+    event_type   varchar(32)                        not null comment '事件类型（OFFLINE / ABNORMAL / THRESHOLD）',
+    event_level  varchar(16)                        null comment '事件级别（INFO/WARN/ERROR）',
+    event_desc   varchar(255)                       null,
+    event_time   datetime                           not null,
+    handled_flag tinyint  default 0                 null,
+    create_time  datetime default CURRENT_TIMESTAMP null,
+    parent_id    bigint                             null,
+    cnt          int                                null
+)
+    comment 'IoT 设备事件表';
 
-                                  device_code VARCHAR(64) NOT NULL COMMENT '设备编号',
-                                  device_type VARCHAR(32) NOT NULL COMMENT '设备类型',
+create index idx_event_device_time
+    on water.iot_device_event (device_code, event_time);
 
-                                  event_type VARCHAR(32) NOT NULL COMMENT '事件类型（OFFLINE / ABNORMAL / THRESHOLD）',
-                                  event_level VARCHAR(16) COMMENT '事件级别（INFO/WARN/ERROR）',
-
-                                  event_desc VARCHAR(255),
-                                  event_time DATETIME NOT NULL,
-
-                                  handled_flag TINYINT DEFAULT 0,
-
-                                  create_time DATETIME DEFAULT CURRENT_TIMESTAMP,
-
-                                  INDEX idx_event_device_time (device_code, event_time)
-) COMMENT='IoT 设备事件表';

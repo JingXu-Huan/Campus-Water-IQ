@@ -107,6 +107,7 @@ public class Utils {
         String prefix = "device:";
         try {
             redisTemplate.opsForValue().set("isInit","0");
+            redisTemplate.delete("allDeviceNums");
             redisTemplate.delete(prefix + "meter");
             redisTemplate.delete(prefix + "sensor");
             redisTemplate.delete("meter:total_usage");

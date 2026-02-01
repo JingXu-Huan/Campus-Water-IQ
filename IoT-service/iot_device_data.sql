@@ -1,14 +1,14 @@
-CREATE TABLE iot_device_data (
-                                 id BIGINT PRIMARY KEY AUTO_INCREMENT COMMENT '主键',
+create table water.iot_device_data
+(
+    id           bigint auto_increment comment '主键'
+        primary key,
+    device_code  varchar(64)                        not null comment '设备唯一编号',
+    device_type  varchar(32)                        not null comment '设备类型（WATER_METER / WATER_QUALITY）',
+    collect_time datetime                           not null comment '设备采集时间',
+    data_payload json                               not null comment '设备上报原始数据（JSON）',
+    create_time  datetime default CURRENT_TIMESTAMP null
+)
+    comment 'IoT 设备上报数据表';
 
-                                 device_code VARCHAR(64) NOT NULL COMMENT '设备唯一编号',
-                                 device_type VARCHAR(32) NOT NULL COMMENT '设备类型（WATER_METER / WATER_QUALITY）',
-
-                                 collect_time DATETIME NOT NULL COMMENT '设备采集时间',
-
-                                 data_payload JSON NOT NULL COMMENT '设备上报原始数据（JSON）',
-
-                                 create_time DATETIME DEFAULT CURRENT_TIMESTAMP,
-
-                                 INDEX idx_device_time (device_code, collect_time)
-) COMMENT='IoT 设备上报数据表';
+create index idx_device_time
+    on water.iot_device_data (device_code, collect_time);

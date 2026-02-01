@@ -17,6 +17,7 @@ public enum ErrorCode {
     SYSTEM_ERROR("S0500", "系统异常"),
     QUERY_FAILED_ERROR("Q0500","查询数据失败，请重试"),
     DESERIALIZATION_ERROR("D0500","反序列化失败"),
+    GET_HEALTHY_SCORE_ERROR("Q0500","获取设备健康度失败"),
     UNKNOWN("S5000", "系统未知错误");
 
     private final String code;

@@ -2,6 +2,7 @@ package com.ncwu.iotservice.controller;
 
 
 import apis.BloomFilterService;
+import apis.iot_device.VirtualMeterDeviceService;
 import cn.hutool.core.date.DateUtil;
 import com.ncwu.common.dto.IdsDTO;
 import com.ncwu.common.enums.ErrorCode;
@@ -135,19 +136,20 @@ public class IoTDataController {
         return ioTDataService.getFlowNow(deviceId);
     }
 
-    /**返回时间段内的水流量数据*/
+    /**
+     * 返回时间段内的水流量数据
+     */
     @GetMapping("/getFlowTendency")
-    public Result<Map<LocalDateTime,Double>> getFlowTendency(@RequestParam(value = "start") @DateTimeFormat(pattern = "yyyy-MM-dd HH:mm:ss")
-                                                LocalDateTime start,
-                                                @RequestParam(value = "end") @DateTimeFormat(pattern = "yyyy-MM-dd HH:mm:ss")
-                                                LocalDateTime end,
-                                                String deviceId) {
+    public Result<Map<LocalDateTime, Double>> getFlowTendency(@RequestParam(value = "start") @DateTimeFormat(pattern = "yyyy-MM-dd HH:mm:ss")
+                                                              LocalDateTime start,
+                                                              @RequestParam(value = "end") @DateTimeFormat(pattern = "yyyy-MM-dd HH:mm:ss")
+                                                              LocalDateTime end,
+                                                              String deviceId) {
         Result<Double> fail = checkDate(start, end);
-        if (fail!=null){
-            return Result.fail(Collections.emptyMap(),ErrorCode.PARAM_VALIDATION_ERROR.code()
+        if (fail != null) {
+            return Result.fail(Collections.emptyMap(), ErrorCode.PARAM_VALIDATION_ERROR.code()
                     , ErrorCode.PARAM_VALIDATION_ERROR.message());
-        }
-        else return ioTDataService.getFlowTendency(start,end,deviceId);
+        } else return ioTDataService.getFlowTendency(start, end, deviceId);
 
     }
 
@@ -161,13 +163,7 @@ public class IoTDataController {
         } else return Result.fail(ErrorCode.PARAM_VALIDATION_ERROR.code(), ErrorCode.PARAM_VALIDATION_ERROR.message());
     }
 
-    /**
-     * 获得所有设备的离线率
-     */
-    @GetMapping("/getOffLineRate")
-    public Result<Double> getOfflineRate() {
-        return ioTDataService.getOfflineRate();
-    }
+
 
     /*===============================================水质传感器=======================================================*/
 
@@ -203,5 +199,16 @@ public class IoTDataController {
         return ioTDataService.getChlorine(deviceId);
     }
 
+    @GetMapping("/healthyScoreOfDevices")
+    public Result<Double> getHealthyScoreOfDevices() {
+        return ioTDataService.getHealthyScoreOfDevices();
+    }
 
+    /**
+     * 获得所有设备的离线率
+     */
+    @GetMapping("/getOffLineRate")
+    public Result<Double> getOfflineRate() {
+        return ioTDataService.getOfflineRate();
+    }
 }

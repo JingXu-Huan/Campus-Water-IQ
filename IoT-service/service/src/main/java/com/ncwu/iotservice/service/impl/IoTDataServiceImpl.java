@@ -1,6 +1,7 @@
 package com.ncwu.iotservice.service.impl;
 
 
+import cn.hutool.core.text.StrBuilder;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import com.influxdb.client.InfluxDBClient;
 import com.influxdb.client.QueryApi;
@@ -19,12 +20,14 @@ import org.jspecify.annotations.NonNull;
 import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.stereotype.Service;
 
+import java.io.BufferedReader;
+import java.io.IOException;
+import java.io.InputStreamReader;
 import java.time.*;
 import java.time.format.DateTimeFormatter;
 import java.util.*;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
-import java.util.stream.Stream;
 
 import static com.ncwu.common.utils.Utils.keep2;
 
@@ -222,7 +225,74 @@ public class IoTDataServiceImpl extends ServiceImpl<IoTDeviceDataMapper, IotDevi
 
     @Override
     public Result<Double> getWaterQuality(String deviceId) {
-        return null;
+        Result<Double> turbidity = getTurbidity(deviceId);
+        Result<Double> ph = getPh(deviceId);
+        Result<Double> chlorine = getChlorine(deviceId);
+
+        Double chlorineData = chlorine.getData();
+        Double phData = ph.getData();
+        Double turbidityData = turbidity.getData();
+
+        if (chlorineData == null || phData == null || turbidityData == null) {
+            return Result.fail(Double.NaN, ErrorCode.QUERY_FAILED_ERROR.code(), ErrorCode.QUERY_FAILED_ERROR.message());
+        } else if (chlorineData.isNaN() || phData.isNaN() || turbidityData.isNaN()) {
+            return Result.ok(Double.NaN);
+        } else {
+            if (turbidityData > 1.0 || (phData < 6.5 || phData > 8.5)
+                    || (chlorineData < 0.05 || chlorineData > 0.85)) {
+                //不合格
+                return Result.ok(0.0);
+            } else {
+//                double T = 1 - turbidityData;
+//                double P = 1 - (Math.abs(phData - 7.0)) / 1.5;
+//                double C = 1 - (Math.abs(chlorineData - 0.3)) / 0.7;
+                String pythonExecutable = "C:/Users/24053/AppData/Local/Programs/Python/Python314/python.exe";  // 使用系统的 Python 路径
+                String pythonScriptPath = "C:/Users/24053/IdeaProjects/Campus-Water-IQ/IoT-service/service/src/main/resources/water_quality.py";  // 你的 Python 脚本路径
+                String[] cmd = {
+                        pythonExecutable,
+                        pythonScriptPath,  // 直接传递绝对路径
+                        String.valueOf(turbidityData),
+                        String.valueOf(phData),
+                        String.valueOf(chlorineData)
+                };
+                ProcessBuilder processBuilder = new ProcessBuilder(cmd);
+                try {
+
+                    Process pr = processBuilder.start();
+                    BufferedReader reader = new BufferedReader(new InputStreamReader(pr.getInputStream()));
+                    String line;
+                    StringBuilder output = new StringBuilder();
+                    while ((line = reader.readLine()) != null) {
+                        output.append(line);
+                    }
+                    BufferedReader errorReader = new BufferedReader(new InputStreamReader(pr.getErrorStream()));
+                    String errorLine;
+                    StringBuilder errorOutput = new StringBuilder();
+                    while ((errorLine = errorReader.readLine()) != null) {
+                        errorOutput.append(errorLine);
+                    }
+                    System.out.println("Python 错误输出: " + errorOutput);
+                    System.out.println("Python 标准输出: " + output.toString());
+                    pr.waitFor();
+                    
+                    String resultStr = output.toString().trim();
+                    if (resultStr.isEmpty()) {
+                        System.out.println("Python 脚本返回空结果");
+                        return Result.fail(Double.NaN, ErrorCode.QUERY_FAILED_ERROR.code(), "Python script returned empty result");
+                    }
+                    
+                    try {
+                        double result = Double.parseDouble(resultStr);
+                        return Result.ok(result);
+                    } catch (NumberFormatException e) {
+                        System.out.println("无法解析Python输出为数字: " + resultStr);
+                        return Result.fail(Double.NaN, ErrorCode.QUERY_FAILED_ERROR.code(), "Cannot parse Python output: " + resultStr);
+                    }
+                } catch (IOException | InterruptedException e) {
+                    return Result.fail(Double.NaN, ErrorCode.QUERY_FAILED_ERROR.code(), ErrorCode.QUERY_FAILED_ERROR.message());
+                }
+            }
+        }
     }
 
     @Override
@@ -243,11 +313,16 @@ public class IoTDataServiceImpl extends ServiceImpl<IoTDeviceDataMapper, IotDevi
 
     @NonNull
     private Result<Double> getQueryResult(String flux) {
-        List<FluxTable> query = influxDBClient.getQueryApi().query(flux);
-        Double v = query.stream().flatMap(t -> t.getRecords().stream())
-                .map(r -> r.getValue() != null ? ((Number) r.getValue()).doubleValue() : Double.NaN)
-                .findFirst()
-                .orElse(Double.NaN);
+        Double v = null;
+        try {
+            List<FluxTable> query = influxDBClient.getQueryApi().query(flux);
+            v = query.stream().flatMap(t -> t.getRecords().stream())
+                    .map(r -> r.getValue() != null ? ((Number) r.getValue()).doubleValue() : Double.NaN)
+                    .findFirst()
+                    .orElse(Double.NaN);
+        } catch (Exception e) {
+            throw new QueryFailedException("influxDB 查询失败");
+        }
         return Result.ok(v);
     }
 
@@ -290,15 +365,15 @@ public class IoTDataServiceImpl extends ServiceImpl<IoTDeviceDataMapper, IotDevi
             String deviceId) {
 
         String flux = String.format("""
-            from(bucket: "water")
-              |> range(start: %s, end: %s)
-              |> filter(fn: (r) =>
-                r._measurement == "water_quality" and
-                r._field == "flow" and
-                r.deviceId == "%s"
-              )
-              |> keep(columns: ["_time", "_value"])
-            """, start, end, deviceId);
+                from(bucket: "water")
+                  |> range(start: %s, end: %s)
+                  |> filter(fn: (r) =>
+                    r._measurement == "water_quality" and
+                    r._field == "flow" and
+                    r.deviceId == "%s"
+                  )
+                  |> keep(columns: ["_time", "_value"])
+                """, start, end, deviceId);
 
         List<FluxTable> tables = influxDBClient.getQueryApi().query(flux);
 

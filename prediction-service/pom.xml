@@ -9,8 +9,8 @@
     </parent>
     <artifactId>prediction-service</artifactId>
     <version>0.0.1-SNAPSHOT</version>
-    <name>prediction-service</name>
-    <description>prediction-service</description>
+    <name>prediction-emailservice</name>
+    <description>prediction-emailservice</description>
     <properties>
         <java.version>21</java.version>
         <spring-ai.version>1.1.2</spring-ai.version>

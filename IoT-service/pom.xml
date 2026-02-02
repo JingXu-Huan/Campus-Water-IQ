@@ -17,9 +17,9 @@
 
     <artifactId>IoT-service</artifactId>
     <version>0.0.1-SNAPSHOT</version>
-    <name>IoT-service</name>
+    <name>IoT-emailservice</name>
     <packaging>pom</packaging>
-    <description>IoT-service</description>
+    <description>IoT-emailservice</description>
     <dependencies>
         <dependency>
             <groupId>com.influxdb</groupId>

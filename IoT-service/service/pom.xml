@@ -11,8 +11,8 @@
     </parent>
 
     <artifactId>service</artifactId>
-    <name>service</name>
-    <description>IoT-service service module</description>
+    <name>emailservice</name>
+    <description>IoT-emailservice emailservice module</description>
 
     <properties>
         <java.version>21</java.version>

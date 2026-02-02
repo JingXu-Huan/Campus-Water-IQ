@@ -1,4 +1,4 @@
-package com.ncwu.iotservice.entity.dto;
+package domain.dto;
 
 
 import lombok.Data;

@@ -1,5 +1,5 @@
 <template>
-  <div class="customer-service" :class="{ 'dark': isDark }">
+  <div class="customer-emailservice" :class="{ 'dark': isDark }">
     <div class="chat-container">
       <div class="sidebar">
         <div class="history-header">
@@ -24,8 +24,8 @@
       </div>
       
       <div class="chat-main">
-        <div class="service-header">
-          <div class="service-info">
+        <div class="emailservice-header">
+          <div class="emailservice-info">
             <ComputerDesktopIcon class="avatar" />
             <div class="info">
               <h3>华小水</h3>
@@ -213,7 +213,7 @@ const sendMessage = async (content) => {
 const loadChat = async (chatId) => {
   currentChatId.value = chatId
   try {
-    const messages = await chatAPI.getChatMessages(chatId, 'service')
+    const messages = await chatAPI.getChatMessages(chatId, 'emailservice')
     currentMessages.value = messages.map(msg => ({
       ...msg,
       isMarkdown: msg.role === 'assistant'  // 为助手消息添加 Markdown 标记
@@ -227,7 +227,7 @@ const loadChat = async (chatId) => {
 // 加载聊天历史
 const loadChatHistory = async () => {
   try {
-    const history = await chatAPI.getChatHistory('service')
+    const history = await chatAPI.getChatHistory('emailservice')
     chatHistory.value = history || []
     if (history && history.length > 0) {
       await loadChat(history[0].id)
@@ -265,7 +265,7 @@ onMounted(() => {
 </script>
 
 <style scoped lang="scss">
-.customer-service {
+.customer-emailservice {
   position: fixed;
   top: 64px;
   left: 0;
@@ -377,13 +377,13 @@ onMounted(() => {
     box-shadow: 0 4px 6px rgba(0, 0, 0, 0.05);
     overflow: hidden;
 
-    .service-header {
+    .emailservice-header {
       flex-shrink: 0;
       padding: 1rem 2rem;
       border-bottom: 1px solid rgba(0, 0, 0, 0.05);
       background: rgba(255, 255, 255, 0.98);
 
-      .service-info {
+      .emailservice-info {
         display: flex;
         align-items: center;
         gap: 1rem;
@@ -542,11 +542,11 @@ onMounted(() => {
     background: rgba(40, 40, 40, 0.95);
     box-shadow: 0 4px 6px rgba(0, 0, 0, 0.2);
     
-    .service-header {
+    .emailservice-header {
       background: rgba(30, 30, 30, 0.98);
       border-bottom: 1px solid rgba(255, 255, 255, 0.05);
 
-      .service-info {
+      .emailservice-info {
         .avatar {
           color: #fff;
           background: #444;
@@ -601,7 +601,7 @@ onMounted(() => {
 }
 
 @media (max-width: 768px) {
-  .customer-service {
+  .customer-emailservice {
     .chat-container {
       padding: 0;
     }

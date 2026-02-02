@@ -20,5 +20,5 @@
 - 这种方式能够提高系统的响应速度，同时不会影响高频数据的接入。
 
 ### 数据库建表语句
-参阅：IoT-service/iot_device_data.sql
-     IoT-service/iot_device_event.sql
+参阅：IoT-emailservice/iot_device_data.sql
+     IoT-emailservice/iot_device_event.sql

@@ -4,7 +4,7 @@ import com.alibaba.otter.canal.client.CanalConnector;
 import com.alibaba.otter.canal.client.CanalConnectors;
 import com.alibaba.otter.canal.protocol.CanalEntry;
 import com.alibaba.otter.canal.protocol.Message;
-import com.ncwu.iotservice.entity.dto.IoTDeviceEventDTO;
+import domain.dto.IoTDeviceEventDTO;
 import jakarta.annotation.PostConstruct;
 import jakarta.annotation.PreDestroy;
 import lombok.RequiredArgsConstructor;
@@ -39,9 +39,17 @@ public class CanalClient {
         new Thread(this::startListen).start();
     }
 
+    @PreDestroy
+    public void destroy() {
+        if (connector != null) {
+            connector.disconnect();
+        }
+    }
+
     private void startListen() {
         try {
             connector.connect();
+            //监听的表
             connector.subscribe("water\\.iot_device_event");
             connector.rollback();
 
@@ -104,13 +112,5 @@ public class CanalClient {
         ioTDeviceEventDTO.setEventDesc(data.get("event_desc"));
         ioTDeviceEventDTO.setEventType(data.get("event_type"));
         rocketMQTemplate.convertAndSend("IoTDeviceEvent",ioTDeviceEventDTO);
-        log.debug("设备告警数据: {}", data);
-    }
-
-    @PreDestroy
-    public void destroy() {
-        if (connector != null) {
-            connector.disconnect();
-        }
     }
 }

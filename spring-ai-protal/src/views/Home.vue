@@ -52,7 +52,7 @@ const aiApps = ref([
     id: 3,
     title: '华小水智能维修客服',
     description: '24小时在线的智能维修咨询师',
-    route: '/customer-service',
+    route: '/customer-emailservice',
     icon: UserGroupIcon
   },
   {

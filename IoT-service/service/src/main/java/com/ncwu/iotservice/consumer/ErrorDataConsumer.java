@@ -54,9 +54,6 @@ public class ErrorDataConsumer implements RocketMQListener<String> {
         if (preEvent == null) {
             IotDeviceEvent iotDeviceEvent = new IotDeviceEvent();
             generateDTO(iotDeviceEvent, errorDataMessageBO);
-            weChatNotifyService.sendMdText(errorDataMessageBO.getDeviceId()
-                    , errorDataMessageBO.getLevel(), errorDataMessageBO.getDesc()
-                    , dateFormatter(LocalDateTime.now()), errorDataMessageBO.getSuggestion());
             ioTDeviceEventMapper.insert(iotDeviceEvent);
             return;
         }
@@ -68,10 +65,6 @@ public class ErrorDataConsumer implements RocketMQListener<String> {
             generateDTO(iotDeviceEvent, errorDataMessageBO);
             //设置它的前驱
             iotDeviceEvent.setParentId(id);
-            //企业微信告警
-            weChatNotifyService.sendMdText(errorDataMessageBO.getDeviceId()
-                    , errorDataMessageBO.getLevel(), errorDataMessageBO.getDesc()
-                    , dateFormatter(LocalDateTime.now()), errorDataMessageBO.getSuggestion());
             ioTDeviceEventMapper.insert(iotDeviceEvent);
         } else {
             LambdaUpdateWrapper<IotDeviceEvent> update = new LambdaUpdateWrapper<IotDeviceEvent>()

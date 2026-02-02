@@ -55,7 +55,7 @@
         <spring-cloud-alibaba.version>2022.0.0.0</spring-cloud-alibaba.version>
         <rocketmq.spring.version>2.3.0</rocketmq.spring.version>
         <rocketmq.client.version>5.2.0</rocketmq.client.version>
-
+        <mail.version>1.6.2</mail.version>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
     </properties>
 
@@ -204,6 +204,12 @@
                 <groupId>top.javatool</groupId>
                 <artifactId>canal-spring-boot-starter</artifactId>
                 <version>${canal.version}</version>
+            </dependency>
+            <!-- JavaMail API -->
+            <dependency>
+                <groupId>com.sun.mail</groupId>
+                <artifactId>javax.mail</artifactId>
+                <version>${mail.version}</version>
             </dependency>
         </dependencies>
     </dependencyManagement>

@@ -1,6 +1,6 @@
 package com.ncwu.iotservice.service.impl;
 
-import apis.iot_device.VirtualMeterDeviceService;
+import com.ncwu.common.apis.iot_device.VirtualMeterDeviceService;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import com.influxdb.client.InfluxDBClient;
 import com.influxdb.client.QueryApi;
@@ -8,7 +8,7 @@ import com.influxdb.query.FluxRecord;
 import com.influxdb.query.FluxTable;
 import com.ncwu.common.enums.ErrorCode;
 import com.ncwu.common.enums.SuccessCode;
-import com.ncwu.common.vo.Result;
+import com.ncwu.common.domain.vo.Result;
 import com.ncwu.iotservice.entity.IotDeviceData;
 import com.ncwu.iotservice.exception.QueryFailedException;
 import com.ncwu.iotservice.mapper.IoTDeviceDataMapper;

@@ -1,10 +1,10 @@
 package com.ncwu.iotdevice.controller;
 
 
-import com.ncwu.common.vo.Result;
+import com.ncwu.common.domain.vo.Result;
 import com.ncwu.common.enums.ErrorCode;
 import com.ncwu.common.enums.SuccessCode;
-import com.ncwu.common.dto.IdsDTO;
+import com.ncwu.common.domain.dto.IdsDTO;
 import com.ncwu.iotdevice.exception.DeviceRegisterException;
 import com.ncwu.iotdevice.service.VirtualMeterDeviceService;
 import com.ncwu.iotdevice.service.VirtualWaterQualityDeviceService;

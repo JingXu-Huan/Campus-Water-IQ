@@ -1,6 +1,9 @@
-package com.ncwu.common.vo;
+package com.ncwu.common.domain.vo;
 
 import lombok.Data;
+
+import java.io.Serial;
+import java.io.Serializable;
 
 /**
  * 所有微服务的统一响应体
@@ -9,7 +12,9 @@ import lombok.Data;
  * @since 2025/12/25
  */
 @Data
-public class Result<T> {
+public class Result<T> implements Serializable {
+    @Serial
+    private static final long serialVersionUID = 1L;
 
     private String code;
     private String message;

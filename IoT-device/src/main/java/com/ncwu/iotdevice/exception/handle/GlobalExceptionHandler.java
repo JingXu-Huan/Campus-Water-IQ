@@ -1,6 +1,6 @@
 package com.ncwu.iotdevice.exception.handle;
 
-import com.ncwu.common.vo.Result;
+import com.ncwu.common.domain.vo.Result;
 import com.ncwu.common.enums.ErrorCode;
 import com.ncwu.iotdevice.exception.DeviceRegisterException;
 import jakarta.validation.ConstraintViolationException;

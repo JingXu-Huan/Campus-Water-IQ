@@ -1,6 +1,6 @@
 package com.ncwu.iotservice.exception.handle;
 
-import com.ncwu.common.vo.Result;
+import com.ncwu.common.domain.vo.Result;
 import com.ncwu.common.enums.ErrorCode;
 import com.ncwu.iotservice.exception.QueryFailedException;
 import com.ncwu.iotservice.exception.DeserializationFailedException;

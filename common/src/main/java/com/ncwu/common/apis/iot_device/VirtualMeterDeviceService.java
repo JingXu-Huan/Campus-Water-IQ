@@ -1,7 +1,7 @@
-package apis.iot_device;
+package com.ncwu.common.apis.iot_device;
 
 
-import com.ncwu.common.vo.Result;
+import com.ncwu.common.domain.vo.Result;
 
 /**
  * @author jingxu

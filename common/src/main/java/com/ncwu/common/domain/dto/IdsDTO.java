@@ -1,4 +1,4 @@
-package com.ncwu.common.dto;
+package com.ncwu.common.domain.dto;
 
 
 import com.ncwu.common.validator.annotations.Bloom;

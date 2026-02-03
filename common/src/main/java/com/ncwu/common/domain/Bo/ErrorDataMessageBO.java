@@ -1,4 +1,4 @@
-package com.ncwu.common.Bo;
+package com.ncwu.common.domain.Bo;
 
 import lombok.Data;
 

@@ -1,7 +1,7 @@
 package com.ncwu.iotdevice.controller;
 
 
-import apis.BloomFilterService;
+import com.ncwu.common.apis.BloomFilterService;
 import jakarta.validation.constraints.NotBlank;
 import lombok.RequiredArgsConstructor;
 import org.springframework.web.bind.annotation.PostMapping;

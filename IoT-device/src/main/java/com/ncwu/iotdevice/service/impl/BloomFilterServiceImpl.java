@@ -1,5 +1,6 @@
 package com.ncwu.iotdevice.service.impl;
 
+import com.ncwu.common.apis.BloomFilterService;
 import lombok.RequiredArgsConstructor;
 import org.apache.dubbo.config.annotation.DubboService;
 import org.redisson.api.RBloomFilter;
@@ -13,10 +14,10 @@ import java.util.List;
  * @version 1.0.0
  * @since 2026/1/18
  */
-@DubboService(interfaceClass = apis.BloomFilterService.class, version = "1.0.0")
+@DubboService(interfaceClass = BloomFilterService.class, version = "1.0.0")
 @Service
 @RequiredArgsConstructor
-public class BloomFilterServiceImpl implements apis.BloomFilterService {
+public class BloomFilterServiceImpl implements BloomFilterService {
 
     private final RedissonClient redissonClient;
 

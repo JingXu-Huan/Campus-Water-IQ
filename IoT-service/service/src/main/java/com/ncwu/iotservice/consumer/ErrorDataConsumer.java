@@ -4,7 +4,7 @@ import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.core.conditions.update.LambdaUpdateWrapper;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.ncwu.common.Bo.ErrorDataMessageBO;
+import com.ncwu.common.domain.Bo.ErrorDataMessageBO;
 import com.ncwu.iotservice.entity.IotDeviceEvent;
 import com.ncwu.iotservice.exception.DeserializationFailedException;
 import com.ncwu.iotservice.mapper.IoTDeviceEventMapper;

@@ -1,7 +1,7 @@
 package com.ncwu.iotdevice.controller;
 
-import com.ncwu.common.vo.Result;
-import com.ncwu.common.dto.IdsDTO;
+import com.ncwu.common.domain.vo.Result;
+import com.ncwu.common.domain.dto.IdsDTO;
 import com.ncwu.iotdevice.service.VirtualMeterDeviceService;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.*;

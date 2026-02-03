@@ -1,4 +1,4 @@
-package apis;
+package com.ncwu.common.apis;
 
 
 import org.springframework.stereotype.Service;

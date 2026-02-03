@@ -6,7 +6,7 @@ import com.baomidou.mybatisplus.core.conditions.update.LambdaUpdateWrapper;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import com.github.benmanes.caffeine.cache.Cache;
 import com.github.benmanes.caffeine.cache.Caffeine;
-import com.ncwu.common.vo.Result;
+import com.ncwu.common.domain.vo.Result;
 import com.ncwu.common.enums.ErrorCode;
 import com.ncwu.common.enums.SuccessCode;
 import com.ncwu.iotdevice.AOP.annotation.InitLuaScript;
@@ -47,10 +47,10 @@ import static com.ncwu.iotdevice.utils.Utils.*;
 
 @Slf4j
 @Service
-@DubboService(interfaceClass = apis.iot_device.VirtualMeterDeviceService.class,version = "1.0.0")
+@DubboService(interfaceClass = com.ncwu.common.apis.iot_device.VirtualMeterDeviceService.class,version = "1.0.0")
 @RequiredArgsConstructor
 public class VirtualMeterDeviceServiceImpl extends ServiceImpl<DeviceMapper, VirtualDevice>
-        implements VirtualMeterDeviceService, apis.iot_device.VirtualMeterDeviceService {
+        implements VirtualMeterDeviceService, com.ncwu.common.apis.iot_device.VirtualMeterDeviceService {
 
     private int allSize;
     //运行中的设备集合

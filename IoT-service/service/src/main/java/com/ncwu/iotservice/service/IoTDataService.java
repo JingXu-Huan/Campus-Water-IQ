@@ -1,7 +1,7 @@
 package com.ncwu.iotservice.service;
 
 import com.baomidou.mybatisplus.extension.service.IService;
-import com.ncwu.common.vo.Result;
+import com.ncwu.common.domain.vo.Result;
 import com.ncwu.iotservice.entity.IotDeviceData;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.Min;

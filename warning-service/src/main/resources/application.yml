@@ -1,17 +1,8 @@
-spring:
-  mail:
-    host: smtp.qq.com
-    port: 465
-    username: 2405313582@qq.com           # 改为你的QQ邮箱
-    password: szzgeuwfuigedjeg   # 改为你的QQ邮箱授权码
-    default-encoding: UTF-8
-    properties:
-      mail:
-        smtp:
-          auth: true
-          starttls:
-            enable: true
-            required: true
-          ssl:
-            enable: true
-        debug: true  # 开发时可以设为true查看详细日志
+dubbo:
+  application:
+    name: warn-service
+    qos-port: 22225
+  registry:
+    address: nacos://101.42.157.163:8848
+    username: nacos
+    password: nacos

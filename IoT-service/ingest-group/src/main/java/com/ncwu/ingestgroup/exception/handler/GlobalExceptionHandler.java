@@ -1,7 +1,7 @@
 package com.ncwu.ingestgroup.exception.handler;
 
 import com.ncwu.common.enums.ErrorCode;
-import com.ncwu.common.vo.Result;
+import com.ncwu.common.domain.vo.Result;
 import com.ncwu.ingestgroup.exception.DeserializationFailedException;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpStatus;

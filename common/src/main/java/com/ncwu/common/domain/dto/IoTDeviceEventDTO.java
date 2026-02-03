@@ -1,4 +1,4 @@
-package domain.dto;
+package com.ncwu.common.domain.dto;
 
 
 import lombok.Data;

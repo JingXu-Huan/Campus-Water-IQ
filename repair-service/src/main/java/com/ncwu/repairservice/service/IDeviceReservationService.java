@@ -1,7 +1,12 @@
 package com.ncwu.repairservice.service;
 
+import com.ncwu.common.domain.vo.Result;
+import com.ncwu.repairservice.entity.UserReportDTO;
 import com.ncwu.repairservice.entity.po.DeviceReservation;
 import com.baomidou.mybatisplus.extension.service.IService;
+import com.ncwu.repairservice.entity.vo.UserReportVO;
+
+import java.util.List;
 
 /**
  * <p>
@@ -13,4 +18,15 @@ import com.baomidou.mybatisplus.extension.service.IService;
  */
 public interface IDeviceReservationService extends IService<DeviceReservation> {
 
+    Result<Boolean> addAReport(UserReportDTO userReportDTO);
+
+    Result<List<UserReportVO>> getDeviceReportByStatus(String status, int pageNum, int pageSize);
+
+    Result<List<UserReportVO>> getUserReportByUserName(String userName);
+
+    Result<Boolean> cancelReport(List<String> deviceReservationId);
+
+    Result<List<UserReportVO>> listByDeviceCode(List<String> deviceCode, int pageNum, int pageSize);
+
+    Result<List<UserReportVO>> getDeviceReportByDeviceCode(String deviceCode);
 }

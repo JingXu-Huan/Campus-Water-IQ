@@ -40,7 +40,7 @@
         <ollama.version>1.1.2</ollama.version>
         <spring-boot.version>3.2.2</spring-boot.version>
         <druid.version>1.2.20</druid.version>
-        <mybatis.version>3.5.14</mybatis.version>
+        <mybatis.version>3.5.7</mybatis.version>
         <spring-cloud.version>2023.0.3</spring-cloud.version>
         <spring-cloud-alibaba.version>2022.0.0.0</spring-cloud-alibaba.version>
         <rocketmq.version>2.3.4</rocketmq.version>

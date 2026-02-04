@@ -31,6 +31,7 @@
                 </ModuleInfoGo>
               </list>
             </option>
+            <option name="needSerializable" value="true" />
             <option name="needToStringHashcodeEquals" value="true" />
             <option name="needsComment" value="true" />
             <option name="needsModel" value="true" />
@@ -39,8 +40,8 @@
             <option name="tableUIInfoList">
               <list>
                 <TableUIInfo>
-                  <option name="className" value="IotDeviceEvent" />
-                  <option name="tableName" value="iot_device_event" />
+                  <option name="className" value="DeviceReservation" />
+                  <option name="tableName" value="device_reservation" />
                 </TableUIInfo>
               </list>
             </option>

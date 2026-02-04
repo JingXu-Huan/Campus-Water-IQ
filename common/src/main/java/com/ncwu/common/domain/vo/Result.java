@@ -7,6 +7,7 @@ import java.io.Serializable;
 
 /**
  * 所有微服务的统一响应体
+ *
  * @author jingxu
  * @version 1.1.0
  * @since 2025/12/25
@@ -39,8 +40,19 @@ public class Result<T> implements Serializable {
         return ok(null, code, message);
     }
 
+    public static <T> Result<T> fail(T data) {
+        return ok(data);
+    }
+
     public static <T> Result<T> fail(String code, String message) {
         return fail(null, code, message);
+    }
+
+    public static <T> Result<T> fail(T data, String message) {
+        Result<T> result = new Result<>();
+        result.message = message;
+        result.data = data;
+        return result;
     }
 
     public static <T> Result<T> fail(T data, String code, String message) {

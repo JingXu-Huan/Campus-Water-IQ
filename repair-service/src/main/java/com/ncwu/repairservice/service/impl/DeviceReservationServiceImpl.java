@@ -1,5 +1,6 @@
 package com.ncwu.repairservice.service.impl;
 
+import com.alibaba.fastjson2.JSON;
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.core.conditions.update.LambdaUpdateWrapper;
 import com.baomidou.mybatisplus.core.metadata.IPage;
@@ -11,14 +12,22 @@ import com.ncwu.repairservice.entity.vo.UserReportVO;
 import com.ncwu.repairservice.mapper.DeviceReservationMapper;
 import com.ncwu.repairservice.service.IDeviceReservationService;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
+import jakarta.annotation.PostConstruct;
 import lombok.RequiredArgsConstructor;
 import org.jspecify.annotations.NonNull;
 import org.redisson.api.RLock;
 import org.redisson.api.RedissonClient;
+import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.stereotype.Service;
 
+import java.util.Collections;
 import java.util.List;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.ThreadLocalRandom;
+import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
+
+import static com.ncwu.common.utils.Utils.getExecutorPools;
 
 /**
  * <p>
@@ -26,13 +35,20 @@ import java.util.stream.Collectors;
  * </p>
  *
  * @author author
- * @since 2026-01-15
+ * @since 2026-01-11
  */
 @Service
 @RequiredArgsConstructor
 public class DeviceReservationServiceImpl extends ServiceImpl<DeviceReservationMapper, DeviceReservation> implements IDeviceReservationService {
-    private final Object lock = new Object();
+
     private final RedissonClient redissonClient;
+    private final StringRedisTemplate redisTemplate;
+    private ExecutorService pool;
+
+    @PostConstruct
+    public void init() {
+        pool = getExecutorPools("userReport-work-Thread", 1, 10, 120, 1000);
+    }
 
     @Override
     public Result<Boolean> addAReport(UserReportDTO userReportDTO) {
@@ -45,7 +61,7 @@ public class DeviceReservationServiceImpl extends ServiceImpl<DeviceReservationM
                 .eq(DeviceReservation::getStatus, userReportDTO.getStatus())
                 .eq(DeviceReservation::getFaultDesc, userReportDTO.getDesc());
         //todo 将1L替换成用户ID
-        RLock lock = redissonClient.getLock("user:add:reservation"+1L);
+        RLock lock = redissonClient.getLock("user:add:reservation" + 1L);
         lock.lock();
         try {
             if (this.exists(eq)) {
@@ -57,7 +73,7 @@ public class DeviceReservationServiceImpl extends ServiceImpl<DeviceReservationM
         return Result.ok(true);
     }
 
-    private static @NonNull DeviceReservation getDeviceReservation(UserReportDTO userReportDTO, String deviceCode, int type) {
+    private static DeviceReservation getDeviceReservation(UserReportDTO userReportDTO, String deviceCode, int type) {
         int campusNo = Integer.parseInt(deviceCode.substring(1, 2));
         int buildingNo = Integer.parseInt(deviceCode.substring(2, 4));
         int floorNo = Integer.parseInt(deviceCode.substring(4, 6));
@@ -81,22 +97,55 @@ public class DeviceReservationServiceImpl extends ServiceImpl<DeviceReservationM
     // 分页查询示例
     @Override
     public Result<List<UserReportVO>> getDeviceReportByStatus(String status, int pageNum, int pageSize) {
-        Page<DeviceReservation> page = new Page<>(pageNum, pageSize);
-        IPage<DeviceReservation> result = this.lambdaQuery()
-                .eq(DeviceReservation::getStatus, status)
-                .page(page);
-        List<UserReportVO> voList = result.getRecords().stream()
-                .map(this::toVO)
-                .collect(Collectors.toList());
-        return Result.ok(voList);
+        //尝试查询缓存
+        String s = redisTemplate.opsForValue().get("ReportByStatus:" + status);
+        //反序列化回源对象
+        if (s != null) {
+            return Result.ok(JSON.parseArray(s, UserReportVO.class).stream().toList());
+        }
+        //尝试查询数据库
+        else {
+            Page<DeviceReservation> page = new Page<>(pageNum, pageSize);
+            IPage<DeviceReservation> result = this.lambdaQuery()
+                    .eq(DeviceReservation::getStatus, status)
+                    .page(page);
+            List<UserReportVO> voList = result.getRecords().stream()
+                    .map(this::toVO)
+                    .toList();
+            //异步写入 redis
+            pool.submit(() -> {
+                redisTemplate.opsForValue().set("ReportByStatus:" + status, JSON.toJSONString(voList),
+                        120 + ThreadLocalRandom.current().nextInt(30), TimeUnit.SECONDS);
+            });
+            return Result.ok(voList);
+        }
     }
 
     @Override
     public Result<List<UserReportVO>> getUserReportByUserName(String userName) {
-        LambdaQueryWrapper<DeviceReservation> eq = new LambdaQueryWrapper<DeviceReservation>()
-                .eq(DeviceReservation::getReporterName, userName);
-        List<UserReportVO> list = this.list(eq).stream().map(this::toVO).toList();
-        return Result.ok(list);
+        //查询 redis
+        String s = redisTemplate.opsForValue().get("UserReportByUserName:" + userName);
+        if (s != null) {
+            if (s.isEmpty()) {
+                return Result.ok(Collections.emptyList());
+            }
+            return Result.ok(JSON.parseArray(s, UserReportVO.class).stream().toList());
+        }
+        else {
+            LambdaQueryWrapper<DeviceReservation> eq = new LambdaQueryWrapper<DeviceReservation>()
+                    .eq(DeviceReservation::getReporterName, userName);
+            List<UserReportVO> list = this.list(eq).stream().map(this::toVO).toList();
+            if (list.isEmpty()) {
+                // 缓存空结果防止缓存穿透
+                redisTemplate.opsForValue().set("UserReportByUserName:" + userName, "",
+                        10 + ThreadLocalRandom.current().nextInt(1), TimeUnit.MINUTES);
+                return Result.ok(Collections.emptyList());
+            }
+            pool.submit(() -> redisTemplate.opsForValue()
+                    .set("UserReportByUserName:" + userName, JSON.toJSONString(list),
+                            120 + ThreadLocalRandom.current().nextInt(30), TimeUnit.SECONDS));
+            return Result.ok(list);
+        }
     }
 
     @Override
@@ -112,22 +161,41 @@ public class DeviceReservationServiceImpl extends ServiceImpl<DeviceReservationM
 
     @Override
     public Result<List<UserReportVO>> listByDeviceCode(List<String> deviceCode, int pageNum, int pageSize) {
-        Page<DeviceReservation> page = new Page<>(pageNum, pageSize);
-        IPage<DeviceReservation> result = this.lambdaQuery()
-                .eq(DeviceReservation::getDeviceCode, deviceCode)
-                .page(page);
-        List<UserReportVO> voList = result.getRecords().stream()
-                .map(this::toVO)
-                .collect(Collectors.toList());
-        return Result.ok(voList);
+        //从redis查询
+        String s = redisTemplate.opsForValue().get("DeviceReportByDeviceCode:" + deviceCode);
+        if (s != null) {
+            return Result.ok(JSON.parseArray(s, UserReportVO.class).stream().toList());
+        } else {
+            Page<DeviceReservation> page = new Page<>(pageNum, pageSize);
+            IPage<DeviceReservation> result = this.lambdaQuery()
+                    .eq(DeviceReservation::getDeviceCode, deviceCode)
+                    .page(page);
+            List<UserReportVO> voList = result.getRecords().stream()
+                    .map(this::toVO)
+                    .collect(Collectors.toList());
+            //写入redis
+            pool.submit(() -> redisTemplate.opsForValue()
+                    .set("DeviceReportByDeviceCode:" + deviceCode, JSON.toJSONString(voList),
+                            120 + ThreadLocalRandom.current().nextInt(30), TimeUnit.SECONDS));
+            return Result.ok(voList);
+        }
     }
 
     @Override
     public Result<List<UserReportVO>> getDeviceReportByDeviceCode(String deviceCode) {
-        LambdaQueryWrapper<DeviceReservation> eq = new LambdaQueryWrapper<DeviceReservation>()
-                .eq(DeviceReservation::getDeviceCode, deviceCode);
-        List<UserReportVO> list = this.list(eq).stream().map(this::toVO).toList();
-        return Result.ok(list);
+        //查询 redis
+        String s = redisTemplate.opsForValue().get("DeviceReportByDeviceCode:" + deviceCode);
+        if (s != null) {
+            return Result.ok(JSON.parseArray(s, UserReportVO.class).stream().toList());
+        } else {
+            LambdaQueryWrapper<DeviceReservation> eq = new LambdaQueryWrapper<DeviceReservation>()
+                    .eq(DeviceReservation::getDeviceCode, deviceCode);
+            List<UserReportVO> list = this.list(eq).stream().map(this::toVO).toList();
+            pool.submit(() -> redisTemplate.opsForValue()
+                    .set("DeviceReportByDeviceCode:" + deviceCode, JSON.toJSONString(list),
+                            120 + ThreadLocalRandom.current().nextInt(30), TimeUnit.SECONDS));
+            return Result.ok(list);
+        }
     }
 
     private UserReportVO toVO(DeviceReservation deviceReservation) {
@@ -145,5 +213,6 @@ public class DeviceReservationServiceImpl extends ServiceImpl<DeviceReservationM
         return vo;
     }
 }
+
 
 

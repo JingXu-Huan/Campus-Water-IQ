@@ -47,7 +47,7 @@ public class Utils {
      * @throws DeviceRegisterException 设备注册失败异常
      */
     public static DeviceIdList initAllRedisData(int buildings, int floors, int rooms,
-                                                StringRedisTemplate redisTemplate,RedissonClient redissonClient) {
+                                                StringRedisTemplate redisTemplate, RedissonClient redissonClient) {
 
         if (buildings <= 0 || floors <= 0 || rooms <= 0) {
             throw new DeviceRegisterException("楼宇、楼层、房间数量必须大于 0");
@@ -68,14 +68,14 @@ public class Utils {
         // 先删除旧的布隆过滤器，避免残留数据影响
         RBloomFilter<String> bloomFilter = redissonClient.getBloomFilter("device:bloom");
         bloomFilter.delete();
-        bloomFilter.tryInit(100000,0.01);
+        bloomFilter.tryInit(100000, 0.01);
         bloomFilter.add(meterDeviceIds);
         bloomFilter.add(waterQualityDeviceIds);
         Map<String, String> map = Stream.concat(meterDeviceIds.stream(), waterQualityDeviceIds.stream())
                 .collect(Collectors.toMap(Function.identity(), id -> "-1"));
         try {
             //初始化标志位
-            redisTemplate.opsForValue().set("isInit","1");
+            redisTemplate.opsForValue().set("isInit", "1");
             //水表总用水量
             redisTemplate.opsForHash().putAll("meter:total_usage", meterMap);
             //水表设备 id 集合
@@ -106,7 +106,7 @@ public class Utils {
     public static void clearRedisData(StringRedisTemplate redisTemplate, DeviceMapper deviceMapper) {
         String prefix = "device:";
         try {
-            redisTemplate.opsForValue().set("isInit","0");
+            redisTemplate.opsForValue().set("isInit", "0");
             redisTemplate.delete("allDeviceNums");
             redisTemplate.delete(prefix + "meter");
             redisTemplate.delete(prefix + "sensor");
@@ -219,20 +219,20 @@ public class Utils {
      * 得到一个自定义线程池
      *
      * @param name        线程池名称
-     * @param size        核心线程池数量
+     * @param coreSize        核心线程池数量
      * @param maxSize     最大线程数量
      * @param seconds     线程空闲生存时间
      * @param tasksLength 最多任务数量
      * @return pool 自定义线程池
      */
-    public static ExecutorService getExecutorPools(String name, int size, int maxSize, int seconds, int tasksLength) {
+    public static ExecutorService getExecutorPools(String name, int coreSize, int maxSize, int seconds, int tasksLength) {
         ThreadFactory namedThreadFactory = new ThreadFactoryBuilder()
                 .setNameFormat(name).build();
         return new ThreadPoolExecutor(
-                size,                      // 核心线程
+                coreSize,                      // 核心线程
                 maxSize,                     // 最大线程
                 seconds, TimeUnit.SECONDS,  // 空闲生存时间
-                new ArrayBlockingQueue<>(tasksLength), // 有界队列：最多排队 1000 个
+                new ArrayBlockingQueue<>(tasksLength), // 有界队列
                 namedThreadFactory,     // 自定义名称方便排查
                 new ThreadPoolExecutor.CallerRunsPolicy() // 拒绝策略：队列满了让调用者自己执行
         );

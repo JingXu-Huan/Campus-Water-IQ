@@ -14,3 +14,10 @@ logging:
     com.ncwu.repairservice: debug
 server:
   port: 20000
+dubbo:
+  application:
+    name: repair-service
+  registry:
+    address: nacos://101.42.157.163:8848
+    username: nacos
+    password: nacos

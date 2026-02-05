@@ -1,4 +1,4 @@
-package com.ncwu.common.apis.common_service;
+package com.ncwu.common.apis.warning_service;
 
 
 import com.ncwu.common.domain.vo.Result;

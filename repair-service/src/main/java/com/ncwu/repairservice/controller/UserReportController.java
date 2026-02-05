@@ -12,6 +12,7 @@ import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.web.bind.annotation.*;
 
 import javax.validation.constraints.NotNull;
+import javax.validation.constraints.Pattern;
 import java.util.Collections;
 import java.util.List;
 
@@ -35,7 +36,7 @@ public class UserReportController {
     @PostMapping("/report")
     public Result<Boolean> userReport(@RequestBody @NotNull UserReportDTO userReportDTO) {
         String deviceCode = userReportDTO.getDeviceCode();
-        if (!isValidDeviceId(List.of(deviceCode)))
+        if (isUnValidDeviceId(List.of(deviceCode)))
             return Result.fail(false, ErrorCode.PARAM_VALIDATION_ERROR.code(),
                     ErrorCode.PARAM_VALIDATION_ERROR.message());
         return deviceReservationService.addAReport(userReportDTO);
@@ -58,7 +59,7 @@ public class UserReportController {
     public Result<List<UserReportVO>> listByDeviceCode(@RequestParam @NotNull List<String> deviceCode,
                                                        @RequestParam(name = "pageNum", defaultValue = "1") int pageNum,
                                                        @RequestParam(name = "pageSize", defaultValue = "10") int pageSize) {
-        if (!isValidDeviceId(deviceCode))
+        if (isUnValidDeviceId(deviceCode))
             return Result.fail(Collections.emptyList(), ErrorCode.PARAM_VALIDATION_ERROR.code(),
                     ErrorCode.PARAM_VALIDATION_ERROR.message());
         return deviceReservationService.listByDeviceCode(deviceCode, pageNum, pageSize);
@@ -69,35 +70,37 @@ public class UserReportController {
      */
     @GetMapping("/getByDeviceCode")
     public Result<List<UserReportVO>> getDeviceReportByDeviceCode(String deviceCode) {
-        if (!isValidDeviceId(List.of(deviceCode)))
+        if (isUnValidDeviceId(List.of(deviceCode)))
             return Result.fail(Collections.emptyList(), ErrorCode.PARAM_VALIDATION_ERROR.code(),
                     ErrorCode.PARAM_VALIDATION_ERROR.message());
         return deviceReservationService.getDeviceReportByDeviceCode(deviceCode);
     }
 
     /**
-     * 查询当前用户的所有报修记录
+     * 查询某报修人的所有报修记录
      */
     @GetMapping("/listByUserId")
-    public Result<List<UserReportVO>> getUserReportByUserId(String uid) {
-        return deviceReservationService.getUserReportByUserName(uid);
+    public Result<List<UserReportVO>> getUserReportByUserId(String userName) {
+        return deviceReservationService.getUserReportByUserName(userName);
     }
 
     /**
      * 查询某状态下的所有报修单
      */
     @GetMapping("/listByStatus")
-    public Result<List<UserReportVO>> getDeviceReportByStatus(String status,
-                                                              @RequestParam(name = "pageNum", defaultValue = "1") int pageNum,
-                                                              @RequestParam(name = "pageSize", defaultValue = "10") int pageSize) {
+    public Result<List<UserReportVO>> getDeviceReportByStatus(
+            @Pattern(regexp = "DRAFT|CONFIRMED|PROCESSING|DONE|CANCELLED", message = "status 只能是 " +
+                    "DRAFT、CONFIRMED、PROCESSING、DONE 或 CANCELLED") String status,
+            @RequestParam(name = "pageNum", defaultValue = "1") int pageNum,
+            @RequestParam(name = "pageSize", defaultValue = "10") int pageSize) {
         return deviceReservationService.getDeviceReportByStatus(status, pageNum, pageSize);
     }
 
     /**
      * 检查设备ID是否合法
      */
-    private boolean isValidDeviceId(List<String> deviceCode) {
-        return deviceCode.stream().allMatch(code ->
+    private boolean isUnValidDeviceId(List<String> deviceCode) {
+        return !deviceCode.stream().allMatch(code ->
                 Boolean.TRUE.equals(redisTemplate.opsForSet().isMember("device:meter", code)) ||
                         Boolean.TRUE.equals(redisTemplate.opsForSet().isMember("device:sensor", code))
         );

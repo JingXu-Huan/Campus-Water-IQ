@@ -8,7 +8,6 @@ import com.ncwu.common.domain.Bo.ErrorDataMessageBO;
 import com.ncwu.iotservice.entity.IotDeviceEvent;
 import com.ncwu.iotservice.exception.DeserializationFailedException;
 import com.ncwu.iotservice.mapper.IoTDeviceEventMapper;
-import com.ncwu.iotservice.service.WeChatNotifyService;
 import lombok.RequiredArgsConstructor;
 import org.apache.rocketmq.spring.annotation.RocketMQMessageListener;
 import org.apache.rocketmq.spring.core.RocketMQListener;
@@ -27,7 +26,6 @@ import java.time.format.DateTimeFormatter;
 @RocketMQMessageListener(topic = "ErrorData", consumerGroup = "ErrorDataGroup")
 public class ErrorDataConsumer implements RocketMQListener<String> {
 
-    private final WeChatNotifyService weChatNotifyService;
     private final IoTDeviceEventMapper ioTDeviceEventMapper;
     private final ObjectMapper objectMapper;
 

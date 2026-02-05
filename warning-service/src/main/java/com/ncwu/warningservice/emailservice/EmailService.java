@@ -1,6 +1,6 @@
-package com.ncwu.common.service;
+package com.ncwu.warningservice.emailservice;
 
-import com.ncwu.common.apis.common_service.EmailServiceInterFace;
+import com.ncwu.common.apis.warning_service.EmailServiceInterFace;
 import com.ncwu.common.enums.ErrorCode;
 import com.ncwu.common.domain.vo.Result;
 import jakarta.mail.MessagingException;

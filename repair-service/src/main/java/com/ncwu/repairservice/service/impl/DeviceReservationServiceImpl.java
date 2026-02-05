@@ -3,7 +3,6 @@ package com.ncwu.repairservice.service.impl;
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.core.conditions.update.LambdaUpdateWrapper;
 import com.baomidou.mybatisplus.core.metadata.IPage;
-import com.baomidou.mybatisplus.extension.conditions.query.LambdaQueryChainWrapper;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.ncwu.common.domain.vo.Result;
 import com.ncwu.repairservice.entity.UserReportDTO;
@@ -12,7 +11,10 @@ import com.ncwu.repairservice.entity.vo.UserReportVO;
 import com.ncwu.repairservice.mapper.DeviceReservationMapper;
 import com.ncwu.repairservice.service.IDeviceReservationService;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
+import lombok.RequiredArgsConstructor;
 import org.jspecify.annotations.NonNull;
+import org.redisson.api.RLock;
+import org.redisson.api.RedissonClient;
 import org.springframework.stereotype.Service;
 
 import java.util.List;
@@ -27,24 +29,30 @@ import java.util.stream.Collectors;
  * @since 2026-01-15
  */
 @Service
+@RequiredArgsConstructor
 public class DeviceReservationServiceImpl extends ServiceImpl<DeviceReservationMapper, DeviceReservation> implements IDeviceReservationService {
     private final Object lock = new Object();
+    private final RedissonClient redissonClient;
 
     @Override
     public Result<Boolean> addAReport(UserReportDTO userReportDTO) {
         String deviceCode = userReportDTO.getDeviceCode();
         int type = Integer.parseInt(deviceCode.substring(0, 1));
         DeviceReservation deviceReservation = getDeviceReservation(userReportDTO, deviceCode, type);
-        LambdaQueryChainWrapper<DeviceReservation> eq = this.lambdaQuery()
+        LambdaQueryWrapper<DeviceReservation> eq = new LambdaQueryWrapper<DeviceReservation>()
                 .eq(DeviceReservation::getReporterName, userReportDTO.getReportName())
                 .eq(DeviceReservation::getDeviceCode, userReportDTO.getDeviceCode())
                 .eq(DeviceReservation::getStatus, userReportDTO.getStatus())
                 .eq(DeviceReservation::getFaultDesc, userReportDTO.getDesc());
-        //todo 使用分布式锁
-        synchronized (lock) {
+        //todo 将1L替换成用户ID
+        RLock lock = redissonClient.getLock("user:add:reservation"+1L);
+        lock.lock();
+        try {
             if (this.exists(eq)) {
                 return Result.fail(false, "当前报修单已存在");
             } else save(deviceReservation);
+        } finally {
+            lock.unlock();
         }
         return Result.ok(true);
     }

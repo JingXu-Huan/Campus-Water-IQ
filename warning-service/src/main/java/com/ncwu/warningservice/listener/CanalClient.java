@@ -176,61 +176,115 @@ public class CanalClient {
             String remark
     ) {
         return String.format("""
+                        <!DOCTYPE html>
                         <html>
-                        <body style="font-family: Arial, Helvetica, sans-serif; color: #333;">
-                            <h2 style="color:#2c3e50;">📢 新报修单通知</h2>
-                        
-                            <table border="1" cellpadding="8" cellspacing="0"
-                                   style="border-collapse: collapse; width: 100%%; font-size: 14px;">
-                                <tr>
-                                    <td><b>设备编码</b></td>
-                                    <td>%s</td>
-                                </tr>
-                                <tr>
-                                    <td><b>校区</b></td>
-                                    <td>%s</td>
-                                </tr>
-                                <tr>
-                                    <td><b>楼宇</b></td>
-                                    <td>%s</td>
-                                </tr>
-                                <tr>
-                                    <td><b>楼层</b></td>
-                                    <td>%s</td>
-                                </tr>
-                                <tr>
-                                    <td><b>单元</b></td>
-                                    <td>%s</td>
-                                </tr>
-                                <tr>
-                                    <td><b>报修人</b></td>
-                                    <td>%s</td>
-                                </tr>
-                                <tr>
-                                    <td><b>联系方式</b></td>
-                                    <td>%s</td>
-                                </tr>
-                                <tr>
-                                    <td><b>故障描述</b></td>
-                                    <td style="white-space: pre-wrap;">%s</td>
-                                </tr>
-                                <tr>
-                                    <td><b>严重程度</b></td>
-                                    <td style="color:%s; font-weight:bold;">%s</td>
-                                </tr>
-                                <tr>
-                                    <td><b>状态</b></td>
-                                    <td>%s</td>
-                                </tr>
-                                <tr>
-                                    <td><b>备注</b></td>
-                                    <td>%s</td>
-                                </tr>
-                            </table>
-                        
-                            <p style="margin-top:20px; font-size:12px; color:#888;">
-                                本邮件由系统自动发送，请勿直接回复。
-                            </p>
+                        <head>
+                            <meta charset="UTF-8">
+                            <meta name="viewport" content="width=device-width, initial-scale=1.0">
+                            <title>新报修单通知</title>
+                        </head>
+                        <body style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif; 
+                                      margin: 0; padding: 20px; background-color: #f8f9fa; color: #2c3e50; line-height: 1.6;">
+                            <div style="max-width: 600px; margin: 0 auto; background-color: #ffffff; 
+                                        border-radius: 12px; box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1); overflow: hidden;">
+                                
+                                <!-- Header -->
+                                <div style="background: linear-gradient(135deg, #667eea 0%%, #764ba2 100%%); padding: 30px 20px; text-align: center;">
+                                    <h1 style="margin: 0; color: #ffffff; font-size: 24px; font-weight: 600;">
+                                        📢 新报修单通知
+                                    </h1>
+                                    <p style="margin: 10px 0 0 0; color: rgba(255, 255, 255, 0.9); font-size: 14px;">
+                                        请及时处理以下报修请求
+                                    </p>
+                                </div>
+                                
+                                <!-- Content -->
+                                <div style="padding: 30px 20px;">
+                                    <table style="width: 100%%; border-collapse: collapse; font-size: 14px;">
+                                        <tr>
+                                            <td style="padding: 12px 0; border-bottom: 1px solid #e9ecef; color: #6c757d; font-weight: 500; width: 120px;">
+                                                设备编码
+                                            </td>
+                                            <td style="padding: 12px 0; border-bottom: 1px solid #e9ecef; font-weight: 500;">%s</td>
+                                        </tr>
+                                        <tr>
+                                            <td style="padding: 12px 0; border-bottom: 1px solid #e9ecef; color: #6c757d; font-weight: 500;">
+                                                校区
+                                            </td>
+                                            <td style="padding: 12px 0; border-bottom: 1px solid #e9ecef;">%s</td>
+                                        </tr>
+                                        <tr>
+                                            <td style="padding: 12px 0; border-bottom: 1px solid #e9ecef; color: #6c757d; font-weight: 500;">
+                                                楼宇
+                                            </td>
+                                            <td style="padding: 12px 0; border-bottom: 1px solid #e9ecef;">%s</td>
+                                        </tr>
+                                        <tr>
+                                            <td style="padding: 12px 0; border-bottom: 1px solid #e9ecef; color: #6c757d; font-weight: 500;">
+                                                楼层
+                                            </td>
+                                            <td style="padding: 12px 0; border-bottom: 1px solid #e9ecef;">%s</td>
+                                        </tr>
+                                        <tr>
+                                            <td style="padding: 12px 0; border-bottom: 1px solid #e9ecef; color: #6c757d; font-weight: 500;">
+                                                单元
+                                            </td>
+                                            <td style="padding: 12px 0; border-bottom: 1px solid #e9ecef;">%s</td>
+                                        </tr>
+                                        <tr>
+                                            <td style="padding: 12px 0; border-bottom: 1px solid #e9ecef; color: #6c757d; font-weight: 500;">
+                                                报修人
+                                            </td>
+                                            <td style="padding: 12px 0; border-bottom: 1px solid #e9ecef;">%s</td>
+                                        </tr>
+                                        <tr>
+                                            <td style="padding: 12px 0; border-bottom: 1px solid #e9ecef; color: #6c757d; font-weight: 500;">
+                                                联系方式
+                                            </td>
+                                            <td style="padding: 12px 0; border-bottom: 1px solid #e9ecef;">%s</td>
+                                        </tr>
+                                        <tr>
+                                            <td style="padding: 12px 0; border-bottom: 1px solid #e9ecef; color: #6c757d; font-weight: 500; vertical-align: top;">
+                                                故障描述
+                                            </td>
+                                            <td style="padding: 12px 0; border-bottom: 1px solid #e9ecef; white-space: pre-wrap; line-height: 1.5;">%s</td>
+                                        </tr>
+                                        <tr>
+                                            <td style="padding: 12px 0; border-bottom: 1px solid #e9ecef; color: #6c757d; font-weight: 500;">
+                                                严重程度
+                                            </td>
+                                            <td style="padding: 12px 0; border-bottom: 1px solid #e9ecef;">
+                                                <span style="display: inline-block; padding: 4px 12px; border-radius: 20px; 
+                                                           font-size: 12px; font-weight: 600; color: %s; background-color: %s20;">
+                                                    %s
+                                                </span>
+                                            </td>
+                                        </tr>
+                                        <tr>
+                                            <td style="padding: 12px 0; border-bottom: 1px solid #e9ecef; color: #6c757d; font-weight: 500;">
+                                                状态
+                                            </td>
+                                            <td style="padding: 12px 0; border-bottom: 1px solid #e9ecef;">%s</td>
+                                        </tr>
+                                        <tr>
+                                            <td style="padding: 12px 0; color: #6c757d; font-weight: 500; vertical-align: top;">
+                                                备注
+                                            </td>
+                                            <td style="padding: 12px 0;">%s</td>
+                                        </tr>
+                                    </table>
+                                </div>
+                                
+                                <!-- Footer -->
+                                <div style="background-color: #f8f9fa; padding: 20px; text-align: center; border-top: 1px solid #e9ecef;">
+                                    <p style="margin: 0; font-size: 12px; color: #6c757d;">
+                                        本邮件由系统自动发送，请勿直接回复
+                                    </p>
+                                    <p style="margin: 8px 0 0 0; font-size: 11px; color: #adb5bd;">
+                                        © 2024 校园水务智能管理系统
+                                    </p>
+                                </div>
+                            </div>
                         </body>
                         </html>
                         """,
@@ -242,6 +296,7 @@ public class CanalClient {
                 reporterName,
                 contactInfo,
                 faultDesc,
+                severityColor(severity),
                 severityColor(severity),
                 severityText(severity),
                 status,

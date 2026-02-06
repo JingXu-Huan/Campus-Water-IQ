@@ -6,22 +6,25 @@ import com.baomidou.mybatisplus.core.conditions.update.LambdaUpdateWrapper;
 import com.baomidou.mybatisplus.core.metadata.IPage;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.ncwu.common.domain.vo.Result;
-import com.ncwu.repairservice.entity.UserReportDTO;
+import com.ncwu.repairservice.entity.dto.UserReportDTO;
+import com.ncwu.repairservice.entity.domain.DeviceUser;
 import com.ncwu.repairservice.entity.po.DeviceReservation;
 import com.ncwu.repairservice.entity.vo.UserReportVO;
 import com.ncwu.repairservice.mapper.DeviceReservationMapper;
+import com.ncwu.repairservice.mapper.DeviceUserMapper;
 import com.ncwu.repairservice.service.IDeviceReservationService;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import jakarta.annotation.PostConstruct;
 import lombok.RequiredArgsConstructor;
-import org.jspecify.annotations.NonNull;
 import org.redisson.api.RLock;
 import org.redisson.api.RedissonClient;
 import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.stereotype.Service;
 
+import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
+import java.util.Set;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.ThreadLocalRandom;
 import java.util.concurrent.TimeUnit;
@@ -43,6 +46,7 @@ public class DeviceReservationServiceImpl extends ServiceImpl<DeviceReservationM
 
     private final RedissonClient redissonClient;
     private final StringRedisTemplate redisTemplate;
+    private final DeviceUserMapper deviceUserMapper;
     private ExecutorService pool;
 
     @PostConstruct
@@ -130,8 +134,7 @@ public class DeviceReservationServiceImpl extends ServiceImpl<DeviceReservationM
                 return Result.ok(Collections.emptyList());
             }
             return Result.ok(JSON.parseArray(s, UserReportVO.class).stream().toList());
-        }
-        else {
+        } else {
             LambdaQueryWrapper<DeviceReservation> eq = new LambdaQueryWrapper<DeviceReservation>()
                     .eq(DeviceReservation::getReporterName, userName);
             List<UserReportVO> list = this.list(eq).stream().map(this::toVO).toList();
@@ -160,7 +163,7 @@ public class DeviceReservationServiceImpl extends ServiceImpl<DeviceReservationM
     }
 
     @Override
-    public Result<List<UserReportVO>> listByDeviceCode(List<String> deviceCode, int pageNum, int pageSize) {
+    public Result<List<UserReportVO>> listByDeviceCode(Collection<String> deviceCode, int pageNum, int pageSize) {
         //从redis查询
         String s = redisTemplate.opsForValue().get("DeviceReportByDeviceCode:" + deviceCode);
         if (s != null) {
@@ -198,6 +201,25 @@ public class DeviceReservationServiceImpl extends ServiceImpl<DeviceReservationM
         }
     }
 
+    @Override
+    public Result<Boolean> changeStatus(String status, String deviceReservationId) {
+        LambdaUpdateWrapper<DeviceReservation> set = new LambdaUpdateWrapper<DeviceReservation>()
+                .eq(DeviceReservation::getId, deviceReservationId)
+                .set(DeviceReservation::getStatus, status);
+        this.update(set);
+        return Result.ok(true);
+    }
+
+    @Override
+    public Result<List<UserReportVO>> getDeviceReportByUid(String uid, int pageNum, int pageSize) {
+        //查询该用户名下所有设备
+        LambdaQueryWrapper<DeviceUser> eq = new LambdaQueryWrapper<DeviceUser>().eq(DeviceUser::getUid, uid);
+        Set<String> ids = deviceUserMapper.selectList(eq)
+                .stream().map(DeviceUser::getDeviceCode).collect(Collectors.toSet());
+        //分页查询这些设备的报修记录
+        return listByDeviceCode(ids, pageNum, pageSize);
+    }
+
     private UserReportVO toVO(DeviceReservation deviceReservation) {
         UserReportVO vo = new UserReportVO();
         vo.setId(deviceReservation.getId().toString());
@@ -213,6 +235,7 @@ public class DeviceReservationServiceImpl extends ServiceImpl<DeviceReservationM
         return vo;
     }
 }
+
 
 
 

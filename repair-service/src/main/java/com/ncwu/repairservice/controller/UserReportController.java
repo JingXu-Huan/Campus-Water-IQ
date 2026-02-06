@@ -3,9 +3,10 @@ package com.ncwu.repairservice.controller;
 
 import com.ncwu.common.domain.vo.Result;
 import com.ncwu.common.enums.ErrorCode;
-import com.ncwu.repairservice.entity.UserReportDTO;
+import com.ncwu.repairservice.entity.dto.UserReportDTO;
 import com.ncwu.repairservice.entity.vo.UserReportVO;
 import com.ncwu.repairservice.service.IDeviceReservationService;
+import com.ncwu.repairservice.tools.Utils;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.redis.core.StringRedisTemplate;
@@ -15,6 +16,8 @@ import javax.validation.constraints.NotNull;
 import javax.validation.constraints.Pattern;
 import java.util.Collections;
 import java.util.List;
+
+import static com.ncwu.repairservice.tools.Utils.isUnValidDeviceId;
 
 /**
  * @author jingxu
@@ -36,74 +39,40 @@ public class UserReportController {
     @PostMapping("/report")
     public Result<Boolean> userReport(@RequestBody @NotNull UserReportDTO userReportDTO) {
         String deviceCode = userReportDTO.getDeviceCode();
-        if (isUnValidDeviceId(List.of(deviceCode)))
+        if (Utils.isUnValidDeviceId(List.of(deviceCode), redisTemplate))
             return Result.fail(false, ErrorCode.PARAM_VALIDATION_ERROR.code(),
                     ErrorCode.PARAM_VALIDATION_ERROR.message());
         return deviceReservationService.addAReport(userReportDTO);
     }
 
     /**
-     * 取消报修单
+     * 用户取消自己的报修单
      */
     @DeleteMapping("/cancel")
-    public Result<Boolean> cancelReport(@RequestParam @NotNull List<String> deviceReservationId,
-                                        @RequestParam(name = "pageNum", defaultValue = "1") int pageNum,
-                                        @RequestParam(name = "pageSize", defaultValue = "10") int pageSize) {
+    public Result<Boolean> cancelReport(@RequestParam @NotNull List<String> deviceReservationId) {
         return deviceReservationService.cancelReport(deviceReservationId);
     }
 
     /**
-     * 批量查询一批设备编号下的所有报修记录
+     * 用户修改报修单的状态
      */
-    @PostMapping("/listByDeviceCode")
-    public Result<List<UserReportVO>> listByDeviceCode(@RequestParam @NotNull List<String> deviceCode,
-                                                       @RequestParam(name = "pageNum", defaultValue = "1") int pageNum,
-                                                       @RequestParam(name = "pageSize", defaultValue = "10") int pageSize) {
-        if (isUnValidDeviceId(deviceCode))
+    @GetMapping("/changeStatus")
+    public Result<Boolean> changeStatus(@Pattern(regexp = "DRAFT|CONFIRMED|CANCELLED",
+                                                message = "status 只能是 " + "DRAFT、CONFIRMED、CANCELLED") String status,
+                                        String deviceReservationId) {
+        return deviceReservationService.changeStatus(status, deviceReservationId);
+    }
+
+    /**
+     * 用户查询自己的设备的所有报修记录
+     */
+    @GetMapping("/getByUid")
+    public Result<List<UserReportVO>> getDeviceReportByUid(String uid, int pageNum, int pageSize) {
+
+        if (isUnValidDeviceId(List.of(uid), redisTemplate))
             return Result.fail(Collections.emptyList(), ErrorCode.PARAM_VALIDATION_ERROR.code(),
                     ErrorCode.PARAM_VALIDATION_ERROR.message());
-        return deviceReservationService.listByDeviceCode(deviceCode, pageNum, pageSize);
-    }
-
-    /**
-     * 查询某台设备的所有报修记录
-     */
-    @GetMapping("/getByDeviceCode")
-    public Result<List<UserReportVO>> getDeviceReportByDeviceCode(String deviceCode) {
-        if (isUnValidDeviceId(List.of(deviceCode)))
-            return Result.fail(Collections.emptyList(), ErrorCode.PARAM_VALIDATION_ERROR.code(),
-                    ErrorCode.PARAM_VALIDATION_ERROR.message());
-        return deviceReservationService.getDeviceReportByDeviceCode(deviceCode);
-    }
-
-    /**
-     * 查询某报修人的所有报修记录
-     */
-    @GetMapping("/listByUserId")
-    public Result<List<UserReportVO>> getUserReportByUserId(String userName) {
-        return deviceReservationService.getUserReportByUserName(userName);
-    }
-
-    /**
-     * 查询某状态下的所有报修单
-     */
-    @GetMapping("/listByStatus")
-    public Result<List<UserReportVO>> getDeviceReportByStatus(
-            @Pattern(regexp = "DRAFT|CONFIRMED|PROCESSING|DONE|CANCELLED", message = "status 只能是 " +
-                    "DRAFT、CONFIRMED、PROCESSING、DONE 或 CANCELLED") String status,
-            @RequestParam(name = "pageNum", defaultValue = "1") int pageNum,
-            @RequestParam(name = "pageSize", defaultValue = "10") int pageSize) {
-        return deviceReservationService.getDeviceReportByStatus(status, pageNum, pageSize);
-    }
-
-    /**
-     * 检查设备ID是否合法
-     */
-    private boolean isUnValidDeviceId(List<String> deviceCode) {
-        return !deviceCode.stream().allMatch(code ->
-                Boolean.TRUE.equals(redisTemplate.opsForSet().isMember("device:meter", code)) ||
-                        Boolean.TRUE.equals(redisTemplate.opsForSet().isMember("device:sensor", code))
-        );
+        return deviceReservationService.getDeviceReportByUid(uid, pageNum, pageSize);
     }
 }
 

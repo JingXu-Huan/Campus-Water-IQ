@@ -1,6 +1,7 @@
 package com.ncwu.iotdevice.scheduling;
 
 import com.baomidou.mybatisplus.core.conditions.update.LambdaUpdateWrapper;
+import com.ncwu.common.domain.Bo.ErrorDataMessageBO;
 import com.ncwu.iotdevice.config.ServerConfig;
 import com.ncwu.iotdevice.domain.entity.VirtualDevice;
 import com.ncwu.iotdevice.mapper.DeviceMapper;
@@ -90,8 +91,14 @@ public class MeterOnLineCheckerTasks {
      *
      */
     private void processOffline(String deviceId) {
+        ErrorDataMessageBO errorDataMessageBO = new ErrorDataMessageBO();
+        errorDataMessageBO.setErrorType("OFFLINE");
+        errorDataMessageBO.setLevel("WARN");
+        errorDataMessageBO.setDeviceId(deviceId);
+        errorDataMessageBO.setDesc("设备下线");
+        errorDataMessageBO.setDeviceType("METER");
         //发送下线消息
-        rocketMQTemplate.convertAndSend("DeviceOffline", deviceId);
+        rocketMQTemplate.convertAndSend("ErrorData", errorDataMessageBO);
         //更新数据库状态,(此时可能缓存中还有此设备的在线信息,也要一并删除)
         pool.submit(() -> {
             LambdaUpdateWrapper<VirtualDevice> updateWrapper = new LambdaUpdateWrapper<VirtualDevice>()

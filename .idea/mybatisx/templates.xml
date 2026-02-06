@@ -40,8 +40,8 @@
             <option name="tableUIInfoList">
               <list>
                 <TableUIInfo>
-                  <option name="className" value="DeviceReservation" />
-                  <option name="tableName" value="device_reservation" />
+                  <option name="className" value="DeviceUser" />
+                  <option name="tableName" value="device_user" />
                 </TableUIInfo>
               </list>
             </option>

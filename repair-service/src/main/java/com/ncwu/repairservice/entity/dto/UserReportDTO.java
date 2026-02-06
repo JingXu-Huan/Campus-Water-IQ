@@ -1,4 +1,4 @@
-package com.ncwu.repairservice.entity;
+package com.ncwu.repairservice.entity.dto;
 
 
 import lombok.Data;

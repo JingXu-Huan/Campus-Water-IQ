@@ -25,9 +25,9 @@ public class ErrorDataMessageBO implements Serializable {
     //原始数据载荷
     String payLoad;
     //错误信息描述
-    String desc = "数据异常";
+    String desc;
     //错误类型 ：OFFLINE ABNORMAL THRESHOLD
     String errorType;
-    //建议操作
-    String suggestion;
+//    //建议操作
+//    String suggestion;
 }

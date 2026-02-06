@@ -2,6 +2,7 @@ package com.ncwu.iotdevice.scheduling;
 
 
 import com.baomidou.mybatisplus.core.conditions.update.LambdaUpdateWrapper;
+import com.ncwu.common.domain.Bo.ErrorDataMessageBO;
 import com.ncwu.iotdevice.config.ServerConfig;
 import com.ncwu.iotdevice.domain.entity.VirtualDevice;
 import com.ncwu.iotdevice.mapper.DeviceMapper;
@@ -83,8 +84,14 @@ public class WaterQualityCheckerTasks {
      * @param deviceId 设备编号
      */
     private void processOffline(String deviceId) {
-        log.warn("检测到水质传感器设备下线: {}", deviceId);
-        rocketMQTemplate.convertAndSend("DeviceOffline", deviceId);
+        ErrorDataMessageBO errorDataMessageBO = new ErrorDataMessageBO();
+        errorDataMessageBO.setErrorType("OFFLINE");
+        errorDataMessageBO.setLevel("WARN");
+        errorDataMessageBO.setDeviceId(deviceId);
+        errorDataMessageBO.setDesc("设备下线");
+        errorDataMessageBO.setDeviceType("WATER_QUALITY");
+        //发送下线消息
+        rocketMQTemplate.convertAndSend("ErrorData", errorDataMessageBO);
         //更新数据库状态,(此时可能缓存中还有此设备的在线信息,也要一并删除)
         LambdaUpdateWrapper<VirtualDevice> updateWrapper = new LambdaUpdateWrapper<VirtualDevice>()
                 .eq(VirtualDevice::getDeviceCode, deviceId)

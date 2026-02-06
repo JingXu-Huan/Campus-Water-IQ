@@ -99,8 +99,7 @@ public class MeterDataConsumer extends ServiceImpl<IotDataMapper, IotDeviceData>
             errorDataMessageBO.setDeviceType("METER");
             errorDataMessageBO.setDesc("设备" + deviceId + "可能发生爆管事件。");
             errorDataMessageBO.setPayLoad(data);
-            errorDataMessageBO.setSuggestion("请检查管网是否有破损。");
-
+//            errorDataMessageBO.setSuggestion("请检查管网是否有破损。");
             rocketMQTemplate.convertAndSend("ErrorData", errorDataMessageBO);
             //异常数据不送时序数据库
             return;
@@ -127,7 +126,7 @@ public class MeterDataConsumer extends ServiceImpl<IotDataMapper, IotDeviceData>
         errorDataMessageBO.setPayLoad(s);
         errorDataMessageBO.setDeviceType("METER");
         errorDataMessageBO.setLevel("WARN");
-        errorDataMessageBO.setSuggestion("请断电重启，并且检查传感器是否正常工作。");
+//        errorDataMessageBO.setSuggestion("请断电重启，并且检查传感器是否正常工作。");
         rocketMQTemplate.convertAndSend("ErrorData", errorDataMessageBO);
     }
 

@@ -1,6 +1,7 @@
 package com.ncwu.warningservice.wechatservice;
 
 import com.ncwu.common.apis.warning_service.WeChatNotifyInterFace;
+import lombok.RequiredArgsConstructor;
 import org.apache.dubbo.config.annotation.DubboService;
 import org.springframework.stereotype.Service;
 import org.springframework.web.client.RestTemplate;
@@ -9,6 +10,7 @@ import java.util.HashMap;
 import java.util.Map;
 
 @Service
+@RequiredArgsConstructor
 @DubboService(version = "1.0.0", interfaceClass = WeChatNotifyInterFace.class)
 public class WeChatNotifyService implements WeChatNotifyInterFace {
     private static final String WEBHOOK_URL;

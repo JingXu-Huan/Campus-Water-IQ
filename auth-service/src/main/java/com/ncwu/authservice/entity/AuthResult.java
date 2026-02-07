@@ -1,0 +1,17 @@
+package com.ncwu.authservice.entity;
+
+
+import lombok.AllArgsConstructor;
+import lombok.Data;
+
+/**
+ * @author jingxu
+ * @version 1.0.0
+ * @since 2026/2/7
+ */
+@Data
+@AllArgsConstructor
+public class AuthResult {
+    String uid;
+    String token;
+}

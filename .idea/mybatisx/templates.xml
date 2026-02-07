@@ -15,8 +15,8 @@
             <option name="ignoreFieldSuffix" value="" />
             <option name="ignoreTablePrefix" value="" />
             <option name="ignoreTableSuffix" value="" />
-            <option name="moduleName" value="repair-service" />
-            <option name="modulePath" value="$PROJECT_DIR$/repair-service" />
+            <option name="moduleName" value="auth-service" />
+            <option name="modulePath" value="$PROJECT_DIR$/auth-service" />
             <option name="moduleUIInfoList">
               <list>
                 <ModuleInfoGo>
@@ -26,7 +26,7 @@
                   <option name="encoding" value="UTF-8" />
                   <option name="fileName" value="${domain.fileName}" />
                   <option name="fileNameWithSuffix" value="${domain.fileName}.java" />
-                  <option name="modulePath" value="$PROJECT_DIR$/repair-service" />
+                  <option name="modulePath" value="$PROJECT_DIR$/auth-service" />
                   <option name="packageName" value="generator.domain" />
                 </ModuleInfoGo>
               </list>
@@ -40,8 +40,8 @@
             <option name="tableUIInfoList">
               <list>
                 <TableUIInfo>
-                  <option name="className" value="DeviceUser" />
-                  <option name="tableName" value="device_user" />
+                  <option name="className" value="User" />
+                  <option name="tableName" value="user" />
                 </TableUIInfo>
               </list>
             </option>
@@ -49,7 +49,7 @@
             <option name="useLombokPlugin" value="true" />
           </GenerateConfig>
         </option>
-        <option name="moduleName" value="repair-service" />
+        <option name="moduleName" value="auth-service" />
         <option name="projectPath" value="$PROJECT_DIR$" />
         <option name="templateName" value="custom-model-swagger" />
       </TemplateContext>

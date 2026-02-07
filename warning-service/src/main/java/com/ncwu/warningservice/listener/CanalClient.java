@@ -58,7 +58,7 @@ public class CanalClient {
             connector.rollback();
 
             while (true) {
-                Message message = connector.getWithoutAck(100); // 获取100条数�?
+                Message message = connector.getWithoutAck(100);
                 long batchId = message.getId();
 
                 if (batchId == -1 || message.getEntries().isEmpty()) {
@@ -94,9 +94,7 @@ public class CanalClient {
                             dataMap.put(column.getName(), column.getValue());
                         }
 
-                        log.info("监听到新增数�?- �? {}, 数据: {}", tableName, dataMap);
-
-                        // 发送到RabbitMQ或直接处�?
+                        log.info("监听到新增数据 {}, 数据: {}", tableName, dataMap);
                         handleNewData(tableName, dataMap);
                     }
                 }
@@ -110,7 +108,6 @@ public class CanalClient {
         if (tableName.equals("iot_device_event")) {
             String deviceCode = data.get("device_code");
             String eventTime = data.get("event_time");
-            String deviceType = data.get("device_type");
             String eventLevel = data.get("event_level");
             String eventDesc = data.get("event_desc");
             String eventType = data.get("event_type");
@@ -119,6 +116,7 @@ public class CanalClient {
                 suggestion = "请断电重启，并且检查传感器是否正常工作。";
             } else if (eventType.equals("OFFLINE")) {
                 suggestion = "设备离线，请将设备重新断电启动。";
+                //todo 通知用户
             } else {
                 suggestion = "设备数据异常，请检查设备和传感器是否正常工作。";
             }
@@ -126,12 +124,11 @@ public class CanalClient {
         } else if (tableName.equals("device_reservation")) {
             String deviceCode = data.get("device_code");
             String campusNo = data.get("campus_no");
-            if (campusNo.equals("1")){
+            if (campusNo.equals("1")) {
                 campusNo = "花园校区";
             } else if (campusNo.equals("2")) {
-                campusNo ="龙子湖校区";
-            }
-            else{
+                campusNo = "龙子湖校区";
+            } else {
                 campusNo = "江淮校区";
             }
             String buildingNo = data.get("building_no");
@@ -187,7 +184,7 @@ public class CanalClient {
                                       margin: 0; padding: 20px; background-color: #f8f9fa; color: #2c3e50; line-height: 1.6;">
                             <div style="max-width: 600px; margin: 0 auto; background-color: #ffffff; 
                                         border-radius: 12px; box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1); overflow: hidden;">
-                                
+                        
                                 <!-- Header -->
                                 <div style="background: linear-gradient(135deg, #667eea 0%%, #764ba2 100%%); padding: 30px 20px; text-align: center;">
                                     <h1 style="margin: 0; color: #ffffff; font-size: 24px; font-weight: 600;">
@@ -197,7 +194,7 @@ public class CanalClient {
                                         请及时处理以下报修请求
                                     </p>
                                 </div>
-                                
+                        
                                 <!-- Content -->
                                 <div style="padding: 30px 20px;">
                                     <table style="width: 100%%; border-collapse: collapse; font-size: 14px;">
@@ -274,7 +271,7 @@ public class CanalClient {
                                         </tr>
                                     </table>
                                 </div>
-                                
+                        
                                 <!-- Footer -->
                                 <div style="background-color: #f8f9fa; padding: 20px; text-align: center; border-top: 1px solid #e9ecef;">
                                     <p style="margin: 0; font-size: 12px; color: #6c757d;">
@@ -303,6 +300,7 @@ public class CanalClient {
                 remark
         );
     }
+
     private String severityColor(String severity) {
         return switch (severity) {
             case "1" -> "#27ae60"; // 一般

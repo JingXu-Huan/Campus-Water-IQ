@@ -12,6 +12,11 @@ import lombok.Data;
 @Data
 @AllArgsConstructor
 public class AuthResult {
+    boolean isSuccess;
     String uid;
     String token;
+
+    public AuthResult(boolean isSuccess) {
+        this.isSuccess = isSuccess;
+    }
 }

@@ -1,3 +1,5 @@
+create database water;
+use water;
 create table water.device_reservation
 (
     id            bigint auto_increment

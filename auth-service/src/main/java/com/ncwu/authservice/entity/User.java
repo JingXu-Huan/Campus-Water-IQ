@@ -1,5 +1,6 @@
 package com.ncwu.authservice.entity;
 
+import com.baomidou.mybatisplus.annotation.TableLogic;
 import jakarta.validation.constraints.*;
 import lombok.Data;
 import org.hibernate.validator.constraints.Length;
@@ -76,6 +77,7 @@ public class User implements Serializable {
     /**
     * 逻辑删除
     */
+    @TableLogic
     @NotNull(message="[逻辑删除]不能为空")
     private Integer deleted;
     /**

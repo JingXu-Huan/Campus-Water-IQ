@@ -246,13 +246,15 @@ public class IoTDataServiceImpl extends ServiceImpl<IoTDeviceDataMapper, IotDevi
                 //不合格
                 return Result.ok(0.0);
             } else {
-                String pythonExecutable = "python";
+                String pythonExecutable = "python3";
                 String pythonScriptPath = Objects.requireNonNull(getClass().getClassLoader()
                         .getResource("water_quality.py")).getPath();
-                // 处理Windows路径中的URL编码
-                pythonScriptPath = pythonScriptPath.replace("/", "\\");
-                if (pythonScriptPath.startsWith("\\")) {
-                    pythonScriptPath = pythonScriptPath.substring(1);
+                if(System.getProperty("os.name").toLowerCase().contains("windows")){
+                    // 处理Windows路径中的URL编码
+                    pythonScriptPath = pythonScriptPath.replace("/", "\\");
+                    if (pythonScriptPath.startsWith("\\")) {
+                        pythonScriptPath = pythonScriptPath.substring(1);
+                    }
                 }
                 String[] cmd = {
                         pythonExecutable,

@@ -21,6 +21,7 @@ import org.apache.rocketmq.spring.annotation.RocketMQMessageListener;
 import org.apache.rocketmq.spring.core.RocketMQListener;
 import org.apache.rocketmq.spring.core.RocketMQTemplate;
 import org.springframework.aop.framework.AopContext;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
 
 import java.time.ZoneId;
@@ -40,7 +41,8 @@ import java.util.List;
         consumerGroup = "WaterQuality-Data-ConsumerGroup" // 消费者组
 )
 public class WaterQualityDataConsumer extends ServiceImpl<IotDataMapper, IotDeviceData> implements RocketMQListener<String>, IService<IotDeviceData> {
-
+    @Value("${influx.token}")
+    private String influxToken;
     private final ObjectMapper objectMapper;
     private final List<IotDeviceData> buffer = new ArrayList<>(2000);
     private final RocketMQTemplate rocketMQTemplate;
@@ -48,9 +50,8 @@ public class WaterQualityDataConsumer extends ServiceImpl<IotDataMapper, IotDevi
 
     @PostConstruct
     public void init() {
-        String token = System.getenv("INFLUX_TOKEN");
         influxDBClient = InfluxDBClientFactory
-                .create("http://localhost:8086", token.toCharArray());
+                .create("http://localhost:8086", influxToken.toCharArray());
     }
 
     @Override

@@ -3,6 +3,7 @@ package com.ncwu.warningservice.wechatservice;
 import com.ncwu.common.apis.warning_service.WeChatNotifyInterFace;
 import lombok.RequiredArgsConstructor;
 import org.apache.dubbo.config.annotation.DubboService;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 import org.springframework.web.client.RestTemplate;
 
@@ -13,15 +14,9 @@ import java.util.Map;
 @RequiredArgsConstructor
 @DubboService(version = "1.0.0", interfaceClass = WeChatNotifyInterFace.class)
 public class WeChatNotifyService implements WeChatNotifyInterFace {
-    private static final String WEBHOOK_URL;
-
-    static {
-        WEBHOOK_URL = System.getenv("WECHAT_WEBHOOK_URL");
-        if (WEBHOOK_URL == null || WEBHOOK_URL.isBlank()) {
-            throw new IllegalStateException("环境变量 WECHAT_WEBHOOK_URL 未配置");
-        }
-    }
-
+    @Value("${wechat.webhook}")
+    private String WEBHOOK_URL;
+    
     private final RestTemplate restTemplate = new RestTemplate();
 
     public void sendMdText(String deviceCode, String level, String desc, String time, String suggestion) {
@@ -58,10 +53,10 @@ public class WeChatNotifyService implements WeChatNotifyInterFace {
     public void sendText(String content) {
         Map<String, Object> body = new HashMap<>();
         body.put("msgtype", "text");
-        
+
         Map<String, String> text = new HashMap<>();
         text.put("content", content);
-        
+
         body.put("text", text);
         restTemplate.postForObject(WEBHOOK_URL, body, String.class);
     }

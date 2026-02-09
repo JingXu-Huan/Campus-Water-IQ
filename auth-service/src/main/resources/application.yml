@@ -1,1 +1,9 @@
-
+dubbo:
+  application:
+    name: auth-service
+  registry:
+    address: nacos://101.42.157.163:8848
+    username: nacos
+    password: nacos
+    # Or disable QoS
+    qos-enable: false

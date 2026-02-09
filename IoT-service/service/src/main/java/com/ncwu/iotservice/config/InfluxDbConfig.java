@@ -3,6 +3,7 @@ package com.ncwu.iotservice.config;
 
 import com.influxdb.client.InfluxDBClient;
 import com.influxdb.client.InfluxDBClientFactory;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 
@@ -14,9 +15,15 @@ import org.springframework.context.annotation.Configuration;
 @Configuration
 public class InfluxDbConfig {
 
+    @Value("${influx.token:}")
+    private String influxToken;
+
     @Bean
     public InfluxDBClient influxDBClient(){
-        char[] influxTokens = System.getenv("INFLUX_TOKEN").toCharArray();
+        if (influxToken == null || influxToken.trim().isEmpty()) {
+            throw new IllegalArgumentException("InfluxDB token is not configured. Please set 'influx.token' in application.yml or INFLUX_TOKEN environment variable.");
+        }
+        char[] influxTokens = influxToken.toCharArray();
         return InfluxDBClientFactory.create("http://localhost:8086",influxTokens,"ncwu","water");
     }
 }

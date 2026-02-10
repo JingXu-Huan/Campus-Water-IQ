@@ -41,7 +41,8 @@ public class EmailCodeLoginStrategy implements LoginStrategy, CodeSender {
     //邮箱正则表达式
     private static final Pattern EMAIL_PATTERN = Pattern
             .compile("^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\\.[a-zA-Z]{2,}$");
-    @DubboReference(version = "1.0.0")
+
+    @DubboReference(version = "1.0.0",interfaceClass = EmailServiceInterFace.class)
     private EmailServiceInterFace emailServiceInterFace;
 
     private final UserMapper userMapper;
@@ -146,12 +147,14 @@ public class EmailCodeLoginStrategy implements LoginStrategy, CodeSender {
 
     @Override
     public void sendCode(String toEmail) {
-        //todo 接口防刷
+        //todo 接口防刷 -> 时间，ip，黑名单
         String code = String.valueOf(ThreadLocalRandom.current().nextInt(100000, 1000000));
         try {
             redisTemplate.opsForValue().set("Verify:EmailCode:" + toEmail, code, 5, TimeUnit.MINUTES);
             emailServiceInterFace.sendVerificationCode(toEmail, code);
         } catch (MessagingException e) {
+            //todo 消息队列通知
+            log.error("验证码发松失败，{}",toEmail);
             return;
         }
     }

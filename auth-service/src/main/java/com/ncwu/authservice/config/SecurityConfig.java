@@ -1,0 +1,45 @@
+package com.ncwu.authservice.config;
+
+import org.springframework.context.annotation.Bean;
+import org.springframework.context.annotation.Configuration;
+import org.springframework.http.HttpMethod;
+import org.springframework.security.config.annotation.web.builders.HttpSecurity;
+import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
+import org.springframework.security.config.annotation.web.configurers.AbstractHttpConfigurer;
+import org.springframework.security.config.http.SessionCreationPolicy;
+import org.springframework.security.web.SecurityFilterChain;
+
+/**
+ * Spring Security 配置类
+ *
+ * @author jingxu
+ * @version 1.0.0
+ * @since 2026/2/10
+ */
+@Configuration
+@EnableWebSecurity
+public class SecurityConfig {
+
+    @Bean
+    public SecurityFilterChain filterChain(HttpSecurity http) throws Exception {
+        http
+                // 禁用 CSRF，因为我们使用 JWT
+                .csrf(AbstractHttpConfigurer::disable)
+                // 设置会话管理为无状态
+                .sessionManagement(session -> 
+                    session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
+                // 配置授权规则
+                .authorizeHttpRequests(auth -> auth
+                        // 放行登录相关端点
+                        .requestMatchers("/auth/signin").permitAll()
+                        .requestMatchers("/auth/send-code").permitAll()
+                        .requestMatchers(HttpMethod.OPTIONS, "/**").permitAll()
+                        // 放行健康检查端点
+                        .requestMatchers("/actuator/**").permitAll()
+                        // 其他所有请求都需要认证
+                        .anyRequest().authenticated()
+                );
+        
+        return http.build();
+    }
+}

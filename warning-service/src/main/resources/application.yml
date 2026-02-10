@@ -23,4 +23,4 @@ spring:
             required: true
           ssl:
             enable: true
-        debug: true  # 开发时可以设为true查看详细日志
+        debug: false  # 开发时可以设为true查看详细日志

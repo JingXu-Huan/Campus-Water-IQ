@@ -27,6 +27,6 @@ public class RedisBloomFilterConfig {
             emailBloomFilter.tryInit(100000L, 0.01);
         }
         
-        return List.of(uidBloomFilter, phoneBloomFilter, emailBloomFilter);
+        return List.of(emailBloomFilter, phoneBloomFilter, uidBloomFilter);
     }
 }

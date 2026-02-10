@@ -2,22 +2,31 @@ package com.ncwu.authservice.strategy;
 
 
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import com.ncwu.authservice.entity.AuthResult;
 import com.ncwu.authservice.entity.LoginType;
 import com.ncwu.authservice.entity.SignInRequest;
 import com.ncwu.authservice.entity.User;
+import com.ncwu.authservice.entity.BO.UserInfo;
+import com.ncwu.authservice.exception.DeserializationFailedException;
 import com.ncwu.authservice.factory.LoginStrategy;
 import com.ncwu.authservice.mapper.UserMapper;
 import com.ncwu.authservice.service.TokenHelper;
+import com.ncwu.authservice.service.CodeSender;
 import com.ncwu.common.apis.warning_service.EmailServiceInterFace;
 import jakarta.annotation.PostConstruct;
+import jakarta.mail.MessagingException;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.apache.dubbo.config.annotation.DubboReference;
 import org.redisson.api.RBloomFilter;
 import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.stereotype.Component;
 
 import java.util.List;
+import java.util.concurrent.ThreadLocalRandom;
+import java.util.concurrent.TimeUnit;
 import java.util.regex.Pattern;
 
 /**
@@ -25,11 +34,13 @@ import java.util.regex.Pattern;
  * @version 1.0.0
  * @since 2026/2/7
  */
+@Slf4j
 @Component
 @RequiredArgsConstructor
-public class EmailCodeLoginStrategy implements LoginStrategy {
-
-    private static final Pattern EMAIL_PATTERN = Pattern.compile("^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\\.[a-zA-Z]{2,}$");
+public class EmailCodeLoginStrategy implements LoginStrategy, CodeSender {
+    //邮箱正则表达式
+    private static final Pattern EMAIL_PATTERN = Pattern
+            .compile("^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\\.[a-zA-Z]{2,}$");
     @DubboReference(version = "1.0.0")
     private EmailServiceInterFace emailServiceInterFace;
 
@@ -37,12 +48,13 @@ public class EmailCodeLoginStrategy implements LoginStrategy {
     private final TokenHelper tokenHelper;
     private final StringRedisTemplate redisTemplate;
     private final List<RBloomFilter<String>> bloomFilters;
+    private final ObjectMapper objectMapper;
     private RBloomFilter<String> emailBloomFilter;
 
     //在自动装配完成之后，自动执行
     @PostConstruct
-    void init(){
-        emailBloomFilter = bloomFilters.getLast();
+    void init() {
+        emailBloomFilter = bloomFilters.getFirst();
     }
 
     @Override
@@ -56,27 +68,58 @@ public class EmailCodeLoginStrategy implements LoginStrategy {
         String code = request.getCredential();
         // 校验邮箱格式
         //引入布隆过滤器，防止缓存穿透(必做,在初始化的时候执行一次全量加入过滤器)
-        if (!isValidEmail(email) || !emailBloomFilter.contains(email)) {
+        boolean contains = emailBloomFilter.contains(email);
+        if (!isValidEmail(email) || !contains) {
+            log.warn("邮箱验证失败: 格式={}, 布隆过滤器={}", isValidEmail(email), contains);
             return new AuthResult(false);
         }
+        //先查询缓存
+        String userInfo = redisTemplate.opsForValue().get("UserInfo:" + email);
+        if (userInfo != null) {
+            try {
+                UserInfo info = objectMapper.readValue(userInfo, UserInfo.class);
+                return check(info.getStatus(), email, code, info.getUid(), info.getNickName(), info.getUserType());
+            } catch (JsonProcessingException e) {
+                throw new DeserializationFailedException("反序列化失败");
+            }
+        } else {
+            //查询数据库
+            User user = userMapper.selectOne(new LambdaQueryWrapper<User>()
+                    .eq(User::getEmail, email)
+                    .select(User::getUid, User::getNickName, User::getUserType, User::getStatus)
+            );
+            if (user == null) {
+                return new AuthResult(false);
+            }
+            UserInfo info = new UserInfo(
+                    user.getUserType(),
+                    user.getNickName(),
+                    user.getUid(),
+                    user.getStatus()
+            );
+            String jsonInfo;
+            try {
+                jsonInfo = objectMapper.writeValueAsString(info);
+            } catch (JsonProcessingException e) {
+                throw new DeserializationFailedException("序列化异常");
+            }
+            //写入缓存
+            redisTemplate.opsForValue().set("UserInfo" + email, jsonInfo,
+                    300 + ThreadLocalRandom.current().nextInt(30), TimeUnit.SECONDS);
+            //只查询四个字段
+            Integer userType = user.getUserType();
+            String nickName = user.getNickName();
+            String uid = user.getUid();
+            Integer status = user.getStatus();
+            return check(status, email, code, uid, nickName, userType);
+        }
+    }
 
-        //todo 优化这里的查询性能，不要每次查询数据库
-        //todo 引入缓存
-        User user = userMapper.selectOne(new LambdaQueryWrapper<User>()
-                .eq(User::getEmail, email)
-                .select(User::getUid, User::getNickName, User::getUserType, User::getStatus)
-        );
-        if (user == null) {
-            return new AuthResult(false);
-        }
-        Integer userType = user.getUserType();
-        String nickName = user.getNickName();
-        String uid = user.getUid();
-        Integer status = user.getStatus();
+    private AuthResult check(Integer status, String email, String code, String uid, String nickName, Integer userType) {
         if (status != 1) {
             return new AuthResult(false);
         }
-        String validCode = redisTemplate.opsForValue().get("Verify:EmailCode" + email);
+        String validCode = redisTemplate.opsForValue().get("Verify:EmailCode:" + email);
         if (validCode == null) {
             return new AuthResult(false);
         }
@@ -99,5 +142,17 @@ public class EmailCodeLoginStrategy implements LoginStrategy {
             return false;
         }
         return EMAIL_PATTERN.matcher(email).matches();
+    }
+
+    @Override
+    public void sendCode(String toEmail) {
+        //todo 接口防刷
+        String code = String.valueOf(ThreadLocalRandom.current().nextInt(100000, 1000000));
+        try {
+            redisTemplate.opsForValue().set("Verify:EmailCode:" + toEmail, code, 5, TimeUnit.MINUTES);
+            emailServiceInterFace.sendVerificationCode(toEmail, code);
+        } catch (MessagingException e) {
+            return;
+        }
     }
 }

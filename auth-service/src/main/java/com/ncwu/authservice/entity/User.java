@@ -1,5 +1,6 @@
 package com.ncwu.authservice.entity;
 
+import com.baomidou.mybatisplus.annotation.TableField;
 import com.baomidou.mybatisplus.annotation.TableLogic;
 import jakarta.validation.constraints.*;
 import lombok.Data;
@@ -55,7 +56,7 @@ public class User implements Serializable {
     /**
     * 上一次登陆时间
     */
-    private Date lastLoginTimeDatetime;
+    private Date lastLoginTime;
     /**
     * 创建时间
     */

@@ -36,11 +36,20 @@ public class SignInController {
     }
 
     /**
-     * 用户请求验证码
+     * 用户请求邮箱验证码
      */
     @PostMapping("/send-code")
     public void sendCode(@RequestBody Map<String, String> request) {
         String toEmail = request.get("toEmail");
         codeSender.sendCode(toEmail);
+    }
+
+    /**
+     * 用户请求手机验证码
+     */
+    @PostMapping("/send-phone-code")
+    public void sendPhoneCode(@RequestBody Map<String, String> request) {
+        String phoneNum = request.get("phoneNum");
+        codeSender.sendPhoneCode(phoneNum);
     }
 }

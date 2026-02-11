@@ -9,4 +9,6 @@ package com.ncwu.authservice.service;
  */
 public interface CodeSender {
     void sendCode(String toEmail);
+
+    void sendPhoneCode(String phoneNum);
 }

@@ -2,16 +2,22 @@ package com.ncwu.authservice.strategy;
 
 
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import com.ncwu.authservice.entity.AuthResult;
+import com.ncwu.authservice.entity.BO.UserInfo;
 import com.ncwu.authservice.entity.LoginType;
 import com.ncwu.authservice.entity.SignInRequest;
 import com.ncwu.authservice.entity.User;
+import com.ncwu.authservice.exception.DeserializationFailedException;
 import com.ncwu.authservice.factory.LoginStrategy;
 import com.ncwu.authservice.mapper.UserMapper;
 import com.ncwu.authservice.service.TokenHelper;
 import jakarta.annotation.PostConstruct;
 import lombok.RequiredArgsConstructor;
+import org.jspecify.annotations.NonNull;
 import org.redisson.api.RBloomFilter;
+import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.stereotype.Component;
 
 import java.util.List;
@@ -29,6 +35,8 @@ public class PasswordLoginStrategy implements LoginStrategy {
     private RBloomFilter<String> passwordBloomFilter;
     private final UserMapper userMapper;
     private final TokenHelper tokenHelper;
+    private final StringRedisTemplate redisTemplate;
+    private final ObjectMapper objectMapper;
 
     @PostConstruct
     void init() {
@@ -47,16 +55,34 @@ public class PasswordLoginStrategy implements LoginStrategy {
         if (!passwordBloomFilter.contains(uid)) {
             return new AuthResult(false);
         }
-        User user = userMapper.selectOne(new LambdaQueryWrapper<User>()
-                .eq(User::getUid, uid)
-                .select(User::getPassword, User::getStatus, User::getUserType, User::getNickName));
-        if (user == null) {
-            return new AuthResult(false);
+        //查询缓存
+        String jsonInfo = redisTemplate.opsForValue().get("UserInfo:" + password);
+        UserInfo userInfo;
+        try {
+            userInfo = objectMapper.readValue(jsonInfo, UserInfo.class);
+        } catch (JsonProcessingException e) {
+            throw new DeserializationFailedException("反序列化失败");
         }
-        String nickName = user.getNickName();
-        Integer userType = user.getUserType();
-        Integer status = user.getStatus();
-        String validPwd = user.getPassword();
+        if (userInfo != null) {
+            return getAuthResult(userInfo.getNickName(), userInfo.getValidPassword(),
+                    userInfo.getUserType(), userInfo.getStatus(), password, uid);
+        } else {
+            User user = userMapper.selectOne(new LambdaQueryWrapper<User>()
+                    .eq(User::getUid, uid)
+                    .select(User::getPassword, User::getStatus, User::getUserType, User::getNickName));
+            if (user == null) {
+                return new AuthResult(false);
+            }
+            String nickName = user.getNickName();
+            Integer userType = user.getUserType();
+            Integer status = user.getStatus();
+            String validPwd = user.getPassword();
+            return getAuthResult(nickName, validPwd, userType, status, password, uid);
+        }
+    }
+
+    private @NonNull AuthResult getAuthResult(String nickName, String validPwd,
+                                              Integer userType, Integer status, String password, String uid) {
         if (status != 1) {
             //账号不正常
             return new AuthResult(false);

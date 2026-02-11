@@ -20,6 +20,7 @@ import jakarta.mail.MessagingException;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.dubbo.config.annotation.DubboReference;
+import org.jspecify.annotations.NonNull;
 import org.redisson.api.RBloomFilter;
 import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.stereotype.Component;
@@ -42,7 +43,7 @@ public class EmailCodeLoginStrategy implements LoginStrategy, CodeSender {
     private static final Pattern EMAIL_PATTERN = Pattern
             .compile("^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\\.[a-zA-Z]{2,}$");
 
-    @DubboReference(version = "1.0.0",interfaceClass = EmailServiceInterFace.class)
+    @DubboReference(version = "1.0.0", interfaceClass = EmailServiceInterFace.class)
     private EmailServiceInterFace emailServiceInterFace;
 
     private final UserMapper userMapper;
@@ -96,7 +97,8 @@ public class EmailCodeLoginStrategy implements LoginStrategy, CodeSender {
                     user.getUserType(),
                     user.getNickName(),
                     user.getUid(),
-                    user.getStatus()
+                    user.getStatus(),
+                    null
             );
             String jsonInfo;
             try {
@@ -148,14 +150,31 @@ public class EmailCodeLoginStrategy implements LoginStrategy, CodeSender {
     @Override
     public void sendCode(String toEmail) {
         //todo 接口防刷 -> 时间，ip，黑名单
-        String code = String.valueOf(ThreadLocalRandom.current().nextInt(100000, 1000000));
+        String code = genValidCode();
         try {
             redisTemplate.opsForValue().set("Verify:EmailCode:" + toEmail, code, 5, TimeUnit.MINUTES);
             emailServiceInterFace.sendVerificationCode(toEmail, code);
         } catch (MessagingException e) {
             //todo 消息队列通知
-            log.error("验证码发松失败，{}",toEmail);
+            log.error("验证码发松失败，{}", toEmail);
             return;
         }
+    }
+
+    private static @NonNull String genValidCode() {
+        return String.valueOf(ThreadLocalRandom.current().nextInt(100000, 1000000));
+    }
+
+    /**
+     * 向指定手机号发送SMS消息
+     * @param phoneNum 要发送验证码的手机号
+     */
+    @Override
+    public void sendPhoneCode(String phoneNum) {
+        String code = genValidCode();
+        //todo 接口防刷
+        //todo 接入手机短信服务
+        log.debug("手机登陆验证码{}", code);
+        //todo 异常消息队列处理
     }
 }

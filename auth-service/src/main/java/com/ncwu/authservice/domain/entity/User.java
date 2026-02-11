@@ -1,6 +1,5 @@
-package com.ncwu.authservice.entity;
+package com.ncwu.authservice.domain.entity;
 
-import com.baomidou.mybatisplus.annotation.TableField;
 import com.baomidou.mybatisplus.annotation.TableLogic;
 import jakarta.validation.constraints.*;
 import lombok.Data;
@@ -42,7 +41,6 @@ public class User implements Serializable {
     /**
     * 手机号
     */
-    @NotBlank(message="[手机号]不能为空")
     @Size(max= 20,message="编码长度不能超过20")
     @Length(max= 20,message="编码长度不能超过20")
     private String phoneNum;
@@ -57,6 +55,10 @@ public class User implements Serializable {
     * 上一次登陆时间
     */
     private Date lastLoginTime;
+    /**
+    * GitHub用户ID，用于OAuth登录绑定
+    */
+    private String githubId;
     /**
     * 创建时间
     */

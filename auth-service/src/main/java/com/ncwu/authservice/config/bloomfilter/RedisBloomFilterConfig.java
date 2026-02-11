@@ -1,4 +1,4 @@
-package com.ncwu.authservice.config;
+package com.ncwu.authservice.config.bloomfilter;
 
 import lombok.RequiredArgsConstructor;
 import org.redisson.api.RBloomFilter;

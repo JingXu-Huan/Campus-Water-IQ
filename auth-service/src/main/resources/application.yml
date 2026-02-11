@@ -7,3 +7,10 @@ dubbo:
     password: nacos
     # Or disable QoS
     qos-enable: false
+
+# GitHub OAuth配置
+github:
+  oauth:
+    client-id: ${GITHUB_CLIENT_ID:Ov23liafMWANTJ7vZOiA}
+    client-secret: ${GITHUB_CLIENT_SECRET:5dc76839cb44ab7a09f78334a9ccc770d0993cc3}
+    redirect-uri: ${GITHUB_REDIRECT_URI:http://127.0.0.1:18099/auth/github/callback}

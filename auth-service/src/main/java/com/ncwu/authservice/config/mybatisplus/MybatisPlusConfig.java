@@ -1,4 +1,4 @@
-package com.ncwu.authservice.config;
+package com.ncwu.authservice.config.mybatisplus;
 
 import com.baomidou.mybatisplus.annotation.DbType;
 import com.baomidou.mybatisplus.core.handlers.MetaObjectHandler;

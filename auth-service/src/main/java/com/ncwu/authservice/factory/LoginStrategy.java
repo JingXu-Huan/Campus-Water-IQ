@@ -1,8 +1,8 @@
 package com.ncwu.authservice.factory;
 
-import com.ncwu.authservice.entity.AuthResult;
-import com.ncwu.authservice.entity.LoginType;
-import com.ncwu.authservice.entity.SignInRequest;
+import com.ncwu.authservice.domain.VO.AuthResult;
+import com.ncwu.authservice.domain.enums.LoginType;
+import com.ncwu.authservice.domain.DTO.SignInRequest;
 
 
 public interface LoginStrategy {

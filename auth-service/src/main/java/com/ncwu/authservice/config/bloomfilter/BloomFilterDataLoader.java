@@ -1,7 +1,7 @@
-package com.ncwu.authservice.config;
+package com.ncwu.authservice.config.bloomfilter;
 
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
-import com.ncwu.authservice.entity.User;
+import com.ncwu.authservice.domain.entity.User;
 import com.ncwu.authservice.mapper.UserMapper;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -45,7 +45,7 @@ public class BloomFilterDataLoader {
                 uidBloomFilter.tryInit(100000L, 0.01);
                 // 查询所有有效用户（只查询一次）
                 List<User> allUsers = userMapper.selectList(new LambdaQueryWrapper<User>()
-                                .eq(com.ncwu.authservice.entity.User::getStatus, 1));
+                                .eq(User::getStatus, 1));
                 log.info("找到 {} 个有效用户", allUsers.size());
                 
                 // 分别添加到不同的布隆过滤器

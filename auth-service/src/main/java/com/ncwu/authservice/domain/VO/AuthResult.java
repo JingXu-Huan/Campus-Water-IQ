@@ -1,4 +1,4 @@
-package com.ncwu.authservice.entity;
+package com.ncwu.authservice.domain.VO;
 
 
 import lombok.AllArgsConstructor;

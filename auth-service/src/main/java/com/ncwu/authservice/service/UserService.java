@@ -2,9 +2,9 @@ package com.ncwu.authservice.service;
 
 
 import com.baomidou.mybatisplus.extension.service.IService;
-import com.ncwu.authservice.entity.AuthResult;
-import com.ncwu.authservice.entity.SignInRequest;
-import com.ncwu.authservice.entity.User;
+import com.ncwu.authservice.domain.VO.AuthResult;
+import com.ncwu.authservice.domain.DTO.SignInRequest;
+import com.ncwu.authservice.domain.entity.User;
 
 
 /**

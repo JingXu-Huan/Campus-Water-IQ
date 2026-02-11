@@ -1,4 +1,4 @@
-package com.ncwu.authservice.entity;
+package com.ncwu.authservice.domain.BO;
 
 
 /**
@@ -6,7 +6,7 @@ package com.ncwu.authservice.entity;
  * @version 1.0.0
  * @since 2026/2/7
  */
-public enum LoginType {
+public enum SigninType {
     PASSWORD,
     PHONE,
     EMAIL,

@@ -1,7 +1,7 @@
 package com.ncwu.authservice.factory;
 
 
-import com.ncwu.authservice.entity.LoginType;
+import com.ncwu.authservice.domain.enums.LoginType;
 import org.springframework.stereotype.Component;
 
 import java.util.EnumMap;

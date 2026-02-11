@@ -1,14 +1,15 @@
-package com.ncwu.authservice.service;
+package com.ncwu.authservice.service.impl;
 
 
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
-import com.ncwu.authservice.entity.AuthResult;
-import com.ncwu.authservice.entity.LoginType;
-import com.ncwu.authservice.entity.SignInRequest;
-import com.ncwu.authservice.entity.User;
+import com.ncwu.authservice.domain.VO.AuthResult;
+import com.ncwu.authservice.domain.enums.LoginType;
+import com.ncwu.authservice.domain.DTO.SignInRequest;
+import com.ncwu.authservice.domain.entity.User;
 import com.ncwu.authservice.factory.LoginStrategy;
 import com.ncwu.authservice.factory.LoginStrategyFactory;
 import com.ncwu.authservice.mapper.UserMapper;
+import com.ncwu.authservice.service.UserService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;

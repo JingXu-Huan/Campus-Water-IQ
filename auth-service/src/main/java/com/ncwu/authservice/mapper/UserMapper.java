@@ -2,7 +2,7 @@ package com.ncwu.authservice.mapper;
 
 
 import com.baomidou.mybatisplus.core.mapper.BaseMapper;
-import com.ncwu.authservice.entity.User;
+import com.ncwu.authservice.domain.entity.User;
 import org.apache.ibatis.annotations.Mapper;
 
 /**

@@ -82,21 +82,31 @@ create index idx_event_device_time
 
 create table water.user
 (
-    id                         bigint auto_increment
+    id                bigint auto_increment
         primary key,
-    uid                        varchar(100)                       not null comment '唯一用户ID',
-    nick_name                  varchar(20)                        not null comment '昵称',
-    email                      varchar(50)                        not null comment '邮箱',
-    phone_num                  varchar(20)                        not null comment '手机号',
-    password                   varchar(255)                       not null comment '密码',
-    `last_login_time datetime` datetime                           null comment '上一次登陆时间',
-    create_date                datetime default CURRENT_TIMESTAMP null comment '创建时间',
-    update_time                datetime default CURRENT_TIMESTAMP null comment '更新时间',
-    user_type                  tinyint                            not null comment '1普通用户 2运维 3管理员',
-    bind_device_count          int      default 0                 not null comment '绑定设备数量',
-    deleted                    tinyint  default 0                 not null comment '逻辑删除',
-    status                     tinyint  default 1                 not null comment '1正常 0禁用 2冻结'
+    uid               varchar(100)                       not null comment '唯一用户ID',
+    nick_name         varchar(20)                        not null comment '昵称',
+    email             varchar(50)                        not null comment '邮箱',
+    phone_num         varchar(20)                        null comment '手机号',
+    password          varchar(255)                       not null comment '密码',
+    last_login_time   datetime                           null comment '上一次登陆时间',
+    create_date       datetime default CURRENT_TIMESTAMP null comment '创建时间',
+    update_time       datetime default CURRENT_TIMESTAMP null comment '更新时间',
+    user_type         tinyint  default 1                 not null comment '1普通用户 2运维 3管理员',
+    bind_device_count int      default 0                 not null comment '绑定设备数量',
+    deleted           tinyint  default 0                 not null comment '逻辑删除',
+    status            tinyint  default 1                 not null comment '1正常 0禁用 2冻结',
+    github_id         varchar(100)                       null comment 'GitHub用户ID，用于OAuth登录绑定'
 );
+
+create index idx_user_github_id
+    on water.user (github_id);
+
+create index user_email_index
+    on water.user (email);
+
+create index user_phone_num_index_
+    on water.user (phone_num);
 
 create index user_uid_index
     on water.user (uid);

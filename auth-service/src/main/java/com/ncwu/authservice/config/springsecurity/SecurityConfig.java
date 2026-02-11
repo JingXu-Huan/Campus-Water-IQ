@@ -1,4 +1,4 @@
-package com.ncwu.authservice.config;
+package com.ncwu.authservice.config.springsecurity;
 
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -7,6 +7,7 @@ import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
 import org.springframework.security.config.annotation.web.configurers.AbstractHttpConfigurer;
 import org.springframework.security.config.http.SessionCreationPolicy;
+import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.security.web.SecurityFilterChain;
 
 /**
@@ -33,6 +34,10 @@ public class SecurityConfig {
                         // 放行登录相关端点
                         .requestMatchers("/auth/signin").permitAll()
                         .requestMatchers("/auth/send-code").permitAll()
+                        .requestMatchers("/auth/send-phone-code").permitAll()
+                        // 放行 GitHub OAuth 相关端点
+                        .requestMatchers("/auth/github/authorize").permitAll()
+                        .requestMatchers("/auth/github/callback").permitAll()
                         .requestMatchers(HttpMethod.OPTIONS, "/**").permitAll()
                         // 放行健康检查端点
                         .requestMatchers("/actuator/**").permitAll()
@@ -41,5 +46,10 @@ public class SecurityConfig {
                 );
         
         return http.build();
+    }
+    
+    @Bean
+    public BCryptPasswordEncoder passwordEncoder() {
+        return new BCryptPasswordEncoder();
     }
 }

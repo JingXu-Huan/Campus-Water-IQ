@@ -1,4 +1,4 @@
-package com.ncwu.authservice.entity.BO;
+package com.ncwu.authservice.domain.BO;
 
 
 import lombok.AllArgsConstructor;

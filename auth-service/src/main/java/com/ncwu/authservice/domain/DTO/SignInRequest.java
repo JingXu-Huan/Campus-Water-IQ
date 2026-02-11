@@ -1,5 +1,6 @@
-package com.ncwu.authservice.entity;
+package com.ncwu.authservice.domain.DTO;
 
+import com.ncwu.authservice.domain.enums.LoginType;
 import lombok.Data;
 
 @Data

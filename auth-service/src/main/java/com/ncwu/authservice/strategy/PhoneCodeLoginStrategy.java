@@ -2,10 +2,10 @@ package com.ncwu.authservice.strategy;
 
 
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
-import com.ncwu.authservice.entity.AuthResult;
-import com.ncwu.authservice.entity.LoginType;
-import com.ncwu.authservice.entity.SignInRequest;
-import com.ncwu.authservice.entity.User;
+import com.ncwu.authservice.domain.VO.AuthResult;
+import com.ncwu.authservice.domain.enums.LoginType;
+import com.ncwu.authservice.domain.DTO.SignInRequest;
+import com.ncwu.authservice.domain.entity.User;
 import com.ncwu.authservice.factory.LoginStrategy;
 import com.ncwu.authservice.mapper.UserMapper;
 import com.ncwu.authservice.service.TokenHelper;
@@ -13,7 +13,6 @@ import jakarta.annotation.PostConstruct;
 import lombok.RequiredArgsConstructor;
 import org.redisson.api.RBloomFilter;
 import org.springframework.data.redis.core.StringRedisTemplate;
-import org.springframework.security.core.parameters.P;
 import org.springframework.stereotype.Component;
 
 import java.util.List;

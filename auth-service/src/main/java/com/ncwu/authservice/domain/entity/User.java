@@ -60,6 +60,10 @@ public class User implements Serializable {
     */
     private String githubId;
     /**
+    * WeChat OpenID，用于OAuth登录绑定
+    */
+    private String wechatOpenId;
+    /**
     * 创建时间
     */
     private Date createDate;

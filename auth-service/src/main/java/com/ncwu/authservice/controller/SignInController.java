@@ -6,7 +6,9 @@ import com.ncwu.authservice.domain.DTO.SignInRequest;
 import com.ncwu.authservice.service.UserService;
 import com.ncwu.authservice.service.CodeSender;
 import com.ncwu.authservice.service.GitHubOAuthService;
+import com.ncwu.authservice.service.WeChatOAuthService;
 import com.ncwu.authservice.config.oauthconfig.GitHubOAuthProperties;
+import com.ncwu.authservice.config.oauthconfig.WeChatOAuthProperties;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.web.bind.annotation.*;
@@ -30,6 +32,8 @@ public class SignInController {
     private final CodeSender codeSender;
     private final GitHubOAuthService gitHubOAuthService;
     private final GitHubOAuthProperties gitHubOAuthProperties;
+    private final WeChatOAuthService weChatOAuthService;
+    private final WeChatOAuthProperties weChatOAuthProperties;
 
     /**
      * 用户登陆接口
@@ -78,6 +82,30 @@ public class SignInController {
         } catch (Exception e) {
             log.error("GitHub OAuth回调处理失败", e);
             return "GitHub OAuth授权失败: " + e.getMessage();
+        }
+    }
+
+    /**
+     * 用户获取WeChat授权URL
+     */
+    @GetMapping("/wechat/authorize")
+    public String getWeChatAuthorizeUrl() {
+        return weChatOAuthService.getAuthorizationUrl();
+    }
+
+    /**
+     * WeChat OAuth回调处理
+     */
+    @GetMapping("/wechat/callback")
+    public String wechatCallback(@RequestParam String code) {
+        try {
+            // 这里可以处理OAuth回调，例如重定向到前端页面并传递code
+            log.info("收到WeChat OAuth回调，code: {}", code);
+            // todo 暂时返回成功信息，实际应用中应该重定向到前端页面
+            return "WeChat OAuth授权成功，请使用返回的code进行登录: " + code;
+        } catch (Exception e) {
+            log.error("WeChat OAuth回调处理失败", e);
+            return "WeChat OAuth授权失败: " + e.getMessage();
         }
     }
 }

@@ -14,3 +14,10 @@ github:
     client-id: ${GITHUB_CLIENT_ID:Ov23liafMWANTJ7vZOiA}
     client-secret: ${GITHUB_CLIENT_SECRET:5dc76839cb44ab7a09f78334a9ccc770d0993cc3}
     redirect-uri: ${GITHUB_REDIRECT_URI:http://127.0.0.1:18099/auth/github/callback}
+
+# WeChat OAuth配置
+wechat:
+  oauth:
+    app-id: ${WECHAT_APP_ID:your_app_id}
+    app-secret: ${WECHAT_APP_SECRET:your_app_secret}
+    redirect-uri: ${WECHAT_REDIRECT_URI:http://127.0.0.1:18099/auth/wechat/callback}

@@ -1,5 +1,3 @@
-create database water;
-use water;
 create table water.device_reservation
 (
     id            bigint auto_increment
@@ -96,7 +94,8 @@ create table water.user
     bind_device_count int      default 0                 not null comment '绑定设备数量',
     deleted           tinyint  default 0                 not null comment '逻辑删除',
     status            tinyint  default 1                 not null comment '1正常 0禁用 2冻结',
-    github_id         varchar(100)                       null comment 'GitHub用户ID，用于OAuth登录绑定'
+    github_id         varchar(100)                       null comment 'GitHub用户ID，用于OAuth登录绑定',
+    wechat_open_id    varchar(100)                       null
 );
 
 create index idx_user_github_id
@@ -110,6 +109,9 @@ create index user_phone_num_index_
 
 create index user_uid_index
     on water.user (uid);
+
+create index user_wechat_open_id_index
+    on water.user (wechat_open_id);
 
 create table water.virtual_device
 (

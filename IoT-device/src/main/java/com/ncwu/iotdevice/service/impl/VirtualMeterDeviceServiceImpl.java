@@ -40,6 +40,7 @@ import static com.ncwu.iotdevice.AOP.Aspects.InitLuaScript.Lua_script;
 import static com.ncwu.iotdevice.utils.Utils.*;
 
 /**
+ * 虚拟设备核心实现类
  * @author jingxu
  * @version 1.0.0
  * @since 2025/12/21
@@ -255,7 +256,7 @@ public class VirtualMeterDeviceServiceImpl extends ServiceImpl<DeviceMapper, Vir
      * 2. 清空运行设备集合<p>
      * 3. 取消所有定时任务<p>
      * 4. 通过消息队列异步更新数据库<p>
-     * 5. 清理缓存<p>
+     * 5. 清理缓存
      * @return 停止结果
      */
     @Time  // AOP注解：记录方法执行耗时
@@ -690,7 +691,7 @@ public class VirtualMeterDeviceServiceImpl extends ServiceImpl<DeviceMapper, Vir
      * - 宿舍楼：使用宿舍区流量模式
      *
      * @param time     模拟时间（从0点开始的秒数）
-     * @param deviceId 设备ID，格式为"XXYYZZ"，其中YY为楼宇编号
+     * @param deviceId 设备ID
      * @return 水流量值（保留3位小数）
      */
     private double waterFlowGenerate(int time, String deviceId) {

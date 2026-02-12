@@ -10,13 +10,14 @@ import com.ncwu.iotdevice.domain.Bo.MeterDataBo;
 import com.ncwu.iotdevice.domain.Bo.WaterQualityDataBo;
 import com.ncwu.iotdevice.exception.MessageSendException;
 import com.ncwu.iotdevice.mapper.DeviceMapper;
-import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.rocketmq.client.producer.SendCallback;
 import org.apache.rocketmq.client.producer.SendResult;
 import org.apache.rocketmq.spring.core.RocketMQTemplate;
+import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.stereotype.Service;
+import io.micrometer.core.instrument.Counter;
 
 import java.time.ZoneId;
 
@@ -30,13 +31,30 @@ import static com.ncwu.iotdevice.utils.Utils.markDeviceOnline;
  */
 @Slf4j
 @Service
-@RequiredArgsConstructor
 public class DataSender {
 
+    //两个消息队列消费计数器，用于监控失败比例
+    private final Counter messageSuccessCounter;
+    private final Counter messageFailureCounter;
     private final ObjectMapper objectMapper;
     private final RocketMQTemplate rocketMQTemplate;
     private final StringRedisTemplate redisTemplate;
     private final DeviceMapper deviceMapper;
+
+    //构造函数，用于自动装配
+    public DataSender(@Qualifier("messageSuccessCounter") Counter MessageSuccessCounter,
+                      @Qualifier("messageFailureCounter") Counter MessageFailureCounter,
+                      ObjectMapper objectMapper,
+                      RocketMQTemplate rocketMQTemplate,
+                      StringRedisTemplate redisTemplate,
+                      DeviceMapper deviceMapper) {
+        this.messageSuccessCounter = MessageSuccessCounter;
+        this.messageFailureCounter = MessageFailureCounter;
+        this.objectMapper = objectMapper;
+        this.rocketMQTemplate = rocketMQTemplate;
+        this.redisTemplate = redisTemplate;
+        this.deviceMapper = deviceMapper;
+    }
 
 
     /**
@@ -71,7 +89,13 @@ public class DataSender {
         Boolean onLine = redisTemplate.hasKey("device:OffLine:" + deviceId);
         if (onLine) {
             // 消息队列通知上线
-            rocketMQTemplate.convertAndSend("DeviceOnLine", deviceId);
+            try {
+                rocketMQTemplate.convertAndSend("DeviceOnLine", deviceId);
+                messageSuccessCounter.increment();
+            } catch (Exception e) {
+                log.error("设备上线通知发送失败: deviceId={}, error={}", deviceId, e.getMessage());
+                messageFailureCounter.increment();
+            }
             //如果设备上线,调用设备上线后置处理器
             markDeviceOnline(deviceId, now, deviceMapper, redisTemplate);
         }
@@ -96,7 +120,13 @@ public class DataSender {
         Boolean onLine = redisTemplate.hasKey("device:OffLine:" + deviceId);
         if (onLine) {
             //消息队列通知上线
-            rocketMQTemplate.convertAndSend("DeviceOnLine", deviceId);
+            try {
+                rocketMQTemplate.convertAndSend("DeviceOnLine", deviceId);
+                messageSuccessCounter.increment();
+            } catch (Exception e) {
+                log.error("设备上线通知发送失败: deviceId={}, error={}", deviceId, e.getMessage());
+                messageFailureCounter.increment();
+            }
             //如果设备上线,调用设备上线后置处理器
             markDeviceOnline(deviceId, timestamp, deviceMapper, redisTemplate);
         }
@@ -119,19 +149,23 @@ public class DataSender {
         rocketMQTemplate.asyncSend(topic, data, new SendCallback() {
             @Override
             public void onSuccess(SendResult sendResult) {
+                messageSuccessCounter.increment();
             }
 
             @Override
             public void onException(Throwable throwable) {
+                messageFailureCounter.increment();
                 log.error("MQ 异步发送失败，尝试再次异步发送", throwable);
                 rocketMQTemplate.asyncSend(topic, data, new SendCallback() {
                     @Override
                     public void onSuccess(SendResult sendResult) {
                         log.info("重试发送成功");
+                        messageSuccessCounter.increment();
                     }
 
                     @Override
                     public void onException(Throwable t) {
+                        messageFailureCounter.increment();
                         log.error("重试发送仍然失败，记录{}", data);
                     }
                 });

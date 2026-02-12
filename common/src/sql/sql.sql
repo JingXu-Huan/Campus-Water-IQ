@@ -1,3 +1,10 @@
+CREATE USER 'canal'@'%' IDENTIFIED WITH mysql_native_password BY 'canal';
+
+GRANT SELECT, REPLICATION SLAVE, REPLICATION CLIENT ON *.* TO 'canal'@'%';
+
+FLUSH PRIVILEGES;
+create database water;
+use water;
 create table water.device_reservation
 (
     id            bigint auto_increment

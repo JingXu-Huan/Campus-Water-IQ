@@ -93,9 +93,7 @@ public class ChangeTheData {
      * 漏水事件前置处理器
      */
     private MeterDataBo preLeakingProcessor(ProceedingJoinPoint point) {
-
         MeterDataBo dataBo = getMeterDataBo(point);
-
         //重新设置流速
         double v = ThreadLocalRandom.current().nextDouble(0.05);
         double flow = 0.1 + v;
@@ -105,7 +103,9 @@ public class ChangeTheData {
         return dataBo;
     }
 
-    /**得到原方法入参*/
+    /**
+     * 得到原方法入参
+     */
     private static MeterDataBo getMeterDataBo(ProceedingJoinPoint point) {
         Object[] args = point.getArgs();
         return (MeterDataBo) args[0];

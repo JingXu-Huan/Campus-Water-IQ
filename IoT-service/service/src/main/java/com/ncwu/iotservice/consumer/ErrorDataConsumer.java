@@ -9,6 +9,7 @@ import com.ncwu.iotservice.entity.IotDeviceEvent;
 import com.ncwu.iotservice.exception.DeserializationFailedException;
 import com.ncwu.iotservice.mapper.IoTDeviceEventMapper;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.apache.rocketmq.spring.annotation.RocketMQMessageListener;
 import org.apache.rocketmq.spring.core.RocketMQListener;
 import org.springframework.stereotype.Component;
@@ -21,6 +22,7 @@ import java.time.format.DateTimeFormatter;
  * @version 1.0.0
  * @since 2026/1/24
  */
+@Slf4j
 @Component
 @RequiredArgsConstructor
 @RocketMQMessageListener(topic = "ErrorData", consumerGroup = "ErrorDataGroup")
@@ -31,6 +33,7 @@ public class ErrorDataConsumer implements RocketMQListener<String> {
 
     @Override
     public void onMessage(String s) {
+        System.out.println(s);
         ErrorDataMessageBO errorDataMessageBO;
         try {
             errorDataMessageBO = objectMapper.readValue(s, ErrorDataMessageBO.class);
@@ -43,8 +46,8 @@ public class ErrorDataConsumer implements RocketMQListener<String> {
         LambdaQueryWrapper<IotDeviceEvent> eq = new LambdaQueryWrapper<IotDeviceEvent>()
                 .select()
                 .eq(IotDeviceEvent::getDeviceCode, deviceId)
-                .eq(IotDeviceEvent::getEventLevel, "WARN")
-                .eq(IotDeviceEvent::getEventDesc, "设备上报数据出现异常")
+                .eq(IotDeviceEvent::getEventLevel, errorDataMessageBO.getLevel())
+                .eq(IotDeviceEvent::getEventDesc, errorDataMessageBO.getDesc())
                 .orderByDesc(IotDeviceEvent::getEventTime)
                 .last("limit 1");
         //查找最近一条告警信息

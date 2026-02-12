@@ -114,7 +114,6 @@ public class DeviceController {
      */
     @PostMapping("/status")
     public Result<Map<String, String>> checkDeviceStatus(@NotNull @RequestBody @Valid IdsDTO ids) {
-
         return virtualMeterDeviceService.checkDeviceStatus(ids.getIds());
     }
 

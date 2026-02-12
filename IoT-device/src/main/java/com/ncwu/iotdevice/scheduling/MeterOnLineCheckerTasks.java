@@ -97,6 +97,7 @@ public class MeterOnLineCheckerTasks {
         errorDataMessageBO.setDeviceId(deviceId);
         errorDataMessageBO.setDesc("设备下线");
         errorDataMessageBO.setDeviceType("METER");
+        errorDataMessageBO.setErrorType("OFFLINE");
         //发送下线消息
         rocketMQTemplate.convertAndSend("ErrorData", errorDataMessageBO);
         //更新数据库状态,(此时可能缓存中还有此设备的在线信息,也要一并删除)

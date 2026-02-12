@@ -101,9 +101,9 @@ public class Utils {
     }
 
     /**
-     * 方法清除 redis 中对应的旧数据
+     * 方法清除 redis和数据库 中对应的旧数据
      */
-    public static void clearRedisData(StringRedisTemplate redisTemplate, DeviceMapper deviceMapper) {
+    public static void clearRedisAndDbData(StringRedisTemplate redisTemplate, DeviceMapper deviceMapper) {
         String prefix = "device:";
         try {
             redisTemplate.opsForValue().set("isInit", "0");

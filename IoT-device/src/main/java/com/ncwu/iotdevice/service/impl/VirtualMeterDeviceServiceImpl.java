@@ -47,192 +47,276 @@ import static com.ncwu.iotdevice.utils.Utils.*;
 
 @Slf4j
 @Service
-@DubboService(interfaceClass = com.ncwu.common.apis.iot_device.VirtualMeterDeviceService.class,version = "1.0.0")
+@DubboService(interfaceClass = com.ncwu.common.apis.iot_device.VirtualMeterDeviceService.class, version = "1.0.0")
 @RequiredArgsConstructor
 public class VirtualMeterDeviceServiceImpl extends ServiceImpl<DeviceMapper, VirtualDevice>
         implements VirtualMeterDeviceService, com.ncwu.common.apis.iot_device.VirtualMeterDeviceService {
 
+    /** 设备总数 */
     private int allSize;
-    //运行中的设备集合
+    /** 运行中的设备集合，使用线程安全的ConcurrentHashMap */
     private final Set<String> runningDevices = ConcurrentHashMap.newKeySet();
+    /** Redis中设备状态的键前缀 */
     final String deviceStatusPrefix = "cache:device:status:";
 
+    /** 调度器，用于管理定时任务 */
     private ScheduledExecutorService scheduler;
+    /** Redis字符串模板，用于缓存操作 */
     private final StringRedisTemplate redisTemplate;
+    /** RocketMQ消息模板，用于异步消息发送 */
     private final RocketMQTemplate rocketMQTemplate;
+    /** 设备数据访问层 */
     private final DeviceMapper deviceMapper;
+    /** 水质设备服务实现 */
     private final VirtualWaterQualityDeviceServiceImpl waterQualityDeviceService;
+    /** 服务器配置 */
     private final ServerConfig serverConfig;
+    /** 数据发送器，负责发送设备数据 */
     private final DataSender dataSender;
+    /** Redisson客户端，用于分布式锁等操作 */
     private final RedissonClient redissonClient;
-    //本地缓存
+    /** 本地缓存，使用Caffeine实现 */
     Cache<String, String> cache;
 
 
+    /**
+     * 初始化方法，在Bean创建后自动调用
+     * 创建调度器和本地缓存
+     */
     @PostConstruct
     void init() {
         // 经压测验证，约 70 台虚拟设备对应 1 个调度线程即可满足精度与吞吐
         // 取 max 防止入参为 0 发生异常
         scheduler = Executors.newScheduledThreadPool(Math.max(5, (int) (this.count() / 70)));
-        //初始化本地缓存
+        //初始化Caffeine本地缓存，最大容量10000，写入后5分钟过期
         cache = Caffeine.newBuilder()
                 .maximumSize(10_000)
                 .expireAfterWrite(5, TimeUnit.MINUTES)
                 .build();
     }
 
+    /** 随机数生成器，用于生成随机延迟和数值 */
     private static final Random RANDOM = new Random();
-
-    //开大小为5的线程池
-    final ExecutorService pool = Executors.newFixedThreadPool(5);
-
-    // 存储每个设备的调度句柄，用于精准停止模拟
+    /** 线程池，用于执行异步任务，核心线程10，最大15，队列容量60，线程空闲时间60秒 */
+    final ExecutorService pool = getExecutorPools("iot-device",10,15,60,1000);
+    /** 存储每个设备的调度句柄，用于精准停止模拟 */
     private final Map<String, ScheduledFuture<?>> deviceTasks = new ConcurrentHashMap<>();
 
-    //存储设备上报时间戳，以便和心跳对齐
+    /** 存储设备上报时间戳，以便和心跳对齐 */
     private final ConcurrentHashMap<String, Long> reportTime = new ConcurrentHashMap<>();
-    //设备是否已经完成了初始化
+    /** 设备是否已经完成了初始化，使用volatile保证可见性 */
     public volatile boolean isInit = false;
 
     /**
-     * 停止模拟时调用，优雅关闭资源
+     * 应用销毁时调用，优雅关闭所有资源
+     * 停止所有模拟任务，清理缓存和数据库数据
      */
     @PreDestroy
     public void destroy() {
         // 确保应用关闭时停止所有调度
         stopSimulation();
         // 确保应用关闭之后清空 redis 中所有数据
-        clearRedisData(redisTemplate, deviceMapper);
+        clearRedisAndDbData(redisTemplate, deviceMapper);
+        // 关闭调度器
         scheduler.shutdown();
     }
 
     /**
-     * 前端入口：所有设备开始模拟
+     * 启动所有虚拟水表设备模拟
+     * <p>
+     * 执行流程：<p>
+     * 1. 检查设备初始化状态
+     * <p>
+     * 2. 获取所有设备ID并检查运行状态
+     * <p>
+     * 3. 批量更新数据库中的设备运行状态
+     * <p>
+     * 4. 使用Lua脚本更新Redis在线设备映射
+     * <p>
+     * 5. 为每个设备启动数据上报和心跳任务
+     * <p>
+     * 6. 清理相关缓存
+     * 
+     * @return 启动结果，包含成功启动的设备数量
      */
-    //获取方法耗时
-    @Time
-    //初始化 Lua 脚本
-    @InitLuaScript
+    @Time  // AOP注解：记录方法执行耗时
+    @InitLuaScript  // AOP注解：初始化Lua脚本
     @Override
     public Result<String> start() {
-        //检查设备初始化状态开关
+        // 检查设备初始化状态开关
         if (!isInit) {
             return Result.fail(ErrorCode.DEVICE_INIT_ERROR.code(),
                     ErrorCode.DEVICE_INIT_ERROR.message());
         }
+        
+        // 从Redis获取所有水表设备ID
         Set<String> ids = redisTemplate.opsForSet().members("device:meter");
-        //检查模拟器状态开关
+        
+        // 检查模拟器状态：如果所有设备都已运行，返回错误
         if (ids != null && runningDevices.size() == ids.size()) {
-            log.info("模拟器已全部在运行中");
+            log.info("所有模拟设备已全部在运行中");
             return Result.fail(ErrorCode.DEVICE_DEVICE_RUNNING_NOW_ERROR.code(),
                     ErrorCode.DEVICE_DEVICE_RUNNING_NOW_ERROR.message());
         }
-        //开始模拟
+        
+        // 将设备ID添加到运行集合
         if (ids != null) {
             runningDevices.addAll(ids);
         }
+        
         if (ids != null && !ids.isEmpty()) {
+            // 异步更新数据库：将未运行的设备状态设置为运行中
             pool.submit(() -> {
                 this.lambdaUpdate().in(VirtualDevice::getDeviceCode, ids)
                         .eq(VirtualDevice::getIsRunning, false)
                         .set(VirtualDevice::getIsRunning, true).update();
             });
+            
+            // 使用Lua脚本批量更新Redis在线设备映射，提高性能
             String hashKey = "OnLineMap";
-            //使用Lua脚本加速redis操作！！！
             redisTemplate.execute(Lua_script, List.of(hashKey), "-1");
-            // 每一个设备开启一个独立的递归流
+            
+            // 为每个设备启动独立的数据上报和心跳任务
             runningDevices.forEach(this::scheduleNextReport);
             runningDevices.forEach(this::startHeartbeat);
             log.info("成功开启 {} 台设备的模拟数据流", ids.size());
-            //可以受检
+
+            // 设置设备可检查状态标志
             redisTemplate.opsForValue().set("MeterChecked", "1");
-            //失效和清除缓存
-            cache.invalidateAll();
-            redisScanDel(deviceStatusPrefix + "*", 100, redisTemplate);
+            
+            // 清理相关缓存，确保数据一致性
+            cache.invalidateAll();  // 清空本地缓存
+            redisScanDel(deviceStatusPrefix + "*", 100, redisTemplate);  // 删除Redis设备状态缓存
+            
             return Result.ok("成功开启" + ids.size() + "台设备");
         }
-        log.error("");
+        
         return Result.fail(UNKNOWN_START_ALL_DEVICE, ErrorCode.UNKNOWN.code(), ErrorCode.UNKNOWN.message());
     }
 
+    /**
+     * 批量启动指定的虚拟水表设备
+     * 
+     * @param ids 需要启动的设备ID列表
+     * @return 启动结果，包含成功启动的设备数量
+     */
     @Override
     public Result<String> startList(List<String> ids) {
+        // 检查是否所有设备都已运行
         if (ids != null && runningDevices.size() == allSize) {
             log.info("模拟器已全部在运行中");
             return Result.fail(ErrorCode.DEVICE_DEVICE_RUNNING_NOW_ERROR.code(),
                     ErrorCode.DEVICE_DEVICE_RUNNING_NOW_ERROR.message());
         }
+        
+        // 检查设备初始化状态
         if (!isInit) {
             return Result.fail(ErrorCode.DEVICE_INIT_ERROR.code(),
                     ErrorCode.DEVICE_INIT_ERROR.message());
         }
+        
         if (ids != null && !ids.isEmpty()) {
-            //删除缓存
+            // 删除指定设备的缓存
             ids.forEach(id -> redisTemplate.delete(deviceStatusPrefix + id));
+            
+            // 将设备添加到运行集合
             runningDevices.addAll(ids);
-            // 每一个设备开启一个独立的递归流
-            ids.forEach(id -> redisTemplate.opsForHash().put("OnLineMap", id, String.valueOf(System.currentTimeMillis())));
+            
+            // 更新Redis在线设备映射，记录上线时间
+            ids.forEach(id -> redisTemplate.opsForHash()
+                    .put("OnLineMap", id, String.valueOf(System.currentTimeMillis())));
+            
+            // 为每个设备启动心跳任务
             ids.forEach(this::startHeartbeat);
+            
+            // 为每个设备启动数据上报任务
             ids.forEach(this::scheduleNextReport);
+            
+            // 异步更新数据库：设置设备为运行状态和在线状态
             pool.submit(() -> {
                 this.lambdaUpdate().in(VirtualDevice::getDeviceCode, ids)
                         .eq(VirtualDevice::getIsRunning, false)
                         .set(VirtualDevice::getIsRunning, true)
                         .set(VirtualDevice::getStatus, true).update();
             });
+            
             log.info("批量：成功开启 {} 台设备的模拟数据流", ids.size());
-
             return Result.ok("成功开启" + ids.size() + "台设备");
         }
+        
         return Result.fail(ErrorCode.UNKNOWN.code(), ErrorCode.UNKNOWN.message());
     }
 
     /**
-     * 前端入口：所有虚拟设备停止模拟
+     * 停止所有虚拟设备的模拟
+     * <p>
+     * 执行流程：<p>
+     * 1. 设置设备不可检查状态<p>
+     * 2. 清空运行设备集合<p>
+     * 3. 取消所有定时任务<p>
+     * 4. 通过消息队列异步更新数据库<p>
+     * 5. 清理缓存<p>
+     * @return 停止结果
      */
-    @Time
-    @InitLuaScript
+    @Time  // AOP注解：记录方法执行耗时
+    @InitLuaScript  // AOP注解：初始化Lua脚本
     @Override
     public Result<String> stopSimulation() {
-        //停止受检
+        // 设置设备不可检查状态
         redisTemplate.opsForValue().set("MeterChecked", "0");
-        //关闭开关
+        
+        // 清空运行设备集合，停止所有设备
         runningDevices.clear();
-        // 取消所有排队中的倒计时任务
+        
+        // 取消所有排队中的定时任务
         deviceTasks.forEach((id, future) -> {
             if (future != null && !future.isCancelled()) {
-                future.cancel(false);
+                future.cancel(false);  // 非强制取消，允许当前任务完成
             }
         });
-        //写回数据库状态，在异步线程池
-        //由于异步线程的异常不被事务控制，这里最好用消息队列
+        
+        // 通过消息队列异步更新数据库状态
+        // 由于异步线程的异常不被事务控制，使用消息队列确保可靠性
         rocketMQTemplate.convertAndSend("OpsForDataBase", "LetAllMetersStopRunning");
-        //删状态缓存
-        //此方法是安全的，使用scan进行删除
-        cache.invalidateAll();
-        redisScanDel(deviceStatusPrefix + "*", 100, redisTemplate);
+        
+        // 清理状态缓存，使用scan安全删除
+        cache.invalidateAll();  // 清空本地缓存
+        redisScanDel(deviceStatusPrefix + "*", 100, redisTemplate);  // 删除Redis设备状态缓存
+        
+        // 清空任务映射
         deviceTasks.clear();
+        
         log.info("已停止所有模拟数据上报任务");
         return Result.ok("已停止所有模拟数据上报任务");
     }
 
     /**
-     * 前端入口：单设备或者批量设备停止模拟
+     * 停止单个或批量指定的虚拟设备模拟
+     * 
+     * @param ids 需要停止的设备ID列表
+     * @return 停止结果
      */
     @Override
     public Result<String> singleStopSimulation(List<String> ids) {
+        // 参数校验：设备列表不能为空
         if (ids == null || ids.isEmpty()) {
             return Result.fail(null, "设备列表为空");
         }
+        
+        // 遍历需要停止的设备，执行停止操作
         ids.forEach(id -> {
             ScheduledFuture<?> future = deviceTasks.get(id);
             if (future != null) {
+                // 取消该设备的定时任务
                 future.cancel(false);
+                // 从任务映射中移除
                 deviceTasks.remove(id);
+                // 从运行设备集合中移除
                 runningDevices.remove(id);
             }
         });
-        //这里同理
+        
+        // 异步更新数据库：将指定设备设置为非运行状态
         pool.submit(() -> {
             LambdaUpdateWrapper<VirtualDevice> running = new LambdaUpdateWrapper<VirtualDevice>()
                     .in(VirtualDevice::getDeviceCode, ids)
@@ -240,8 +324,11 @@ public class VirtualMeterDeviceServiceImpl extends ServiceImpl<DeviceMapper, Vir
                     .set(VirtualDevice::getIsRunning, false);
             deviceMapper.update(running);
         });
-        cache.invalidateAll(ids);
-        ids.forEach(id -> redisTemplate.delete(deviceStatusPrefix + id));
+        
+        // 清理相关缓存
+        cache.invalidateAll(ids);  // 清空本地缓存中指定设备
+        ids.forEach(id -> redisTemplate.delete(deviceStatusPrefix + id));  // 删除Redis中的设备状态缓存
+        
         return Result.ok(SuccessCode.DEVICE_STOP_SUCCESS.getCode(),
                 SuccessCode.DEVICE_STOP_SUCCESS.getMessage());
     }
@@ -348,15 +435,26 @@ public class VirtualMeterDeviceServiceImpl extends ServiceImpl<DeviceMapper, Vir
     }
 
 
+    /**
+     * 将指定设备设置为下线状态
+     * 
+     * @param ids 需要下线的设备ID列表
+     * @return 下线结果
+     */
     @Override
     public Result<String> offline(List<String> ids) {
         log.info("下线设备：{}", sanitizeForLog(ids.toString()));
+        
+        // 从运行设备集合中移除
         ids.forEach(runningDevices::remove);
+        
+        // 更新数据库：设置设备状态为离线，运行状态为false
         boolean updateResult = lambdaUpdate()
                 .in(VirtualDevice::getDeviceCode, ids)
                 .set(VirtualDevice::getStatus, "offline")
                 .set(VirtualDevice::getIsRunning, false)
                 .update();
+                
         if (updateResult) {
             return Result.ok(SuccessCode.DEVICE_OFFLINE_SUCCESS.getCode(),
                     SuccessCode.DEVICE_OFFLINE_SUCCESS.getMessage());
@@ -365,9 +463,22 @@ public class VirtualMeterDeviceServiceImpl extends ServiceImpl<DeviceMapper, Vir
         }
     }
 
+    /**
+     * 更改设备模拟模式
+     * <p>
+     * 支持的模式：<p>
+     * - burstPipe: 爆管模式<p>
+     * - leaking: 漏水模式  <p>
+     * - normal: 正常模式
+     * 
+     * @param mode 模拟模式<p>
+     * @return 更改结果
+     */
     @Override
     public Result<String> changeMode(String mode) {
+        // 验证模式参数的有效性
         if (mode.equals("burstPipe") || mode.equals("leaking") || mode.equals("normal")) {
+            // 将模式存储到Redis中，供所有设备使用
             redisTemplate.opsForValue().set("mode", mode);
             return Result.ok(SuccessCode.METER_MODE_CHANGE_SUCCESS.getCode(),
                     SuccessCode.METER_MODE_CHANGE_SUCCESS.getMessage());
@@ -375,6 +486,11 @@ public class VirtualMeterDeviceServiceImpl extends ServiceImpl<DeviceMapper, Vir
         return Result.fail(ErrorCode.PARAM_VALIDATION_ERROR.code(), ErrorCode.PARAM_VALIDATION_ERROR.message());
     }
 
+    /**
+     * 获取设备总数
+     * 
+     * @return 设备总数
+     */
     @Override
     public Result<Integer> getDeviceNums() {
         return Result.ok(Integer.parseInt(Objects.requireNonNull(redisTemplate.opsForValue().get("allDeviceNums"))));
@@ -382,152 +498,233 @@ public class VirtualMeterDeviceServiceImpl extends ServiceImpl<DeviceMapper, Vir
 
     /**
      * 对日志内容进行简单清洗，防止换行等导致日志注入
+     * 
+     * @param input 原始输入字符串
+     * @return 清洗后的安全字符串
      */
     private String sanitizeForLog(String input) {
         if (input == null) {
             return null;
         }
-        // 去除回车和换行，防止伪造多行日志
+        // 去除回车和换行符，防止伪造多行日志
         return input.replace('\r', ' ')
                 .replace('\n', ' ');
     }
 
-    // 单独开一个心跳任务
+    /**
+     * 为指定设备启动心跳任务
+     * <p>
+     * 心跳任务会定期发送设备心跳信息，确保设备在线状态
+     * @param deviceId 设备ID
+     */
     private void startHeartbeat(String deviceId) {
+        // 获取心跳发送间隔（秒）和时间偏移（秒）
         int time = Integer.parseInt(serverConfig.getMeterReportFrequency()) / 1000;
         int offset = Integer.parseInt(serverConfig.getMeterTimeOffset()) / 1000;
+        
+        // 启动定时心跳任务
         scheduler.scheduleAtFixedRate(() -> {
             long now = System.currentTimeMillis();
             Long reportTime = this.reportTime.get(deviceId);
+            
+            // 检查设备是否还在运行，如果不在运行则停止心跳
             if (reportTime == null || !runningDevices.contains(deviceId)) {
                 return;
             }
+            
+            // 如果距离上次上报超过10秒，使用当前时间作为心跳时间戳
+            // 这样可以确保心跳时间戳的合理性
             reportTime = now - reportTime >= 10_000L ? now : reportTime;
+            
             try {
+                // 发送心跳信息
                 dataSender.heartBeat(deviceId, reportTime);
             } catch (Exception e) {
                 log.error("心跳发送异常: {}", e.getMessage(), e);
             }
-        }, 0, time + offset, TimeUnit.SECONDS);
+        }, 0, time + offset, TimeUnit.SECONDS);  // 立即开始，每隔time+offset秒执行一次
     }
 
     /**
-     * 核心递归调度逻辑
+     * 核心递归调度逻辑，为指定设备启动数据上报任务
+     * <p>
+     * 该方法采用递归调度模式，每次上报完成后会自动调度下一次上报，
+     * 形成持续的数据上报流。通过随机延迟避免设备集中上报。
+     *
+     * @param deviceId 设备ID
      */
     private void scheduleNextReport(String deviceId) {
         String sanitizedDeviceId = sanitizeForLog(deviceId);
-        // 检查全局控制位
+        
+        // 检查设备是否还在运行集合中，如果不在则停止调度
         if (!runningDevices.contains(deviceId)) {
             log.info("设备 {} 不在运行集合中, 停止上报调度", sanitizedDeviceId);
             return;
         }
-        String reportFrequency = serverConfig.getMeterReportFrequency();
-        String timeOffset = serverConfig.getMeterTimeOffset();
-        // 如果配置缺失，直接返回
+        
+        // 获取上报配置参数
+        String reportFrequency = serverConfig.getMeterReportFrequency();  // 基础上报频率
+        String timeOffset = serverConfig.getMeterTimeOffset();  // 时间偏移范围
+        
+        // 配置参数校验
         if (reportFrequency == null || timeOffset == null) {
             log.warn("设备 {} 上报配置缺失", sanitizedDeviceId);
             return;
         }
-        // 计算随机上报延迟，打破设备集中上报
+        
+        // 计算随机上报延迟，打破设备集中上报的峰值
+        // 延迟 = 基础频率 + 随机偏移，使上报时间更加分散
         long delay = Long.parseLong(reportFrequency) +
                 ThreadLocalRandom.current().nextLong(Long.parseLong(timeOffset));
+        
+        // 调度单次数据上报任务
         ScheduledFuture<?> future = scheduler.schedule(() -> {
             try {
+                // 处理单个设备的数据上报
                 processSingleDevice(deviceId);
             } catch (Exception e) {
                 log.error("设备 {} 数据上报失败: {}", sanitizedDeviceId, e.getMessage(), e);
             } finally {
-                // 递归调度下一次上报
+                // 无论成功失败，都要递归调度下一次上报
+                // 更新上报时间戳，用于心跳对齐
                 reportTime.put(deviceId, System.currentTimeMillis());
                 scheduleNextReport(deviceId);
             }
         }, delay, TimeUnit.MILLISECONDS);
-        // 保存任务
+        
+        // 保存任务句柄，用于后续取消操作
         deviceTasks.put(deviceId, future);
     }
 
     /**
      * 判断设备是否在线
+     * 
+     * @param deviceId 设备ID
+     * @return true表示在线，false表示离线
      */
     private boolean isDeviceOnline(String deviceId) {
-        //先查询缓存
+        // 先查询Redis缓存中的离线状态
         String s = redisTemplate.opsForValue().get("device:OffLine:" + deviceId);
         String status = "online";
+        
+        // 如果缓存中有离线记录，则查询数据库获取最新状态
         if (s != null) {
             status = this.lambdaQuery().eq(VirtualDevice::getDeviceCode, deviceId)
                     .one().getStatus();
         }
+        
         return status.equals("online");
     }
 
     /**
-     * 生成单条模拟数据并执行发送
-     *
+     * 生成单条模拟数据并发送
+     * <p>
+     * 该方法为单个设备生成完整的水表数据，包括：<p>
+     * - 水流量（根据时间和楼宇类型计算）<p>
+     * - 水压（根据水流量计算）<p>
+     * - 水温（根据时间和季节计算）<p>
+     * - 时间戳和其他元数据
+     * 
      * @param id 设备编号
      */
     private void processSingleDevice(String id) {
         MeterDataBo dataBo = new MeterDataBo();
-        dataBo.setDeviceId(id);
-        dataBo.setDevice(1);
+        
+        // 获取模拟的时间参数（秒）
         int time = Integer.parseInt(Objects.requireNonNull(redisTemplate.opsForValue().get("Time")));
+        
+        // 根据时间和楼宇类型生成水流量
         double flow = waterFlowGenerate(time, id);
-        //得到正确水压
+        
+        // 根据水流量计算对应的水压
         double pressure = waterPressureGenerate(flow, serverConfig);
-        // 时间戳微扰：增加纳秒级偏移，使排序更逼真
-        dataBo.setTimeStamp(LocalDateTime.now().plusNanos(ThreadLocalRandom.current().nextInt(1000000)));
-        dataBo.setFlow(flow);
-        dataBo.setPressure(pressure);
-        String season = Objects.requireNonNull(redisTemplate.opsForValue().get("Season"));
-        int s = Integer.parseInt(season);
+        
+        // 获取当前季节参数
+        int season = Integer.parseInt(Objects.requireNonNull(redisTemplate.opsForValue().get("Season")));
+        
+        // 根据季节设置水温计算的中间值和步长
         int mid, step;
-        //春季
-        if (s == 1) {
-            mid = 15;
-            step = 3;
-        }
-        //夏季
-        else if (s == 2) {
-            mid = 22;
-            step = 5;
-        }
-        //秋季
-        else if (s == 3) {
-            mid = 17;
-            step = 2;
-        }
-        //冬季
-        else {
-            mid = 6;
-            step = 2;
-        }
-        dataBo.setWaterTem(waterTemperateGenerate(time, mid, step));
-        dataBo.setIsOpen(DeviceStatus.NORMAL);
-        dataBo.setStatus(DeviceStatus.NORMAL);
+        step = switch (season) {
+            case 1 -> {  // 春季
+                mid = 15;  // 中间温度15度
+                yield 3;   // 步长3度
+            }
+            case 2 -> {  // 夏季
+                mid = 22;  // 中间温度22度
+                yield 5;   // 步长5度
+            }
+            case 3 -> {  // 秋季
+                mid = 17;  // 中间温度17度
+                yield 2;   // 步长2度
+            }
+            default -> { // 冬季
+                mid = 6;   // 中间温度6度
+                yield 2;   // 步长2度
+            }
+        };
+        
+        // 设置数据对象的基本信息
+        dataBo.setDeviceId(id);  // 设备ID
+        dataBo.setDevice(1);    // 设备类型标识
+        
+        // 设置时间戳，添加随机纳秒避免时间戳完全相同
+        dataBo.setTimeStamp(LocalDateTime.now().plusNanos(ThreadLocalRandom.current().nextInt(1000000)));
+        
+        // 设置模拟数据
+        dataBo.setFlow(flow);    // 水流量
+        dataBo.setPressure(pressure);  // 水压
+        dataBo.setWaterTem(waterTemperateGenerate(time, mid, step));  // 水温
+        dataBo.setIsOpen(DeviceStatus.NORMAL);    // 设备开关状态
+        dataBo.setStatus(DeviceStatus.NORMAL);     // 设备运行状态
+        
+        // 发送数据到消息队列或数据接收端
         dataSender.sendMeterData(dataBo);
     }
 
     /**
-     * 根据每天不同时段和不同的楼宇生成水流量的水流生成器
+     * 根据时间和楼宇类型生成水流量
+     * <p>
+     * 该方法根据设备ID判断楼宇类型，并调用相应的流量生成算法：<p>
+     * - 教学楼：使用教育区流量模式<p>
+     * - 实验楼：使用实验区流量模式  <p>
+     * - 宿舍楼：使用宿舍区流量模式
+     *
+     * @param time     模拟时间（从0点开始的秒数）
+     * @param deviceId 设备ID，格式为"XXYYZZ"，其中YY为楼宇编号
+     * @return 水流量值（保留3位小数）
      */
     private double waterFlowGenerate(int time, String deviceId) {
+        // 从设备ID中提取楼宇编号（第3-4位字符）
         int buildingNum = Integer.parseInt(deviceId.substring(2, 4));
         double flow;
-        int education = Integer.parseInt(Objects.requireNonNull(redisTemplate.opsForValue().get("device:educationBuildings")));
-        int experiment = Integer.parseInt(Objects.requireNonNull(redisTemplate.opsForValue().get("device:experimentBuildings")));
+        
+        // 获取楼宇类型分界参数
+        int education = Integer.parseInt(Objects.requireNonNull(redisTemplate.opsForValue().get("device:educationBuildings")));   // 教学楼数量
+        int experiment = Integer.parseInt(Objects.requireNonNull(redisTemplate.opsForValue().get("device:experimentBuildings"))); // 实验楼数量
 
+        // 根据楼宇编号选择对应的流量生成算法
         if (buildingNum <= education) {
+            // 教学楼：使用教育区流量模式
             flow = getEducationFlow(time, deviceId);
         } else if (buildingNum <= experiment) {
+            // 实验楼：使用实验区流量模式
             flow = getExperimentFlow(time, deviceId);
         } else {
+            // 宿舍楼：使用宿舍区流量模式
             flow = getDormitoryFlow(time, deviceId);
         }
+        
+        // 保留3位小数后返回
         return keep3(flow);
     }
 
-    Map<String, Integer> ids;
+    /** 每台设备可以上报活跃用水数据的剩余次数 */
+    Map<String, Integer> eachDeviceRemainingReportActiveWaterInfoCounts;
+    /** 每台设备可以上报活跃用水数据的次数的副本，用于后续时段 */
     Map<String, Integer> temp;
+    /** 是否已经随机选择了上报活跃用水数据的水表设备 */
     volatile boolean flag = false;
+    /** 同步锁对象，用于保护宿舍设备选择的并发操作 */
     final Object lock = new Object();
 
     private double getDormitoryFlow(int time, String id) {
@@ -548,17 +745,18 @@ public class VirtualMeterDeviceServiceImpl extends ServiceImpl<DeviceMapper, Vir
         } else if (time > 7.25 * 3600 + offset && time <= 8 * 3600 + offset) {
             synchronized (lock) {
                 if (!flag) {
-                    ids = chooseDormitory(0.5);
-                    temp = new HashMap<>(ids);
+                    eachDeviceRemainingReportActiveWaterInfoCounts = chooseDormitory(0.5);
+                    temp = new HashMap<>(eachDeviceRemainingReportActiveWaterInfoCounts);
                     flag = true;
                 }
             }
             if (p >= 0.93) {
-                if (ids != null) {
+                if (eachDeviceRemainingReportActiveWaterInfoCounts != null) {
                     synchronized (lock) {
-                        if (ids.containsKey(id) && ids.get(id) > 0) {
-                            Integer cnt = ids.get(id);
-                            ids.put(id, --cnt);
+                        if (eachDeviceRemainingReportActiveWaterInfoCounts.containsKey(id)
+                                && eachDeviceRemainingReportActiveWaterInfoCounts.get(id) > 0) {
+                            Integer cnt = eachDeviceRemainingReportActiveWaterInfoCounts.get(id);
+                            eachDeviceRemainingReportActiveWaterInfoCounts.put(id, --cnt);
                             return ThreadLocalRandom.current().nextDouble(0.17, 0.25);
                         }
                     }
@@ -601,10 +799,12 @@ public class VirtualMeterDeviceServiceImpl extends ServiceImpl<DeviceMapper, Vir
     }
 
     /**
-     * 方法返回约总设备的0.v倍的设备数量
+     * 方法返回约总设备的0.v倍的宿舍设备数量
+     *
+     * @param v 倍数
      */
     private Map<String, Integer> chooseDormitory(double v) {
-        //宿舍楼的编号都在实验楼之后
+        //宿舍楼的编号都在实验楼之后，下标是左闭右开的，firstIndex是第一个宿舍楼的下标
         int firstIndex = Integer.parseInt(Objects.requireNonNull(redisTemplate.opsForValue()
                 .get("device:experimentBuildings")));
         Long size;
@@ -622,14 +822,23 @@ public class VirtualMeterDeviceServiceImpl extends ServiceImpl<DeviceMapper, Vir
         return null;
     }
 
-    volatile boolean isExperimentGet = false;
-    volatile boolean isEducationGet = false;
+    /** 是否已经获取了实验楼设备列表 */
+    volatile boolean isGetExperimentDevices = false;
+    /** 是否已经获取了教学楼设备列表 */
+    volatile boolean isGetEducationDevices = false;
+    /** 教学楼设备ID集合 */
     volatile Set<String> educationIds;
-    volatile Map<String, Integer> experimentIds;
+    /** 每个实验楼设备剩余上报活跃用水数据的次数 */
+    volatile Map<String, Integer> eachExperimentDeviceRemainingReportActiveWaterInfoCounts;
+    /** 实验楼设备同步锁对象 */
     final Object lock1 = new Object();
+    /** 上午时段（8-12点）标志位 */
     volatile boolean flag1 = false;
+    /** 下午时段（12-15点）标志位 */
     volatile boolean flag2 = false;
+    /** 傍晚时段（15-18点）标志位 */
     volatile boolean flag3 = false;
+    /** 晚间时段（18-22点）标志位 */
     volatile boolean flag4 = false;
 
     private double getExperimentFlow(int time, String deviceId) {
@@ -640,7 +849,7 @@ public class VirtualMeterDeviceServiceImpl extends ServiceImpl<DeviceMapper, Vir
             if (!flag1) {
                 synchronized (lock1) {
                     if (!flag1) {
-                        assignRunnableDevice();
+                        assignRunnableActiveDevice();
                         flag1 = true;
                     }
                 }
@@ -652,7 +861,7 @@ public class VirtualMeterDeviceServiceImpl extends ServiceImpl<DeviceMapper, Vir
             if (!flag2) {
                 synchronized (lock1) {
                     if (!flag2) {
-                        assignRunnableDevice();
+                        assignRunnableActiveDevice();
                         flag2 = true;
                     }
                 }
@@ -664,7 +873,7 @@ public class VirtualMeterDeviceServiceImpl extends ServiceImpl<DeviceMapper, Vir
             if (!flag3) {
                 synchronized (lock1) {
                     if (!flag3) {
-                        assignRunnableDevice();
+                        assignRunnableActiveDevice();
                         flag3 = true;
                     }
                 }
@@ -676,7 +885,7 @@ public class VirtualMeterDeviceServiceImpl extends ServiceImpl<DeviceMapper, Vir
             if (!flag4) {
                 synchronized (lock1) {
                     if (!flag4) {
-                        assignRunnableDevice();
+                        assignRunnableActiveDevice();
                         flag4 = true;
                     }
                 }
@@ -693,6 +902,9 @@ public class VirtualMeterDeviceServiceImpl extends ServiceImpl<DeviceMapper, Vir
         }
     }
 
+    /**
+     * 保证第二天可以正常分配上报活跃水信息的水表设备
+     */
     private void reset() {
         flag1 = false;
         flag2 = false;
@@ -701,18 +913,21 @@ public class VirtualMeterDeviceServiceImpl extends ServiceImpl<DeviceMapper, Vir
     }
 
     private double returnFlow(String deviceId, double origin, double bound) {
-        Integer cnt = experimentIds.get(deviceId);
+        Integer cnt = eachExperimentDeviceRemainingReportActiveWaterInfoCounts.get(deviceId);
         if (cnt != null && cnt > 0) {
-            experimentIds.put(deviceId, --cnt);
+            eachExperimentDeviceRemainingReportActiveWaterInfoCounts.put(deviceId, --cnt);
             return ThreadLocalRandom.current().nextDouble(origin, bound);
         } else return 0;
     }
 
-    private void assignRunnableDevice() {
+    /**
+     * 分配可以上报活跃水信息的设备
+     */
+    private void assignRunnableActiveDevice() {
         int education = Integer.parseInt(Objects.requireNonNull(redisTemplate.opsForValue().get("device:educationBuildings")));
         int experiment = Integer.parseInt(Objects.requireNonNull(redisTemplate.opsForValue().get("device:experimentBuildings")));
         synchronized (lock1) {
-            if (!isExperimentGet) {
+            if (!isGetExperimentDevices) {
                 //设备全量列表
                 Set<String> members = Objects.requireNonNull(redisTemplate.opsForSet().members("device:meter"));
                 //是实验楼的所有设备数量
@@ -721,7 +936,7 @@ public class VirtualMeterDeviceServiceImpl extends ServiceImpl<DeviceMapper, Vir
                     return buildingNum > education && buildingNum <= experiment;
                 }).count();
                 //选择的所有运行设备
-                experimentIds = members
+                eachExperimentDeviceRemainingReportActiveWaterInfoCounts = members
                         .stream()
                         .filter(id -> {
                             int buildingNum = Integer.parseInt(id.substring(2, 4));
@@ -729,7 +944,7 @@ public class VirtualMeterDeviceServiceImpl extends ServiceImpl<DeviceMapper, Vir
                         })
                         .limit(Math.max(1, canRunning / 3))
                         .collect(Collectors.toMap(id -> id, id -> 60));
-                isExperimentGet = true;
+                isGetExperimentDevices = true;
             }
         }
     }
@@ -741,7 +956,7 @@ public class VirtualMeterDeviceServiceImpl extends ServiceImpl<DeviceMapper, Vir
         // 教学区设备集合，只第一次获取
         int education = Integer.parseInt(Objects.requireNonNull(redisTemplate.opsForValue().get("device:educationBuildings")));
         synchronized (this) {
-            if (!isEducationGet) {
+            if (!isGetEducationDevices) {
                 Set<String> members = Objects.requireNonNull(redisTemplate.opsForSet().members("device:meter"));
                 int canRunning = (int) members.stream()
                         .filter(id -> {
@@ -756,7 +971,7 @@ public class VirtualMeterDeviceServiceImpl extends ServiceImpl<DeviceMapper, Vir
                         })
                         .limit(Math.max(1, canRunning / 2))
                         .collect(Collectors.toSet());
-                isEducationGet = true;
+                isGetEducationDevices = true;
             }
         }
         // 如果这个设备属于教学楼
@@ -803,7 +1018,7 @@ public class VirtualMeterDeviceServiceImpl extends ServiceImpl<DeviceMapper, Vir
 
 
     /**
-     * 初始化设备并入库（逻辑保持原样）
+     * 初始化设备并入库
      */
     @Time
     @Override
@@ -819,7 +1034,7 @@ public class VirtualMeterDeviceServiceImpl extends ServiceImpl<DeviceMapper, Vir
         }
         String prefix = "device:";
         //清除上一次模拟数据
-        clearRedisData(redisTemplate, deviceMapper);
+        clearRedisAndDbData(redisTemplate, deviceMapper);
         redisTemplate.opsForValue().set(prefix + "educationBuildings", String.valueOf(educationBuildings));
         redisTemplate.opsForValue().set(prefix + "experimentBuildings", String.valueOf(educationBuildings + experimentBuildings));
         DeviceIdList deviceIdList = initAllRedisData(buildings, floors, rooms, redisTemplate, redissonClient);
@@ -830,15 +1045,15 @@ public class VirtualMeterDeviceServiceImpl extends ServiceImpl<DeviceMapper, Vir
         List<VirtualDevice> meterList = new ArrayList<>();
         List<VirtualDevice> waterList = new ArrayList<>();
 
-        build(meterDeviceIds, meterList, 1);
-        build(waterQualityDeviceIds, waterList, 2);
-
-        ExecutorService executor = Executors.newFixedThreadPool(5);
+        //构建集合
+        buildDevicesList(meterDeviceIds, meterList, 1);
+        buildDevicesList(waterQualityDeviceIds, waterList, 2);
         VirtualMeterDeviceServiceImpl proxy = (VirtualMeterDeviceServiceImpl) AopContext.currentProxy();
-        executor.submit(() -> proxy.saveBatch(meterList, 2000));
-        executor.submit(() -> proxy.saveBatch(waterList, 2000));
-        executor.shutdown();
-        executor.awaitTermination(1, TimeUnit.MINUTES);
+        //异步写入数据库
+        pool.submit(() -> proxy.saveBatch(meterList, 2000));
+        pool.submit(() -> proxy.saveBatch(waterList, 2000));
+        pool.shutdown();
+        pool.awaitTermination(1, TimeUnit.MINUTES);
         this.isInit = true;
         waterQualityDeviceService.setInit(true);
         log.info("设备注册完成：校区 3 楼宇 {} 层数 {} 房间 {}", buildings, floors, rooms);
@@ -851,9 +1066,11 @@ public class VirtualMeterDeviceServiceImpl extends ServiceImpl<DeviceMapper, Vir
     }
 
     /**
-     * 构建设备集合，方便存入数据库
+     * 构建设备集合，方便批量存入数据库
+     * @param deviceIds 传入的集合总数
+     * @param virtualDeviceList 目标集合
      */
-    private static void build(List<String> deviceIds, List<VirtualDevice> virtualDeviceList, int type) {
+    private static void buildDevicesList(List<String> deviceIds, List<VirtualDevice> virtualDeviceList, int type) {
         Date now = new Date();
         deviceIds.forEach(id -> {
             VirtualDevice virtualDevice = new VirtualDevice();

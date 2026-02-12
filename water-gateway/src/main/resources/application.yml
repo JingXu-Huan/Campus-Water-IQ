@@ -19,12 +19,12 @@ spring:
           predicates:
           # 按需替换，添加即可
             - Path=/service/**
-        - id: PredictionService
+        - id: prediction
           uri: lb://prediction-service
           predicates:
           # 按需替换，添加即可
             - Path=/prediction/**
-        - id: warn
+        - id: warning
           uri: lb://warn-service
           predicates:
           # 按需替换，添加即可
@@ -34,3 +34,34 @@ spring:
           predicates:
             # 按需替换，添加即可
             - Path=/auth/**
+
+# 网关配置
+gateway:
+  security:
+    # JWT密钥（与AuthService保持一致）
+    jwt-secret: ${jwt.secret:jicndghfsW=sbf739f4e7fhnsfhji9qw23fywq8fhweiouwf9uew9f76tewfewop9}
+    # 不需要认证的路径
+    permit-all-paths:
+      - /auth/signin
+      - /auth/send-code
+      - /auth/send-phone-code
+      - /auth/github/authorize
+      - /auth/github/callback
+      - /auth/wechat/authorize
+      - /auth/wechat/callback
+      - /actuator/**
+      - /health
+      - /favicon.ico
+    # 限流配置
+    rate-limit:
+      enabled: true
+      replenish-rate: 10
+      burst-capacity: 20
+
+# 日志配置
+logging:
+  level:
+    com.ncwu.watergateway: DEBUG
+    org.springframework.cloud.gateway: DEBUG
+  pattern:
+    console: "%d{yyyy-MM-dd HH:mm:ss} [%thread] %-5level %logger{36} - %msg%n"

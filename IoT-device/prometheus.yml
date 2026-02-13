@@ -1,0 +1,13 @@
+# Prometheus 配置文件
+global:
+  scrape_interval: 15s
+  evaluation_interval: 15s
+
+scrape_configs:
+  - job_name: 'iot-device'
+    metrics_path: '/actuator/prometheus'
+    static_configs:
+      #      这里要替换
+      - targets: [ '192.168.1.5:18097' ]
+    scrape_interval: 10s
+    scrape_timeout: 5s

@@ -60,7 +60,7 @@ public class MeterIoTDeviceController {
      */
     @PostMapping("/endList")
     public Result<String> endList(@NotNull  @RequestBody @Valid IdsDTO ids) {
-        return virtualMeterDeviceService.singleStopSimulation(ids.getIds());
+        return virtualMeterDeviceService.listStopSimulation(ids.getIds());
     }
 
     /**

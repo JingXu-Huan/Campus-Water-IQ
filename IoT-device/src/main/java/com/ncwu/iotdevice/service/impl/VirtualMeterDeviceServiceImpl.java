@@ -202,11 +202,10 @@ public class VirtualMeterDeviceServiceImpl extends ServiceImpl<DeviceMapper, Vir
 
         if (ids != null && !ids.isEmpty()) {
             // 异步更新数据库：将未运行的设备状态设置为运行中
-            pool.submit(() -> {
-                this.lambdaUpdate().in(VirtualDevice::getDeviceCode, ids)
-                        .eq(VirtualDevice::getIsRunning, false)
-                        .set(VirtualDevice::getIsRunning, true).update();
-            });
+
+            this.lambdaUpdate().in(VirtualDevice::getDeviceCode, ids)
+                    .set(VirtualDevice::getIsRunning, true).update();
+
 
             // 使用Lua脚本批量更新Redis在线设备映射，提高性能
             String hashKey = "OnLineMap";
@@ -334,7 +333,7 @@ public class VirtualMeterDeviceServiceImpl extends ServiceImpl<DeviceMapper, Vir
      * @return 停止结果
      */
     @Override
-    public Result<String> singleStopSimulation(List<String> ids) {
+    public Result<String> listStopSimulation(List<String> ids) {
         // 参数校验：设备列表不能为空
         if (ids == null || ids.isEmpty()) {
             return Result.fail(null, "设备列表为空");
@@ -465,7 +464,8 @@ public class VirtualMeterDeviceServiceImpl extends ServiceImpl<DeviceMapper, Vir
 
     @Override
     public Result<String> destroyAll() {
-        if (this.isRunning()) {
+        if (Integer.parseInt(Objects.requireNonNull(redisTemplate.opsForValue().get("MeterChecked"))) == 1 ||
+                Integer.parseInt(Objects.requireNonNull(redisTemplate.opsForValue().get("WaterQualityChecked"))) == 1) {
             return Result.fail(ErrorCode.DEVICE_CANT_RESET_ERROR.code(), ErrorCode.DEVICE_CANT_RESET_ERROR.message());
         }
         this.isInit = false;
@@ -1154,6 +1154,10 @@ public class VirtualMeterDeviceServiceImpl extends ServiceImpl<DeviceMapper, Vir
             virtualDevice.setIsRunning(false);
             virtualDeviceList.add(virtualDevice);
         });
+    }
+
+    public void madeSomeLocalCacheInvalidated(List<String> ids) {
+        ids.forEach(cache::invalidate);
     }
 
     @Override

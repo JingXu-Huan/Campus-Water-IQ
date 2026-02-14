@@ -24,7 +24,7 @@ public interface VirtualMeterDeviceService extends IService<VirtualDevice> {
 
     Result<String> init(int buildings, int floors, int rooms, int dormitoryBuildings, int educationBuildings, int experimentBuildings) throws InterruptedException;
 
-    Result<String> singleStopSimulation(List<String> ids);
+    Result<String> listStopSimulation(List<String> ids);
 
     Result<Map<String, String>> checkDeviceStatus(List<String> ids);
 

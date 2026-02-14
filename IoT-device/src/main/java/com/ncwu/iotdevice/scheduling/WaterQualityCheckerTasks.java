@@ -6,6 +6,7 @@ import com.ncwu.common.domain.Bo.ErrorDataMessageBO;
 import com.ncwu.iotdevice.config.ServerConfig;
 import com.ncwu.iotdevice.domain.entity.VirtualDevice;
 import com.ncwu.iotdevice.mapper.DeviceMapper;
+import com.ncwu.iotdevice.service.impl.VirtualMeterDeviceServiceImpl;
 import com.ncwu.iotdevice.utils.Utils;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -16,6 +17,7 @@ import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Component;
 
+import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.concurrent.TimeUnit;
@@ -30,7 +32,7 @@ import java.util.concurrent.TimeUnit;
 @RequiredArgsConstructor
 public class WaterQualityCheckerTasks {
 
-
+    private final VirtualMeterDeviceServiceImpl virtualMeterDeviceService;
     private final StringRedisTemplate redisTemplate;
     private final DeviceMapper deviceMapper;
     private final RocketMQTemplate rocketMQTemplate;
@@ -46,7 +48,7 @@ public class WaterQualityCheckerTasks {
             return;
         }
         int waterQualityChecked = Integer.parseInt(Objects.requireNonNull(redisTemplate.opsForValue().get("WaterQualityChecked")));
-        if (waterQualityChecked == 0){
+        if (waterQualityChecked == 0) {
             return;
         }
         log.warn("传感器--开始检测");
@@ -96,10 +98,13 @@ public class WaterQualityCheckerTasks {
         LambdaUpdateWrapper<VirtualDevice> updateWrapper = new LambdaUpdateWrapper<VirtualDevice>()
                 .eq(VirtualDevice::getDeviceCode, deviceId)
                 .eq(VirtualDevice::getStatus, "online")
-                .set(VirtualDevice::getIsRunning, true)
+                .set(VirtualDevice::getIsRunning, false)
                 .set(VirtualDevice::getStatus, "offline");
         deviceMapper.update(updateWrapper);
+        
+        // 数据库更新完成后，清理缓存
         redisTemplate.delete("cache:device:status:" + deviceId);
+        virtualMeterDeviceService.madeSomeLocalCacheInvalidated(List.of(deviceId));
         //在线状态表也要一并清除
         redisTemplate.opsForHash().delete("OnLineMap", deviceId);
         log.warn("已修改 {} 设备的状态为 offline ", deviceId);

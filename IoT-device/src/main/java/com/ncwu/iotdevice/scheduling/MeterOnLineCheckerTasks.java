@@ -5,6 +5,7 @@ import com.ncwu.common.domain.Bo.ErrorDataMessageBO;
 import com.ncwu.iotdevice.config.ServerConfig;
 import com.ncwu.iotdevice.domain.entity.VirtualDevice;
 import com.ncwu.iotdevice.mapper.DeviceMapper;
+import com.ncwu.iotdevice.service.impl.VirtualMeterDeviceServiceImpl;
 import com.ncwu.iotdevice.utils.Utils;
 import lombok.Getter;
 import lombok.RequiredArgsConstructor;
@@ -16,6 +17,7 @@ import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Component;
 
+import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.concurrent.ExecutorService;
@@ -38,6 +40,7 @@ public class MeterOnLineCheckerTasks {
 
     ExecutorService pool = Executors.newFixedThreadPool(7);
 
+    private final VirtualMeterDeviceServiceImpl virtualMeterDeviceService;
     private final StringRedisTemplate redisTemplate;
     private final DeviceMapper deviceMapper;
     private final RocketMQTemplate rocketMQTemplate;
@@ -107,10 +110,13 @@ public class MeterOnLineCheckerTasks {
                     .set(VirtualDevice::getIsRunning, false)
                     .set(VirtualDevice::getStatus, "offline");
             deviceMapper.update(updateWrapper);
+            
+            // 数据库更新完成后，再清理缓存
+            redisTemplate.delete("cache:device:status:" + deviceId);
+            virtualMeterDeviceService.madeSomeLocalCacheInvalidated(List.of(deviceId));
+            //在线状态表也要一并清除
+            redisTemplate.opsForHash().delete("OnLineMap", deviceId);
         });
-        redisTemplate.delete("cache:meter:status:" + deviceId);
-        //在线状态表也要一并清除
-        redisTemplate.opsForHash().delete("OnLineMap", deviceId);
         //在 redis 维护下线缓存列表,为设备后续上线提供方便
         redisTemplate.opsForValue().set("device:OffLine:" + deviceId, "offLine,false", 7, TimeUnit.DAYS);
     }

@@ -373,16 +373,20 @@ public class IoTDataServiceImpl extends ServiceImpl<IoTDeviceDataMapper, IotDevi
             LocalDateTime end,
             String deviceId) {
 
+        DateFormatBo dateFormatBo = getDateFormatBo(start, end);
+        String startTime = dateFormatBo.startTime();
+        String endTime = dateFormatBo.endTime();
+
         String flux = String.format("""
                 from(bucket: "water")
-                  |> range(start: %s, end: %s)
+                  |> range(start: %s, stop: %s)
                   |> filter(fn: (r) =>
                     r._measurement == "water_quality" and
                     r._field == "flow" and
                     r.deviceId == "%s"
                   )
                   |> keep(columns: ["_time", "_value"])
-                """, start, end, deviceId);
+                """, startTime, endTime, deviceId);
 
         List<FluxTable> tables = influxDBClient.getQueryApi().query(flux);
 

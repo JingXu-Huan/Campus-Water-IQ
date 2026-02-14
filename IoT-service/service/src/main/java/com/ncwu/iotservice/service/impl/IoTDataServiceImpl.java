@@ -126,7 +126,6 @@ public class IoTDataServiceImpl extends ServiceImpl<IoTDeviceDataMapper, IotDevi
                 |> last()
                 |> keep(columns: ["_time", "_value"])
                 """, deviceId);
-
         Double flow;
         try {
             flow = influxDBClient.getQueryApi().query(fluxQuery).stream()

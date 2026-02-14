@@ -18,7 +18,6 @@ public class IdsDTO {
     @Valid
     @NotNull(message = "设备ID不能为空")
     @Size(min = 1, message = "设备ID不能为空")
-    @Bloom
     private List<
             @NotBlank(message = "设备ID不能为空")
             @Pattern(

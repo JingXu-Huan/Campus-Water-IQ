@@ -10,6 +10,8 @@ import org.springframework.stereotype.Component;
 import java.util.Objects;
 
 /**
+ * 在redis模拟时钟
+ *
  * @author jingxu
  * @version 1.0.0
  * @since 2026/1/12
@@ -19,10 +21,12 @@ import java.util.Objects;
 @RequiredArgsConstructor
 public class TimeChange {
     private final StringRedisTemplate redisTemplate;
-
     //redis 时钟五分钟指针动一次
     @Scheduled(fixedRate = 1000 * 60 * 5)
     public void timeChange() {
+        if (Objects.requireNonNull(redisTemplate.opsForValue().get("isInit")).equals("0")){
+            return;
+        }
         //读取旧值 time以秒为单位
         int time = Integer.parseInt(Objects.requireNonNull(redisTemplate.opsForValue().get("Time")));
         time += 60 * 5;

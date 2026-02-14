@@ -10,6 +10,7 @@ import com.ncwu.iotdevice.domain.Bo.MeterDataBo;
 import com.ncwu.iotdevice.domain.Bo.WaterQualityDataBo;
 import com.ncwu.iotdevice.exception.MessageSendException;
 import com.ncwu.iotdevice.mapper.DeviceMapper;
+import com.ncwu.iotdevice.utils.Utils;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.rocketmq.client.producer.SendCallback;
 import org.apache.rocketmq.client.producer.SendResult;
@@ -22,7 +23,6 @@ import io.micrometer.core.instrument.Counter;
 import java.time.ZoneId;
 
 import static com.ncwu.iotdevice.utils.Utils.keep3;
-import static com.ncwu.iotdevice.utils.Utils.markDeviceOnline;
 
 /**
  * @author jingxu
@@ -40,6 +40,7 @@ public class DataSender {
     private final RocketMQTemplate rocketMQTemplate;
     private final StringRedisTemplate redisTemplate;
     private final DeviceMapper deviceMapper;
+    private final Utils utils;
 
     //构造函数，用于自动装配
     public DataSender(@Qualifier("messageSuccessCounter") Counter MessageSuccessCounter,
@@ -47,13 +48,16 @@ public class DataSender {
                       ObjectMapper objectMapper,
                       RocketMQTemplate rocketMQTemplate,
                       StringRedisTemplate redisTemplate,
-                      DeviceMapper deviceMapper) {
+                      DeviceMapper deviceMapper,
+                      Utils utils
+    ) {
         this.messageSuccessCounter = MessageSuccessCounter;
         this.messageFailureCounter = MessageFailureCounter;
         this.objectMapper = objectMapper;
         this.rocketMQTemplate = rocketMQTemplate;
         this.redisTemplate = redisTemplate;
         this.deviceMapper = deviceMapper;
+        this.utils = utils;
     }
 
 
@@ -97,7 +101,7 @@ public class DataSender {
                 messageFailureCounter.increment();
             }
             //如果设备上线,调用设备上线后置处理器
-            markDeviceOnline(deviceId, now, deviceMapper, redisTemplate);
+            utils.markDeviceOnline(deviceId, now, deviceMapper, redisTemplate);
         }
         String data;
         try {
@@ -128,7 +132,7 @@ public class DataSender {
                 messageFailureCounter.increment();
             }
             //如果设备上线,调用设备上线后置处理器
-            markDeviceOnline(deviceId, timestamp, deviceMapper, redisTemplate);
+            utils.markDeviceOnline(deviceId, timestamp, deviceMapper, redisTemplate);
         }
         String data;
         try {

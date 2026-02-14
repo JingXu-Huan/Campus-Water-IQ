@@ -47,4 +47,6 @@ public interface VirtualMeterDeviceService extends IService<VirtualDevice> {
     Result<String> changeMode(String mode);
 
     Result<Integer> getDeviceNums();
+
+    void madeSomeLocalCacheInvalidated(List<String> ids);
 }

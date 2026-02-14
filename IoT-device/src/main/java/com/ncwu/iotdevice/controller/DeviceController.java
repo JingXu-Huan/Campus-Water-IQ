@@ -8,12 +8,15 @@ import com.ncwu.common.domain.dto.IdsDTO;
 import com.ncwu.iotdevice.exception.DeviceRegisterException;
 import com.ncwu.iotdevice.service.VirtualMeterDeviceService;
 import com.ncwu.iotdevice.service.VirtualWaterQualityDeviceService;
+import com.ncwu.iotdevice.utils.Utils;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.*;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.web.bind.annotation.*;
 
+import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 
@@ -32,7 +35,7 @@ public class DeviceController {
 
     private final VirtualMeterDeviceService virtualMeterDeviceService;
     private final VirtualWaterQualityDeviceService virtualWaterQualityDeviceService;
-
+    private final Utils utils;
     /**
      * 初始化
      * 建议前端传入参数，或者从配置文件读取默认值
@@ -114,8 +117,17 @@ public class DeviceController {
      */
     @PostMapping("/status")
     public Result<Map<String, String>> checkDeviceStatus(@NotNull @RequestBody @Valid IdsDTO ids) {
+        List<@NotBlank(message = "设备ID不能为空") @Pattern(
+                regexp = "^[12][1-3](0[1-9]|[1-9][0-9])(0[1-9]|[1-9][0-9])(00[1-9]|0[1-9][0-9]|[1-9][0-9]{2})$",
+                message = "设备ID格式错误"
+        ) String> list = ids.getIds();
+        if (utils.hasInvalidDevice(list)) {
+            return Result.fail(ErrorCode.PARAM_VALIDATION_ERROR.code(), ErrorCode.PARAM_VALIDATION_ERROR.message());
+        }
         return virtualMeterDeviceService.checkDeviceStatus(ids.getIds());
     }
+
+
 
     /**
      * 设置模拟模式 支持：leaking、burstPipe、normal三种模式

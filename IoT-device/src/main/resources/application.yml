@@ -12,7 +12,12 @@ dubbo:
   protocol:
     name: tri
     port: 50052
-
+logging:
+  # 2. 级别改为 INFO 或 ERROR
+  level:
+    com.ncwu.watergateway: error
+    org.springframework.cloud.gateway: error
+  # 3. 压测时尽量关闭控制台彩色日志输出，减少 CPU 消耗
 # Actuator 配置
 management:
   endpoints:
@@ -26,3 +31,7 @@ management:
     metrics:
       export:
         enabled: true
+server:
+  tomcat:
+    threads:
+      max: 5000

@@ -2,8 +2,10 @@ package com.ncwu.watergateway.filter;
 
 import com.ncwu.watergateway.config.GatewaySecurityProperties;
 import io.jsonwebtoken.Claims;
+import io.jsonwebtoken.JwtParser;
 import io.jsonwebtoken.Jwts;
 import io.jsonwebtoken.security.Keys;
+import jakarta.annotation.PostConstruct;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.cloud.gateway.filter.GatewayFilterChain;
@@ -38,7 +40,18 @@ public class AuthenticationFilter implements GlobalFilter, Ordered {
     private static final String AUTHORIZATION_HEADER = "Authorization";
     private static final String BEARER_PREFIX = "Bearer ";
     private static final int ORDER = -100;
+    private SecretKey cachedKey;
+    private JwtParser jwtParser;
 
+    // 在初始化方法中执行（例如 @PostConstruct）
+    @PostConstruct
+    public void init() {
+        String jwtSecret = securityProperties.getJwtSecret();
+        this.cachedKey = Keys.hmacShaKeyFor(jwtSecret.getBytes(StandardCharsets.UTF_8));
+        this.jwtParser = Jwts.parserBuilder()
+                .setSigningKey(this.cachedKey)
+                .build();
+    }
     @Override
     public Mono<Void> filter(ServerWebExchange exchange, GatewayFilterChain chain) {
         ServerHttpRequest request = exchange.getRequest();
@@ -106,18 +119,10 @@ public class AuthenticationFilter implements GlobalFilter, Ordered {
      */
     private Claims validateToken(String token) {
         try {
-            String jwtSecret = securityProperties.getJwtSecret();
-            log.debug("JWT secret length: {}, first 10 chars: {}", 
-                     jwtSecret != null ? jwtSecret.length() : "null",
-                     jwtSecret != null ? jwtSecret.substring(0, Math.min(10, jwtSecret.length())) : "null");
-            SecretKey key = Keys.hmacShaKeyFor(jwtSecret.getBytes(StandardCharsets.UTF_8));
-            return Jwts.parserBuilder()
-                    .setSigningKey(key)
-                    .build()
-                    .parseClaimsJws(token)
-                    .getBody();
+            // 直接使用预热好的解析器，不再创建对象，不再计算Key
+            return jwtParser.parseClaimsJws(token).getBody();
         } catch (Exception e) {
-            log.error("Token validation error: {}", e.getMessage(), e);
+            log.error("Token validation error: {}", e.getMessage());
             return null;
         }
     }

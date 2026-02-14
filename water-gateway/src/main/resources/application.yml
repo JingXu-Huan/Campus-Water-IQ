@@ -18,7 +18,7 @@ spring:
           uri: lb://IoT-service
           predicates:
           # 按需替换，添加即可
-            - Path=/service/**
+            - Path=/service/**,/Data/**
         - id: prediction
           uri: lb://prediction-service
           predicates:
@@ -34,7 +34,8 @@ spring:
           predicates:
             # 按需替换，添加即可
             - Path=/auth/**
-
+  main:
+    web-application-type: reactive
 # 网关配置
 gateway:
   security:
@@ -54,14 +55,10 @@ gateway:
       - /favicon.ico
     # 限流配置
     rate-limit:
-      enabled: true
-      replenish-rate: 10
-      burst-capacity: 20
+      enabled: false
 
-# 日志配置
 logging:
+  # 2. 级别改为 INFO 或 ERROR
   level:
-    com.ncwu.watergateway: DEBUG
-    org.springframework.cloud.gateway: DEBUG
-  pattern:
-    console: "%d{yyyy-MM-dd HH:mm:ss} [%thread] %-5level %logger{36} - %msg%n"
+    com.ncwu.watergateway: error
+    org.springframework.cloud.gateway: error

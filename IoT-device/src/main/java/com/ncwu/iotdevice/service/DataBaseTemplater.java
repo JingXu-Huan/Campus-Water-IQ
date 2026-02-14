@@ -31,8 +31,6 @@ public class DataBaseTemplater implements RocketMQListener<String> {
             meterDeviceService.update(updateWrapper);
         } else if (s.equals("LetAllWaterQualitiesStopRunning")) {
             waterQualityDeviceService.update(updateWrapper);
-        } else {
-            return;
         }
     }
 }

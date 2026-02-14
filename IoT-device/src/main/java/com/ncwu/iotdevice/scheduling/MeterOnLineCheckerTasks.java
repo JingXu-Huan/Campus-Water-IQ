@@ -118,7 +118,7 @@ public class MeterOnLineCheckerTasks {
             redisTemplate.opsForHash().delete("OnLineMap", deviceId);
         });
         //在 redis 维护下线缓存列表,为设备后续上线提供方便
-        redisTemplate.opsForValue().set("device:OffLine:" + deviceId, "offLine,false", 7, TimeUnit.DAYS);
+        redisTemplate.opsForValue().set("device:OffLine:" + deviceId, "offLine,false", 365, TimeUnit.DAYS);
     }
 
 }

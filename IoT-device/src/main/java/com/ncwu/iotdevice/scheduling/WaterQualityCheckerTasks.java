@@ -54,7 +54,6 @@ public class WaterQualityCheckerTasks {
         log.warn("传感器--开始检测");
         String prefix = "OnLineMap";
         long now = System.currentTimeMillis();
-        log.debug("检测时的时间戳：{}", now);
         //按量扫描，避免数据量过大产生OOM
         ScanOptions options = ScanOptions.scanOptions().match("*").count(15000).build();
         try (Cursor<Map.Entry<Object, Object>> cursor = redisTemplate.opsForHash().scan(prefix, options)) {
@@ -109,6 +108,6 @@ public class WaterQualityCheckerTasks {
         redisTemplate.opsForHash().delete("OnLineMap", deviceId);
         log.warn("已修改 {} 设备的状态为 offline ", deviceId);
         //在 redis 维护下线缓存列表,为设备后续上线提供方便
-        redisTemplate.opsForValue().set("device:OffLine:" + deviceId, "offLine,false", 7, TimeUnit.DAYS);
+        redisTemplate.opsForValue().set("device:OffLine:" + deviceId, "offLine,false", 365, TimeUnit.DAYS);
     }
 }

@@ -637,26 +637,6 @@ public class VirtualMeterDeviceServiceImpl extends ServiceImpl<DeviceMapper, Vir
     }
 
     /**
-     * 判断设备是否在线
-     *
-     * @param deviceId 设备ID
-     * @return true表示在线，false表示离线
-     */
-    private boolean isDeviceOnline(String deviceId) {
-        // 先查询Redis缓存中的离线状态
-        String s = redisTemplate.opsForValue().get("device:OffLine:" + deviceId);
-        String status = "online";
-
-        // 如果缓存中有离线记录，则查询数据库获取最新状态
-        if (s != null) {
-            status = this.lambdaQuery().eq(VirtualDevice::getDeviceCode, deviceId)
-                    .one().getStatus();
-        }
-
-        return status.equals("online");
-    }
-
-    /**
      * 生成单条模拟数据并发送
      * <p>
      * 该方法为单个设备生成完整的水表数据，包括：<p>
@@ -791,10 +771,13 @@ public class VirtualMeterDeviceServiceImpl extends ServiceImpl<DeviceMapper, Vir
                 }
             }
         } else if (time > 7.25 * 3600 + offset && time <= 8 * 3600 + offset) {
+            double wakeUpDormRate = serverConfig.getWakeUpDormRate();
             synchronized (lock) {
                 if (!flag) {
-                    eachDeviceRemainingReportActiveWaterInfoCounts = chooseDormitory(0.5);
-                    temp = new HashMap<>(eachDeviceRemainingReportActiveWaterInfoCounts);
+                    eachDeviceRemainingReportActiveWaterInfoCounts = chooseDormitory(wakeUpDormRate);
+                    if (eachDeviceRemainingReportActiveWaterInfoCounts != null) {
+                        temp = new HashMap<>(eachDeviceRemainingReportActiveWaterInfoCounts);
+                    }
                     flag = true;
                 }
             }
@@ -1119,11 +1102,14 @@ public class VirtualMeterDeviceServiceImpl extends ServiceImpl<DeviceMapper, Vir
         pool.submit(() -> proxy.saveBatch(meterList, 2000));
         pool.submit(() -> proxy.saveBatch(waterList, 2000));
         pool.shutdown();
-        pool.awaitTermination(1, TimeUnit.MINUTES);
+        boolean terminated = pool.awaitTermination(1, TimeUnit.MINUTES);
+        if (!terminated) {
+            log.warn("线程池未在指定时间内完成关闭，可能存在未完成的任务");
+        }
         this.isInit = true;
         waterQualityDeviceService.setInit(true);
         log.info("设备注册完成：校区 3 楼宇 {} 层数 {} 房间 {}", buildings, floors, rooms);
-        this.allSize = buildings * floors * rooms;
+        this.allSize = buildings * floors * rooms * 3;
         //总数量写入redis
         redisTemplate.opsForValue().set("allDeviceNums", String.valueOf(allSize));
 

@@ -35,4 +35,6 @@ public class ServerConfig {
     double PnotCredible;
     //错过 n 个上报周期视为下线
     int n;
+    //早八宿舍起床比例
+    double wakeUpDormRate;
 }

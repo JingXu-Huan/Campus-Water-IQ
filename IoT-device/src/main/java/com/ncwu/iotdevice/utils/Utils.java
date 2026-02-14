@@ -9,6 +9,9 @@ import com.ncwu.iotdevice.domain.Bo.DeviceIdList;
 import com.ncwu.iotdevice.domain.entity.VirtualDevice;
 import com.ncwu.iotdevice.exception.DeviceRegisterException;
 import com.ncwu.iotdevice.mapper.DeviceMapper;
+import com.ncwu.iotdevice.service.VirtualMeterDeviceService;
+import jakarta.validation.constraints.NotBlank;
+import jakarta.validation.constraints.Pattern;
 import lombok.RequiredArgsConstructor;
 import org.redisson.api.RBloomFilter;
 import org.redisson.api.RedissonClient;
@@ -21,6 +24,7 @@ import java.math.BigDecimal;
 import java.math.RoundingMode;
 import java.util.*;
 import java.util.concurrent.*;
+import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
@@ -101,7 +105,7 @@ public class Utils {
     }
 
     /**
-     * 方法清除 redis和数据库 中对应的旧数据
+     * 方法清除 redis 和数据库中对应的旧数据
      */
     public static void clearRedisAndDbData(StringRedisTemplate redisTemplate, DeviceMapper deviceMapper) {
         String prefix = "device:";
@@ -119,6 +123,15 @@ public class Utils {
             redisTemplate.delete(prefix + "DormitoryBuildings");
             redisTemplate.delete(prefix + "educationBuildings");
             redisTemplate.delete(prefix + "experimentBuildings");
+            redisTemplate.delete("{device:bloom}:config");
+            redisTemplate.delete("{Email:bloomfilter}:config");
+            redisTemplate.delete("{Phone:bloomfilter}:config");
+            redisTemplate.delete("{Uid:bloomfilter}:config");
+            redisTemplate.delete("device:bloom");
+            redisTemplate.delete("Phone:bloomfilter");
+            redisTemplate.delete("Uid:bloomfilter");
+            redisTemplate.delete("isInit");
+            redisTemplate.delete("mode");
             redisScanDel("device:OffLine:*", 1000, redisTemplate);
             deviceMapper.delete(null);
         } catch (Exception e) {
@@ -182,7 +195,7 @@ public class Utils {
     /**
      * 设备上线后置处理器
      */
-    public static void markDeviceOnline(String deviceCode, long timestamp, DeviceMapper deviceMapper,
+    public void markDeviceOnline(String deviceCode, long timestamp, DeviceMapper deviceMapper,
                                         StringRedisTemplate redisTemplate) {
         //得到自定义线程池
         ExecutorService pools = getExecutorPools("markDeviceOnline", 5, 10, 60, 1000);
@@ -196,6 +209,7 @@ public class Utils {
                             .set(VirtualDevice::getStatus, "online");
             deviceMapper.update(updateWrapper);
         });
+
         // 2. 清理离线缓存
         redisTemplate.delete("device:OffLine:" + deviceCode);
         redisTemplate.delete("cache:device:status:" + deviceCode);
@@ -219,7 +233,7 @@ public class Utils {
      * 得到一个自定义线程池
      *
      * @param name        线程池名称
-     * @param coreSize        核心线程池数量
+     * @param coreSize    核心线程池数量
      * @param maxSize     最大线程数量
      * @param seconds     线程空闲生存时间
      * @param tasksLength 最多任务数量
@@ -255,6 +269,39 @@ public class Utils {
             now = sum / entries.size();  // 用实际数量除
         }
         return now;
+    }
+
+    /**
+     * 检查设备列表中是否有无效设备（不在Redis中的设备）
+     *
+     * @param deviceIds 设备ID列表
+     * @return true如果有无效设备，false如果所有设备都有效
+     */
+    public boolean hasInvalidDevice(String key, List<String> deviceIds) {
+        AtomicBoolean hasInvalidDevice = new AtomicBoolean(false);
+        deviceIds.forEach(id -> {
+            Boolean isMember = redisTemplate.opsForSet().isMember("device:" + key, id);
+            if (Boolean.FALSE.equals(isMember)) {
+                hasInvalidDevice.set(true);
+            }
+        });
+        return hasInvalidDevice.get();
+    }
+
+    public boolean hasInvalidDevice(List<@NotBlank(message = "设备ID不能为空") @Pattern(
+            regexp = "^[12][1-3](0[1-9]|[1-9][0-9])(0[1-9]|[1-9][0-9])(00[1-9]|0[1-9][0-9]|[1-9][0-9]{2})$",
+            message = "设备ID格式错误"
+    ) String> deviceIds) {
+        AtomicBoolean hasInvalidDevice = new AtomicBoolean(false);
+        deviceIds.forEach(id -> {
+            // 根据设备ID第一位判断类型：1=水表，2=传感器
+            String deviceType = id.charAt(0) == '1' ? "meter" : "sensor";
+            Boolean isMember = redisTemplate.opsForSet().isMember("device:" + deviceType, id);
+            if (Boolean.FALSE.equals(isMember)) {
+                hasInvalidDevice.set(true);
+            }
+        });
+        return hasInvalidDevice.get();
     }
 }
 

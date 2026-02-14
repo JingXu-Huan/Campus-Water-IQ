@@ -121,10 +121,7 @@ public class IoTDataController {
      */
     @GetMapping("/TotalWaterUsage")
     public Result<Double> getTotalUsage(String deviceId) {
-        if (bloomFilterService.mightContains(List.of(deviceId))) {
-            return ioTDataService.getTotalUsage(deviceId);
-        } else
-            return Result.fail(ErrorCode.PARAM_VALIDATION_ERROR.code(), ErrorCode.PARAM_VALIDATION_ERROR.message());
+        return ioTDataService.getTotalUsage(deviceId);
     }
 
     /**

@@ -32,7 +32,7 @@ public interface IoTDataService extends IService<IotDeviceData> {
 
     Result<Double> getOfflineRate();
 
-    Result<Double> getWaterQuality(String deviceId);
+    Result<Double> getWaterQualityScore(String deviceId);
 
     Result<Double> getTurbidity(String deviceId);
 

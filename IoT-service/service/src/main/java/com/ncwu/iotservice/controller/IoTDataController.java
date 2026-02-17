@@ -167,8 +167,8 @@ public class IoTDataController {
      * 获取水质评分
      */
     @GetMapping("/getWaterQuality")
-    public Result<Double> getWaterQuality(String deviceId) {
-        return ioTDataService.getWaterQuality(deviceId);
+    public Result<Double> getWaterQualityScore(String deviceId) {
+        return ioTDataService.getWaterQualityScore(deviceId);
     }
 
     /**

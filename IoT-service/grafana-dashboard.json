@@ -18,7 +18,7 @@
   "editable": true,
   "fiscalYearStartMonth": 0,
   "graphTooltip": 0,
-  "id": 7,
+  "id": 8,
   "links": [],
   "panels": [
     {
@@ -71,13 +71,13 @@
       "targets": [
         {
           "editorMode": "builder",
-          "expr": "executor_pool_core_threads{name=\"taskScheduler\"}",
+          "expr": "executor_pool_core_threads{name=\"applicationTaskExecutor\"}",
           "legendFormat": "__auto",
           "range": true,
           "refId": "A"
         }
       ],
-      "title": "定时任务核心线程数",
+      "title": "IoT服务核心线程数",
       "type": "stat"
     },
     {
@@ -139,13 +139,13 @@
       "targets": [
         {
           "editorMode": "builder",
-          "expr": "executor_active_threads{name=\"taskScheduler\"}",
+          "expr": "executor_active_threads{name=\"applicationTaskExecutor\"}",
           "legendFormat": "__auto",
           "range": true,
           "refId": "A"
         }
       ],
-      "title": "定时任务活跃线程",
+      "title": "IoT服务活跃线程",
       "type": "stat"
     },
     {
@@ -206,11 +206,11 @@
       "pluginVersion": "12.3.3",
       "targets": [
         {
-          "expr": "(sum(rate(mq_send_failure_total{queue=\"data-queue\"}[5m])) / (sum(rate(mq_send_success_total{queue=\"data-queue\"}[5m])) + sum(rate(mq_send_failure_total{queue=\"data-queue\"}[5m])))) * 100",
+          "expr": "0",
           "refId": "A"
         }
       ],
-      "title": "Failure rate % (5m)",
+      "title": "IoT服务失败率 % (5m)",
       "type": "stat"
     },
     {
@@ -272,7 +272,7 @@
           {
             "matcher": {
               "id": "byName",
-              "options": "{__name__=\"jvm_threads_started_threads_total\", instance=\"192.168.1.20:18097\", job=\"iot-device\"}"
+              "options": "{__name__=\"jvm_threads_started_threads_total\", instance=\"192.168.1.20:18098\", job=\"iot-service\"}"
             },
             "properties": [
               {
@@ -310,13 +310,13 @@
       "targets": [
         {
           "editorMode": "builder",
-          "expr": "jvm_threads_started_threads_total{job=\"iot-device\"}",
+          "expr": "jvm_threads_live_threads{job=\"iot-service\"}",
           "legendFormat": "__auto",
           "range": true,
           "refId": "A"
         }
       ],
-      "title": "虚拟机累计启动过的线程总数",
+      "title": "IoT服务虚拟机累计启动线程总数",
       "type": "timeseries"
     },
     {
@@ -346,369 +346,15 @@
                 "value": 0.5
               }
             ]
-          }
+          },
+          "unit": "reqps"
         },
         "overrides": []
       },
       "gridPos": {
         "h": 5,
-        "w": 4,
-        "x": 20,
-        "y": 0
-      },
-      "id": 9,
-      "options": {
-        "colorMode": "value",
-        "graphMode": "area",
-        "justifyMode": "auto",
-        "orientation": "auto",
-        "percentChangeColorMode": "standard",
-        "reduceOptions": {
-          "calcs": [
-            "lastNotNull"
-          ],
-          "fields": "",
-          "values": false
-        },
-        "showPercentChange": false,
-        "textMode": "auto",
-        "wideLayout": true
-      },
-      "pluginVersion": "12.3.3",
-      "targets": [
-        {
-          "datasource": {
-            "type": "prometheus",
-            "uid": "efd2qqdfu5atcf"
-          },
-          "editorMode": "code",
-          "expr": "rate(jvm_gc_pause_seconds_sum{cause=\"G1 Evacuation Pause\"}[5m])/rate(jvm_gc_pause_seconds_count[5m])",
-          "hide": false,
-          "instant": false,
-          "legendFormat": "__auto",
-          "range": true,
-          "refId": "A"
-        }
-      ],
-      "title": "过去五分钟的GC平均停顿时间",
-      "type": "stat"
-    },
-    {
-      "datasource": {
-        "type": "prometheus",
-        "uid": "efd2qqdfu5atcf"
-      },
-      "fieldConfig": {
-        "defaults": {
-          "color": {
-            "mode": "palette-classic"
-          },
-          "custom": {
-            "axisBorderShow": false,
-            "axisCenteredZero": false,
-            "axisColorMode": "text",
-            "axisLabel": "",
-            "axisPlacement": "auto",
-            "barAlignment": 0,
-            "barWidthFactor": 0.6,
-            "drawStyle": "line",
-            "fillOpacity": 0,
-            "gradientMode": "none",
-            "hideFrom": {
-              "legend": false,
-              "tooltip": false,
-              "viz": false
-            },
-            "insertNulls": false,
-            "lineInterpolation": "linear",
-            "lineWidth": 1,
-            "pointSize": 5,
-            "scaleDistribution": {
-              "type": "linear"
-            },
-            "showPoints": "auto",
-            "showValues": false,
-            "spanNulls": false,
-            "stacking": {
-              "group": "A",
-              "mode": "none"
-            },
-            "thresholdsStyle": {
-              "mode": "off"
-            }
-          },
-          "mappings": [],
-          "thresholds": {
-            "mode": "absolute",
-            "steps": [
-              {
-                "color": "red",
-                "value": 0
-              }
-            ]
-          }
-        },
-        "overrides": [
-          {
-            "matcher": {
-              "id": "byName",
-              "options": "sum(rate(mq_send_failure_total{queue=\"data-queue\"}[5m]))"
-            },
-            "properties": [
-              {
-                "id": "color",
-                "value": {
-                  "fixedColor": "red",
-                  "mode": "fixed"
-                }
-              }
-            ]
-          }
-        ]
-      },
-      "gridPos": {
-        "h": 8,
-        "w": 7,
+        "w": 5,
         "x": 0,
-        "y": 2
-      },
-      "id": 2,
-      "options": {
-        "legend": {
-          "calcs": [],
-          "displayMode": "list",
-          "placement": "bottom",
-          "showLegend": true
-        },
-        "tooltip": {
-          "hideZeros": false,
-          "mode": "single",
-          "sort": "none"
-        }
-      },
-      "pluginVersion": "12.3.3",
-      "targets": [
-        {
-          "expr": "sum(rate(mq_send_failure_total{queue=\"data-queue\"}[5m]))",
-          "refId": "A"
-        }
-      ],
-      "title": "MQ send failure / s (5m rate)",
-      "type": "timeseries"
-    },
-    {
-      "fieldConfig": {
-        "defaults": {
-          "mappings": [],
-          "thresholds": {
-            "mode": "absolute",
-            "steps": [
-              {
-                "color": "green",
-                "value": 0
-              },
-              {
-                "color": "red",
-                "value": 80
-              }
-            ]
-          }
-        },
-        "overrides": []
-      },
-      "gridPos": {
-        "h": 5,
-        "w": 2,
-        "x": 7,
-        "y": 5
-      },
-      "id": 5,
-      "options": {
-        "colorMode": "value",
-        "graphMode": "area",
-        "justifyMode": "auto",
-        "orientation": "auto",
-        "percentChangeColorMode": "standard",
-        "reduceOptions": {
-          "calcs": [
-            "lastNotNull"
-          ],
-          "fields": "",
-          "values": false
-        },
-        "showPercentChange": false,
-        "textMode": "auto",
-        "wideLayout": true
-      },
-      "pluginVersion": "12.3.3",
-      "targets": [
-        {
-          "expr": "sum(mq_send_failure_total{queue=\"data-queue\"})",
-          "refId": "A"
-        }
-      ],
-      "title": "Failure total",
-      "type": "stat"
-    },
-    {
-      "datasource": {
-        "type": "prometheus",
-        "uid": "efd2qqdfu5atcf"
-      },
-      "description": "用于判断是否存在线程泄漏、并发压力过大或死锁等潜在问题。",
-      "fieldConfig": {
-        "defaults": {
-          "color": {
-            "mode": "palette-classic"
-          },
-          "custom": {
-            "axisBorderShow": false,
-            "axisCenteredZero": false,
-            "axisColorMode": "text",
-            "axisLabel": "",
-            "axisPlacement": "auto",
-            "barAlignment": 0,
-            "barWidthFactor": 0.6,
-            "drawStyle": "line",
-            "fillOpacity": 20,
-            "gradientMode": "none",
-            "hideFrom": {
-              "legend": false,
-              "tooltip": false,
-              "viz": false
-            },
-            "insertNulls": false,
-            "lineInterpolation": "smooth",
-            "lineWidth": 2,
-            "pointSize": 5,
-            "scaleDistribution": {
-              "type": "linear"
-            },
-            "showPoints": "auto",
-            "showValues": false,
-            "spanNulls": false,
-            "stacking": {
-              "group": "A",
-              "mode": "none"
-            },
-            "thresholdsStyle": {
-              "mode": "off"
-            }
-          },
-          "mappings": [],
-          "thresholds": {
-            "mode": "absolute",
-            "steps": [
-              {
-                "color": "green",
-                "value": 0
-              }
-            ]
-          }
-        },
-        "overrides": [
-          {
-            "matcher": {
-              "id": "byName",
-              "options": "{__name__=\"jvm_threads_live_threads\", instance=\"192.168.1.20:18097\", job=\"iot-device\"}"
-            },
-            "properties": [
-              {
-                "id": "color",
-                "value": {
-                  "fixedColor": "purple",
-                  "mode": "fixed"
-                }
-              }
-            ]
-          }
-        ]
-      },
-      "gridPos": {
-        "h": 5,
-        "w": 11,
-        "x": 9,
-        "y": 5
-      },
-      "id": 11,
-      "options": {
-        "legend": {
-          "calcs": [],
-          "displayMode": "list",
-          "placement": "bottom",
-          "showLegend": true
-        },
-        "tooltip": {
-          "hideZeros": false,
-          "mode": "single",
-          "sort": "none"
-        }
-      },
-      "pluginVersion": "12.3.3",
-      "targets": [
-        {
-          "editorMode": "builder",
-          "expr": "jvm_threads_live_threads{job=\"iot-device\"}",
-          "legendFormat": "__auto",
-          "range": true,
-          "refId": "A"
-        }
-      ],
-      "title": "JVM 当前实时存活的线程总数",
-      "type": "timeseries"
-    },
-    {
-      "datasource": {
-        "type": "prometheus",
-        "uid": "efd2qqdfu5atcf"
-      },
-      "description": "当前统计周期内，G1 Evacuation Pause 的最大单次 GC 停顿时间（单位：秒）",
-      "fieldConfig": {
-        "defaults": {
-          "color": {
-            "mode": "thresholds"
-          },
-          "mappings": [],
-          "thresholds": {
-            "mode": "absolute",
-            "steps": [
-              {
-                "color": "light-blue",
-                "value": 0
-              },
-              {
-                "color": "#EAB839",
-                "value": 0.2
-              },
-              {
-                "color": "red",
-                "value": 0.5
-              }
-            ]
-          }
-        },
-        "overrides": [
-          {
-            "matcher": {
-              "id": "byName",
-              "options": "{__name__=\"jvm_gc_pause_seconds_max\", action=\"end of minor GC\", cause=\"CodeCache GC Threshold\", gc=\"G1 Young Generation\", instance=\"192.168.1.20:18097\", job=\"iot-device\"}"
-            },
-            "properties": [
-              {
-                "id": "color",
-                "value": {
-                  "fixedColor": "dark-blue",
-                  "mode": "fixed"
-                }
-              }
-            ]
-          }
-        ]
-      },
-      "gridPos": {
-        "h": 5,
-        "w": 4,
-        "x": 20,
         "y": 5
       },
       "id": 8,
@@ -732,19 +378,20 @@
       "pluginVersion": "12.3.3",
       "targets": [
         {
-          "editorMode": "code",
-          "expr": "jvm_gc_pause_seconds_max{cause=\"G1 Evacuation Pause\"}",
-          "legendFormat": "__auto",
+          "editorMode": "builder",
+          "expr": "rate(http_server_requests_seconds_count{job=\"iot-service\"}[5m])",
+          "legendFormat": "{{uri}}",
           "range": true,
           "refId": "A"
         }
       ],
-      "title": "单次 GC 最长停顿时间",
+      "title": "IoT服务请求速率",
       "type": "stat"
     },
     {
       "datasource": {
-        "type": "prometheus"
+        "type": "prometheus",
+        "uid": "efd2qqdfu5atcf"
       },
       "fieldConfig": {
         "defaults": {
@@ -760,27 +407,32 @@
                 "value": 0
               },
               {
-                "color": "green",
-                "value": 0
+                "color": "#EAB839",
+                "value": 0.1
+              },
+              {
+                "color": "red",
+                "value": 0.5
               }
             ]
-          }
+          },
+          "unit": "s"
         },
         "overrides": []
       },
       "gridPos": {
-        "h": 6,
+        "h": 5,
         "w": 5,
-        "x": 0,
-        "y": 10
+        "x": 5,
+        "y": 5
       },
-      "id": 4,
+      "id": 9,
       "options": {
         "colorMode": "value",
         "graphMode": "area",
         "justifyMode": "auto",
         "orientation": "auto",
-        "percentChangeColorMode": "inverted",
+        "percentChangeColorMode": "standard",
         "reduceOptions": {
           "calcs": [
             "lastNotNull"
@@ -795,11 +447,14 @@
       "pluginVersion": "12.3.3",
       "targets": [
         {
-          "expr": "sum(mq_send_success_total{queue=\"data-queue\"})",
+          "editorMode": "builder",
+          "expr": "histogram_quantile(0.95, rate(http_server_requests_seconds_bucket{job=\"iot-service\"}[5m]))",
+          "legendFormat": "__auto",
+          "range": true,
           "refId": "A"
         }
       ],
-      "title": "MQ Send Success Message",
+      "title": "IoT服务95%响应时间",
       "type": "stat"
     },
     {
@@ -807,7 +462,6 @@
         "type": "prometheus",
         "uid": "efd2qqdfu5atcf"
       },
-      "description": "在最近 5 分钟内，每秒成功发送消息的平均速度。",
       "fieldConfig": {
         "defaults": {
           "color": {
@@ -822,130 +476,7 @@
             "barAlignment": 0,
             "barWidthFactor": 0.6,
             "drawStyle": "line",
-            "fillOpacity": 20,
-            "gradientMode": "none",
-            "hideFrom": {
-              "legend": false,
-              "tooltip": false,
-              "viz": false
-            },
-            "insertNulls": false,
-            "lineInterpolation": "smooth",
-            "lineStyle": {
-              "fill": "solid"
-            },
-            "lineWidth": 2,
-            "pointSize": 16,
-            "scaleDistribution": {
-              "type": "linear"
-            },
-            "showPoints": "auto",
-            "showValues": false,
-            "spanNulls": false,
-            "stacking": {
-              "group": "A",
-              "mode": "normal"
-            },
-            "thresholdsStyle": {
-              "mode": "off"
-            }
-          },
-          "mappings": [],
-          "thresholds": {
-            "mode": "absolute",
-            "steps": [
-              {
-                "color": "purple",
-                "value": 0
-              }
-            ]
-          }
-        },
-        "overrides": [
-          {
-            "matcher": {
-              "id": "byName",
-              "options": "sum(rate(mq_send_success_total{queue=\"data-queue\"}[5m]))"
-            },
-            "properties": [
-              {
-                "id": "color",
-                "value": {
-                  "fixedColor": "dark-blue",
-                  "mode": "fixed"
-                }
-              }
-            ]
-          },
-          {
-            "matcher": {
-              "id": "byName",
-              "options": "sum(irate(mq_send_success_total{queue=\"data-queue\"}[5m]))"
-            },
-            "properties": [
-              {
-                "id": "color",
-                "value": {
-                  "fixedColor": "dark-purple",
-                  "mode": "fixed"
-                }
-              }
-            ]
-          }
-        ]
-      },
-      "gridPos": {
-        "h": 6,
-        "w": 19,
-        "x": 5,
-        "y": 10
-      },
-      "id": 1,
-      "options": {
-        "legend": {
-          "calcs": [],
-          "displayMode": "list",
-          "placement": "bottom",
-          "showLegend": true
-        },
-        "tooltip": {
-          "hideZeros": false,
-          "mode": "single",
-          "sort": "none"
-        }
-      },
-      "pluginVersion": "12.3.3",
-      "targets": [
-        {
-          "editorMode": "code",
-          "expr": "sum(irate(mq_send_success_total{queue=\"data-queue\"}[5m]))",
-          "range": true,
-          "refId": "A"
-        }
-      ],
-      "title": "MQ send success QPS (5m rate)",
-      "type": "timeseries"
-    },
-    {
-      "datasource": {
-        "type": "prometheus",
-        "uid": "efd2qqdfu5atcf"
-      },
-      "fieldConfig": {
-        "defaults": {
-          "color": {
-            "mode": "palette-classic"
-          },
-          "custom": {
-            "axisBorderShow": false,
-            "axisCenteredZero": false,
-            "axisColorMode": "text",
-            "axisLabel": "",
-            "axisPlacement": "auto",
-            "barAlignment": 0,
-            "barWidthFactor": 0.6,
-            "drawStyle": "line",
-            "fillOpacity": 21,
+            "fillOpacity": 19,
             "gradientMode": "none",
             "hideFrom": {
               "legend": false,
@@ -975,39 +506,109 @@
             "mode": "absolute",
             "steps": [
               {
-                "color": "green",
+                "color": "blue",
                 "value": 0
-              },
-              {
-                "color": "red",
-                "value": 80
               }
             ]
           }
         },
-        "overrides": [
-          {
-            "matcher": {
-              "id": "byName",
-              "options": "{__name__=\"process_cpu_usage\", instance=\"192.168.1.20:18097\", job=\"iot-device\"}"
-            },
-            "properties": [
-              {
-                "id": "color",
-                "value": {
-                  "fixedColor": "purple",
-                  "mode": "fixed"
-                }
-              }
-            ]
-          }
-        ]
+        "overrides": []
       },
       "gridPos": {
         "h": 5,
-        "w": 24,
+        "w": 13,
+        "x": 10,
+        "y": 5
+      },
+      "id": 11,
+      "options": {
+        "legend": {
+          "calcs": [],
+          "displayMode": "list",
+          "placement": "bottom",
+          "showLegend": true
+        },
+        "tooltip": {
+          "hideZeros": false,
+          "mode": "single",
+          "sort": "none"
+        }
+      },
+      "pluginVersion": "12.3.3",
+      "targets": [
+        {
+          "editorMode": "builder",
+          "expr": "jvm_memory_used_bytes{job=\"iot-service\"}",
+          "legendFormat": "{{area}} - {{id}}",
+          "range": true,
+          "refId": "A"
+        }
+      ],
+      "title": "IoT服务JVM内存使用",
+      "type": "timeseries"
+    },
+    {
+      "datasource": {
+        "type": "prometheus",
+        "uid": "efd2qqdfu5atcf"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "palette-classic"
+          },
+          "custom": {
+            "axisBorderShow": false,
+            "axisCenteredZero": false,
+            "axisColorMode": "text",
+            "axisLabel": "",
+            "axisPlacement": "auto",
+            "barAlignment": 0,
+            "barWidthFactor": 0.6,
+            "drawStyle": "line",
+            "fillOpacity": 19,
+            "gradientMode": "none",
+            "hideFrom": {
+              "legend": false,
+              "tooltip": false,
+              "viz": false
+            },
+            "insertNulls": false,
+            "lineInterpolation": "smooth",
+            "lineWidth": 2,
+            "pointSize": 5,
+            "scaleDistribution": {
+              "type": "linear"
+            },
+            "showPoints": "auto",
+            "showValues": false,
+            "spanNulls": false,
+            "stacking": {
+              "group": "A",
+              "mode": "none"
+            },
+            "thresholdsStyle": {
+              "mode": "off"
+            }
+          },
+          "mappings": [],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "blue",
+                "value": 0
+              }
+            ]
+          }
+        },
+        "overrides": []
+      },
+      "gridPos": {
+        "h": 5,
+        "w": 12,
         "x": 0,
-        "y": 16
+        "y": 10
       },
       "id": 12,
       "options": {
@@ -1026,24 +627,107 @@
       "pluginVersion": "12.3.3",
       "targets": [
         {
-          "editorMode": "builder",
-          "expr": "process_cpu_usage{job=\"iot-device\"}",
-          "legendFormat": "__auto",
-          "range": true,
+          "expr": "0",
           "refId": "A"
         }
       ],
-      "title": "进程 CPU 使用率",
+      "title": "IoT服务Dubbo消费者请求速率",
+      "type": "timeseries"
+    },
+    {
+      "datasource": {
+        "type": "prometheus",
+        "uid": "efd2qqdfu5atcf"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "palette-classic"
+          },
+          "custom": {
+            "axisBorderShow": false,
+            "axisCenteredZero": false,
+            "axisColorMode": "text",
+            "axisLabel": "",
+            "axisPlacement": "auto",
+            "barAlignment": 0,
+            "barWidthFactor": 0.6,
+            "drawStyle": "line",
+            "fillOpacity": 19,
+            "gradientMode": "none",
+            "hideFrom": {
+              "legend": false,
+              "tooltip": false,
+              "viz": false
+            },
+            "insertNulls": false,
+            "lineInterpolation": "smooth",
+            "lineWidth": 2,
+            "pointSize": 5,
+            "scaleDistribution": {
+              "type": "linear"
+            },
+            "showPoints": "auto",
+            "showValues": false,
+            "spanNulls": false,
+            "stacking": {
+              "group": "A",
+              "mode": "none"
+            },
+            "thresholdsStyle": {
+              "mode": "off"
+            }
+          },
+          "mappings": [],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "blue",
+                "value": 0
+              }
+            ]
+          }
+        },
+        "overrides": []
+      },
+      "gridPos": {
+        "h": 5,
+        "w": 12,
+        "x": 12,
+        "y": 10
+      },
+      "id": 13,
+      "options": {
+        "legend": {
+          "calcs": [],
+          "displayMode": "list",
+          "placement": "bottom",
+          "showLegend": true
+        },
+        "tooltip": {
+          "hideZeros": false,
+          "mode": "single",
+          "sort": "none"
+        }
+      },
+      "pluginVersion": "12.3.3",
+      "targets": [
+        {
+          "expr": "0",
+          "refId": "A"
+        }
+      ],
+      "title": "IoT服务RocketMQ消息发送速率",
       "type": "timeseries"
     }
   ],
-  "preload": false,
   "refresh": "5s",
-  "schemaVersion": 42,
+  "schemaVersion": 27,
+  "style": "dark",
   "tags": [
-    "iot-device",
-    "rocketmq",
-    "micrometer"
+    "iot-service",
+    "monitoring"
   ],
   "templating": {
     "list": []
@@ -1053,8 +737,8 @@
     "to": "now"
   },
   "timepicker": {},
-  "timezone": "browser",
-  "title": "IoT Device MQ Monitoring",
-  "uid": "d39911ba-7ee7-4705-87e4-d94ca0e29da3",
-  "version": 45
+  "timezone": "",
+  "title": "IoT Service Monitoring Dashboard",
+  "uid": "iot-service-dashboard",
+  "version": 1
 }

@@ -32,6 +32,7 @@ import java.util.stream.IntStream;
 import static com.ncwu.common.utils.Utils.keep2;
 
 /**
+ * 查询、计算Iot设备数据
  * @author jingxu
  * @version 1.0.0
  * @since 2025/12/20
@@ -50,6 +51,8 @@ public class IoTDataServiceImpl extends ServiceImpl<IoTDeviceDataMapper, IotDevi
 
     @Override
     public Result<Double> getRangeUsage(LocalDateTime start, LocalDateTime end, String deviceId) {
+        //todo 加入redis缓存
+        // TTL [4,6]分钟 key自定(value结构即可)
         DateFormatBo result = getDateFormatBo(start, end);
         // Flux 查询一次拿到 start 和 end 的累计值
         String fluxQuery = String.format("""
@@ -86,7 +89,8 @@ public class IoTDataServiceImpl extends ServiceImpl<IoTDeviceDataMapper, IotDevi
      * 将本地时区格式转化成 UTC 格式
      */
     private static @NonNull DateFormatBo getDateFormatBo(LocalDateTime start, LocalDateTime end) {
-        ZoneId zoneId = ZoneId.of("Asia/Shanghai"); // InfluxDB Flux 要求 UTC
+        // InfluxDB Flux 要求 UTC
+        ZoneId zoneId = ZoneId.of("Asia/Shanghai");
         Instant startInstant = start.atZone(zoneId).toInstant();
         Instant endInstant = end.atZone(zoneId).toInstant();
         // 转换时间戳为 RFC3339
@@ -115,6 +119,8 @@ public class IoTDataServiceImpl extends ServiceImpl<IoTDeviceDataMapper, IotDevi
 
     @Override
     public Result<Double> getFlowNow(String deviceId) {
+        //todo 加入redis缓存
+        // TTL 不超过10秒 key自定(value结构即可)
         String fluxQuery = String.format("""
                 from(bucket: "water")
                 |> range(start: -1m)
@@ -136,15 +142,16 @@ public class IoTDataServiceImpl extends ServiceImpl<IoTDeviceDataMapper, IotDevi
         } catch (Exception e) {
             throw new QueryFailedException("查询失败，请重试");
         }
-
         return Result.ok(flow);
     }
 
     @Override
     public Result<Double> getSchoolUsage(int school, LocalDateTime start, LocalDateTime end) {
+        //todo 加入redis缓存
+        // TTL [4,6] 分钟 key自定(value结构即可)
+
         //时间戳转换
         DateFormatBo dateFormatBo = getDateFormatBo(start, end);
-
         String startTime = dateFormatBo.startTime();
         String endTime = dateFormatBo.endTime();
 
@@ -178,7 +185,6 @@ public class IoTDataServiceImpl extends ServiceImpl<IoTDeviceDataMapper, IotDevi
                   |> sum(column: "usage")
                   |> map(fn: (r) => ({ _value: r.usage }))
                 """, startTime, endTime, school);
-
 
         Double usage;
 
@@ -226,7 +232,8 @@ public class IoTDataServiceImpl extends ServiceImpl<IoTDeviceDataMapper, IotDevi
     }
 
     @Override
-    public Result<Double> getWaterQuality(String deviceId) {
+    public Result<Double> getWaterQualityScore(String deviceId) {
+        //todo redis缓存分数，TTL 不超过1h
         Result<Double> turbidity = getTurbidity(deviceId);
         Result<Double> ph = getPh(deviceId);
         Result<Double> chlorine = getChlorine(deviceId);
@@ -248,7 +255,7 @@ public class IoTDataServiceImpl extends ServiceImpl<IoTDeviceDataMapper, IotDevi
                 String pythonExecutable = "python3";
                 String pythonScriptPath = Objects.requireNonNull(getClass().getClassLoader()
                         .getResource("water_quality.py")).getPath();
-                if(System.getProperty("os.name").toLowerCase().contains("windows")){
+                if (System.getProperty("os.name").toLowerCase().contains("windows")) {
                     // 处理Windows路径中的URL编码
                     pythonScriptPath = pythonScriptPath.replace("/", "\\");
                     if (pythonScriptPath.startsWith("\\")) {
@@ -271,29 +278,24 @@ public class IoTDataServiceImpl extends ServiceImpl<IoTDeviceDataMapper, IotDevi
                     String line;
                     StringBuilder output = new StringBuilder();
                     StringBuilder errorOutput = new StringBuilder();
-
                     // 读取标准输出
                     while ((line = reader.readLine()) != null) {
                         output.append(line);
                     }
-
                     // 读取错误输出
                     while ((line = errorReader.readLine()) != null) {
                         errorOutput.append(line).append("\n");
                     }
-
-                    System.out.println("Python 标准输出: " + output);
                     if (!errorOutput.isEmpty()) {
-                        System.out.println("Python 错误输出: " + errorOutput);
+                        log.error("Python 错误输出: {}", errorOutput);
                     }
                     pr.waitFor();
-
                     String resultStr = output.toString().trim();
                     try {
                         double result = keep2(Double.parseDouble(resultStr)) * 100;
                         return Result.ok(result);
                     } catch (NumberFormatException e) {
-                        System.out.println("无法解析Python输出为数字: " + resultStr);
+                        log.error("无法解析Python输出为数字: {}", resultStr);
                         return Result.fail(Double.NaN, ErrorCode.QUERY_FAILED_ERROR.code(), "Cannot parse Python output: " + resultStr);
                     }
                 } catch (IOException | InterruptedException e) {
@@ -305,6 +307,7 @@ public class IoTDataServiceImpl extends ServiceImpl<IoTDeviceDataMapper, IotDevi
 
     @Override
     public Result<Double> getTurbidity(String deviceId) {
+        //todo redis缓存 TTL 不超过10秒，key自定义
         String flux = String.format("""
                     from(bucket: "water")
                       |> range(start: -1m)
@@ -321,7 +324,7 @@ public class IoTDataServiceImpl extends ServiceImpl<IoTDeviceDataMapper, IotDevi
 
     @NonNull
     private Result<Double> getQueryResult(String flux) {
-        Double v = null;
+        Double v;
         try {
             List<FluxTable> query = influxDBClient.getQueryApi().query(flux);
             v = query.stream().flatMap(t -> t.getRecords().stream())
@@ -336,6 +339,7 @@ public class IoTDataServiceImpl extends ServiceImpl<IoTDeviceDataMapper, IotDevi
 
     @Override
     public Result<Double> getPh(String deviceId) {
+        //todo redis缓存 TTL 不超过10秒，key自定义
         String flux = String.format("""
                     from(bucket: "water")
                       |> range(start: -1m)
@@ -352,6 +356,7 @@ public class IoTDataServiceImpl extends ServiceImpl<IoTDeviceDataMapper, IotDevi
 
     @Override
     public Result<Double> getChlorine(String deviceId) {
+        //todo redis缓存 TTL 不超过10秒，key自定义
         String flux = String.format("""
                     from(bucket: "water")
                       |> range(start: -1m)
@@ -375,7 +380,6 @@ public class IoTDataServiceImpl extends ServiceImpl<IoTDeviceDataMapper, IotDevi
         DateFormatBo dateFormatBo = getDateFormatBo(start, end);
         String startTime = dateFormatBo.startTime();
         String endTime = dateFormatBo.endTime();
-
         String flux = String.format("""
                 from(bucket: "water")
                   |> range(start: %s, stop: %s)
@@ -433,10 +437,8 @@ public class IoTDataServiceImpl extends ServiceImpl<IoTDeviceDataMapper, IotDevi
             // 离线率扣分：离线率 * 40分（离线率影响最大）
             // 异常事件扣分：异常事件率 * 12分（每台设备平均1个异常事件扣12分）
             double healthScore = 100.0 - (offlineRateData * 40.0) - (abnormalEventRate * 12.0);
-
             // 确保分数在0-100范围内
             healthScore = Math.max(0.0, Math.min(100.0, healthScore));
-
             return Result.ok(keep2(healthScore));
         }
         return Result.fail(Double.NaN, ErrorCode.GET_HEALTHY_SCORE_ERROR.code(), ErrorCode.GET_HEALTHY_SCORE_ERROR.message());

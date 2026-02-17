@@ -12,3 +12,19 @@ dubbo:
 influx:
   token: p2w7KvUNaax9hNcnVsTJDGMCt1Xi80yRaZZIVDro68YbTBjjLzpn5Lf3hn3zDbfcwz6A1H4eBoFm95oSLzaRnw==
 
+# Actuator 配置
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info,prometheus,metrics
+  endpoint:
+    health:
+      show-details: always
+  prometheus:
+    metrics:
+      export:
+        enabled: true
+server:
+  port: 18016
+

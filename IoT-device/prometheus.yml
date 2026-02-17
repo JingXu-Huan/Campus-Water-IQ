@@ -11,3 +11,10 @@ scrape_configs:
       - targets: [ '192.168.1.20:18097' ]
     scrape_interval: 10s
     scrape_timeout: 5s
+
+  - job_name: 'iot-service'
+    metrics_path: '/actuator/prometheus'
+    static_configs:
+      - targets: [ '192.168.1.20:18016' ]
+    scrape_interval: 10s
+    scrape_timeout: 5s

@@ -2,8 +2,10 @@ package com.ncwu.authservice.service;
 
 
 import com.baomidou.mybatisplus.extension.service.IService;
+import com.ncwu.authservice.domain.DTO.SignUpRequest;
 import com.ncwu.authservice.domain.VO.AuthResult;
 import com.ncwu.authservice.domain.DTO.SignInRequest;
+import com.ncwu.authservice.domain.VO.SignUpResult;
 import com.ncwu.authservice.domain.entity.User;
 
 
@@ -14,4 +16,6 @@ import com.ncwu.authservice.domain.entity.User;
  */
 public interface UserService extends IService<User> {
     AuthResult signIn(SignInRequest request);
+
+    SignUpResult signUp(SignUpRequest request);
 }

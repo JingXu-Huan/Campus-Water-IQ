@@ -1,10 +1,10 @@
-package com.ncwu.authservice.strategy;
+package com.ncwu.authservice.strategy.login;
 
 
 import com.ncwu.authservice.domain.VO.AuthResult;
 import com.ncwu.authservice.domain.enums.LoginType;
 import com.ncwu.authservice.domain.DTO.SignInRequest;
-import com.ncwu.authservice.factory.LoginStrategy;
+import com.ncwu.authservice.factory.login.LoginStrategy;
 import org.springframework.stereotype.Component;
 
 /**

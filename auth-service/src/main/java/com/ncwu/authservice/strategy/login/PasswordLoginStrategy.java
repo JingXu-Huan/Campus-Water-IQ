@@ -1,4 +1,4 @@
-package com.ncwu.authservice.strategy;
+package com.ncwu.authservice.strategy.login;
 
 
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
@@ -10,7 +10,7 @@ import com.ncwu.authservice.domain.enums.LoginType;
 import com.ncwu.authservice.domain.DTO.SignInRequest;
 import com.ncwu.authservice.domain.entity.User;
 import com.ncwu.authservice.exception.DeserializationFailedException;
-import com.ncwu.authservice.factory.LoginStrategy;
+import com.ncwu.authservice.factory.login.LoginStrategy;
 import com.ncwu.authservice.mapper.UserMapper;
 import com.ncwu.authservice.service.TokenHelper;
 import jakarta.annotation.PostConstruct;
@@ -21,6 +21,8 @@ import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.stereotype.Component;
 
 import java.util.List;
+import java.util.concurrent.ThreadLocalRandom;
+import java.util.concurrent.TimeUnit;
 
 /**
  * @author jingxu
@@ -58,20 +60,29 @@ public class PasswordLoginStrategy implements LoginStrategy {
         //查询缓存
         String jsonInfo = redisTemplate.opsForValue().get("UserInfo:" + password);
         UserInfo userInfo;
-        try {
-            userInfo = objectMapper.readValue(jsonInfo, UserInfo.class);
-        } catch (JsonProcessingException e) {
-            throw new DeserializationFailedException("反序列化失败");
-        }
-        if (userInfo != null) {
-            return getAuthResult(userInfo.getNickName(), userInfo.getValidPassword(),
-                    userInfo.getUserType(), userInfo.getStatus(), password, uid);
+        if (jsonInfo != null) {
+            try {
+                userInfo = objectMapper.readValue(jsonInfo, UserInfo.class);
+            } catch (JsonProcessingException e) {
+                throw new DeserializationFailedException("反序列化失败");
+            }
+            if (userInfo != null) {
+                return getAuthResult(userInfo.getNickName(), userInfo.getPassword(),
+                        userInfo.getUserType(), userInfo.getStatus(), password, uid);
+            }
         } else {
             User user = userMapper.selectOne(new LambdaQueryWrapper<User>()
                     .eq(User::getUid, uid)
                     .select(User::getPassword, User::getStatus, User::getUserType, User::getNickName));
             if (user == null) {
                 return new AuthResult(false);
+            } else {
+                try {
+                    redisTemplate.opsForValue().set("UserInfo:" + password, objectMapper.writeValueAsString(user)
+                            , 300 + ThreadLocalRandom.current().nextInt(60), TimeUnit.SECONDS);
+                } catch (JsonProcessingException e) {
+                    throw new DeserializationFailedException("序列化异常");
+                }
             }
             String nickName = user.getNickName();
             Integer userType = user.getUserType();
@@ -79,6 +90,7 @@ public class PasswordLoginStrategy implements LoginStrategy {
             String validPwd = user.getPassword();
             return getAuthResult(nickName, validPwd, userType, status, password, uid);
         }
+        return new AuthResult(false);
     }
 
     private @NonNull AuthResult getAuthResult(String nickName, String validPwd,

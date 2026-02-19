@@ -32,6 +32,7 @@ public class SecurityConfig {
                 // 配置授权规则
                 .authorizeHttpRequests(auth -> auth
                         // 放行登录相关端点
+                        .requestMatchers("/signup/**").permitAll()
                         .requestMatchers("/auth/signin").permitAll()
                         .requestMatchers("/auth/send-code").permitAll()
                         .requestMatchers("/auth/send-phone-code").permitAll()

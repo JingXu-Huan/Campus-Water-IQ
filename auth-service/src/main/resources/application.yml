@@ -21,3 +21,7 @@ wechat:
     app-id: ${WECHAT_APP_ID:your_app_id}
     app-secret: ${WECHAT_APP_SECRET:your_app_secret}
     redirect-uri: ${WECHAT_REDIRECT_URI:http://127.0.0.1:18099/auth/wechat/callback}
+logging:
+  # 2. 级别改为 INFO 或 ERROR
+  level:
+    com.ncwu.authservice: info

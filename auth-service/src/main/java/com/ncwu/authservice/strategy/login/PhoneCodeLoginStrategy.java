@@ -1,4 +1,4 @@
-package com.ncwu.authservice.strategy;
+package com.ncwu.authservice.strategy.login;
 
 
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
@@ -6,7 +6,7 @@ import com.ncwu.authservice.domain.VO.AuthResult;
 import com.ncwu.authservice.domain.enums.LoginType;
 import com.ncwu.authservice.domain.DTO.SignInRequest;
 import com.ncwu.authservice.domain.entity.User;
-import com.ncwu.authservice.factory.LoginStrategy;
+import com.ncwu.authservice.factory.login.LoginStrategy;
 import com.ncwu.authservice.mapper.UserMapper;
 import com.ncwu.authservice.service.TokenHelper;
 import jakarta.annotation.PostConstruct;
@@ -60,7 +60,7 @@ public class PhoneCodeLoginStrategy implements LoginStrategy {
         String nickName = user.getNickName();
         Integer userType = user.getUserType();
         Integer status = user.getStatus();
-        String validCode = redisTemplate.opsForValue().get("Verify:PhoneCode" + phoneNum);
+        String validCode = redisTemplate.opsForValue().get("Verify:PhoneCode:" + phoneNum);
         if (validCode == null) {
             return new AuthResult(false);
         }

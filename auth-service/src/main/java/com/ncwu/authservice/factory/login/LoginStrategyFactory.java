@@ -1,4 +1,4 @@
-package com.ncwu.authservice.factory;
+package com.ncwu.authservice.factory.login;
 
 
 import com.ncwu.authservice.domain.enums.LoginType;
@@ -13,11 +13,11 @@ import java.util.List;
  * @since 2026/2/7
  */
 @Component
-public class SignInStrategyFactory {
+public class LoginStrategyFactory {
     private final EnumMap<LoginType, LoginStrategy> map = new EnumMap<>(LoginType.class);
 
     //构造函数的形参会自动装配
-    public SignInStrategyFactory(List<LoginStrategy> strategies) {
+    public LoginStrategyFactory(List<LoginStrategy> strategies) {
         for (LoginStrategy strategy : strategies) {
             map.put(strategy.getType(), strategy);
         }

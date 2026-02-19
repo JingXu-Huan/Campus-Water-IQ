@@ -1,4 +1,4 @@
-package com.ncwu.authservice.strategy;
+package com.ncwu.authservice.strategy.login;
 
 
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
@@ -10,18 +10,17 @@ import com.ncwu.authservice.domain.DTO.SignInRequest;
 import com.ncwu.authservice.domain.entity.User;
 import com.ncwu.authservice.domain.BO.UserInfo;
 import com.ncwu.authservice.exception.DeserializationFailedException;
-import com.ncwu.authservice.factory.LoginStrategy;
+import com.ncwu.authservice.factory.login.LoginStrategy;
 import com.ncwu.authservice.mapper.UserMapper;
 import com.ncwu.authservice.service.TokenHelper;
 import com.ncwu.authservice.service.CodeSender;
+import com.ncwu.authservice.util.Utils;
 import com.ncwu.common.apis.warning_service.EmailServiceInterFace;
 import jakarta.annotation.PostConstruct;
-import jakarta.mail.MessagingException;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.dubbo.config.annotation.DubboReference;
-import org.jspecify.annotations.NonNull;
-import org.redisson.api.RBloomFilter;
+import org.redisson.api.*;
 import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.stereotype.Component;
 
@@ -29,6 +28,8 @@ import java.util.List;
 import java.util.concurrent.ThreadLocalRandom;
 import java.util.concurrent.TimeUnit;
 import java.util.regex.Pattern;
+
+import static com.ncwu.authservice.util.Utils.genValidCode;
 
 /**
  * @author jingxu
@@ -51,6 +52,8 @@ public class EmailCodeLoginStrategy implements LoginStrategy, CodeSender {
     private final StringRedisTemplate redisTemplate;
     private final List<RBloomFilter<String>> bloomFilters;
     private final ObjectMapper objectMapper;
+    private final RedissonClient redissonClient;
+    private final Utils utils;
     private RBloomFilter<String> emailBloomFilter;
 
     //在自动装配完成之后，自动执行
@@ -107,8 +110,8 @@ public class EmailCodeLoginStrategy implements LoginStrategy, CodeSender {
                 throw new DeserializationFailedException("序列化异常");
             }
             //写入缓存
-            redisTemplate.opsForValue().set("UserInfo" + email, jsonInfo,
-                    300 + ThreadLocalRandom.current().nextInt(30), TimeUnit.SECONDS);
+            redisTemplate.opsForValue().set("UserInfo:" + email, jsonInfo,
+                    300 + ThreadLocalRandom.current().nextInt(60), TimeUnit.SECONDS);
             //只查询四个字段
             Integer userType = user.getUserType();
             String nickName = user.getNickName();
@@ -148,25 +151,13 @@ public class EmailCodeLoginStrategy implements LoginStrategy, CodeSender {
     }
 
     @Override
-    public void sendCode(String toEmail) {
-        //todo 接口防刷 -> 时间，ip，黑名单
-        String code = genValidCode();
-        try {
-            redisTemplate.opsForValue().set("Verify:EmailCode:" + toEmail, code, 5, TimeUnit.MINUTES);
-            emailServiceInterFace.sendVerificationCode(toEmail, code);
-        } catch (MessagingException e) {
-            //todo 消息队列通知
-            log.error("验证码发松失败，{}", toEmail);
-            return;
-        }
-    }
-
-    private static @NonNull String genValidCode() {
-        return String.valueOf(ThreadLocalRandom.current().nextInt(100000, 1000000));
+    public void sendMailCode(String toEmail) {
+        utils.sendValidCodeToMail(toEmail, redissonClient, redisTemplate);
     }
 
     /**
      * 向指定手机号发送SMS消息
+     *
      * @param phoneNum 要发送验证码的手机号
      */
     @Override

@@ -49,7 +49,7 @@ public class SignInController {
     @PostMapping("/send-code")
     public void sendCode(@RequestBody Map<String, String> request) {
         String toEmail = request.get("toEmail");
-        codeSender.sendCode(toEmail);
+        codeSender.sendMailCode(toEmail);
     }
 
     /**

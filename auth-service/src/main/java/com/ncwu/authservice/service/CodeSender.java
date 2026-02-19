@@ -8,7 +8,8 @@ package com.ncwu.authservice.service;
  * @since 2026/2/10
  */
 public interface CodeSender {
-    void sendCode(String toEmail);
+
+    void sendMailCode(String toEmail);
 
     void sendPhoneCode(String phoneNum);
 }

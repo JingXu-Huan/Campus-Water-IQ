@@ -1,4 +1,4 @@
-package com.ncwu.authservice.factory;
+package com.ncwu.authservice.factory.login;
 
 import com.ncwu.authservice.domain.VO.AuthResult;
 import com.ncwu.authservice.domain.enums.LoginType;

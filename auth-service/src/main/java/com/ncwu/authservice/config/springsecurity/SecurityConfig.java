@@ -39,6 +39,9 @@ public class SecurityConfig {
                         // 放行 GitHub OAuth 相关端点
                         .requestMatchers("/auth/github/authorize").permitAll()
                         .requestMatchers("/auth/github/callback").permitAll()
+                        // 放行 WeChat OAuth 相关端点
+                        .requestMatchers("/auth/wechat/authorize").permitAll()
+                        .requestMatchers("/auth/wechat/callback").permitAll()
                         .requestMatchers(HttpMethod.OPTIONS, "/**").permitAll()
                         // 放行健康检查端点
                         .requestMatchers("/actuator/**").permitAll()

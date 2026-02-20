@@ -34,7 +34,7 @@ export interface SignInRequest {
 }
 
 export interface SignUpRequest {
-  type: 'PHONE' | 'EMAIL'
+  type: 'PHONE_AND_CODE' | 'MAIL_AND_CODE' | 'GITHUB_OAUTH'
   identifier: string
   credential: string
   pwd: string
@@ -45,6 +45,7 @@ export interface AuthResult {
   success: boolean
   uid?: string
   token?: string
+  nickName?: string
 }
 
 export interface SignUpResult {
@@ -52,6 +53,27 @@ export interface SignUpResult {
   uid?: string
   nickName?: string
   msg?: string
+}
+
+export interface UserProfile {
+  uid: string
+  nickName: string
+  avatar?: string
+  email?: string
+  phone?: string
+}
+
+export interface UpdateNicknameRequest {
+  nickname: string
+}
+
+export interface UpdatePasswordRequest {
+  oldPassword: string
+  newPassword: string
+}
+
+export interface UpdateAvatarRequest {
+  avatar: string  // base64 or URL
 }
 
 export const authApi = {
@@ -71,6 +93,21 @@ export const authApi = {
   getGitHubAuthUrl: () => api.get<string>('/auth/github/authorize'),
   
   getWeChatAuthUrl: () => api.get<string>('/auth/wechat/authorize'),
+  
+  // 获取用户信息
+  getUserProfile: () => api.get<UserProfile>('/user/profile'),
+  
+  // 更新昵称
+  updateNickname: (data: UpdateNicknameRequest) => 
+    api.put('/user/nickname', data),
+  
+  // 更新密码
+  updatePassword: (data: UpdatePasswordRequest) => 
+    api.put('/user/password', data),
+  
+  // 更新头像
+  updateAvatar: (data: UpdateAvatarRequest) => 
+    api.put('/user/avatar', data),
 }
 
 export default api

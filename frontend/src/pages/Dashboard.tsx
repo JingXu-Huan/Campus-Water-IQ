@@ -1,71 +1,467 @@
 import { useNavigate } from 'react-router-dom'
 import { useAuthStore } from '@/store/authStore'
-import { Droplets, LogOut, User, BarChart3, AlertTriangle, Settings } from 'lucide-react'
+import { Droplets, LogOut, User, BarChart3, AlertTriangle, Settings, LayoutDashboard, Activity, Map, FileText, HelpCircle, Menu, X, RefreshCw, TrendingUp, TrendingDown, WifiOff, Camera, Eye, EyeOff, Check } from 'lucide-react'
+import { useState, useEffect } from 'react'
+import { iotApi } from '@/api/iot'
+import { authApi } from '@/api/auth'
 
 export default function Dashboard() {
   const navigate = useNavigate()
-  const { clearAuth } = useAuthStore()
+  const { clearAuth, uid, nickname, avatar, updateProfile } = useAuthStore()
+  const [sidebarOpen, setSidebarOpen] = useState(true)
+  const [activeMenu, setActiveMenu] = useState('dashboard')
+  const [selectedCampus, setSelectedCampus] = useState('longzi')
+  
+  // Profile modal state
+  const [showProfileModal, setShowProfileModal] = useState(false)
+  const [profileTab, setProfileTab] = useState<'info' | 'password' | 'avatar'>('info')
+  const [editingNickname, setEditingNickname] = useState('')
+  const [newPassword, setNewPassword] = useState('')
+  const [oldPassword, setOldPassword] = useState('')
+  const [showPassword, setShowPassword] = useState(false)
+  const [profileLoading, setProfileLoading] = useState(false)
+  const [profileMessage, setProfileMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null)
+
+  const campuses = [
+    { id: 'longzi', name: '龙子湖校区', code: 'LZ', schoolId: 1 },
+    { id: 'huayuan', name: '花园校区', code: 'HY', schoolId: 2 },
+    { id: 'jianghuai', name: '江淮校区', code: 'JH', schoolId: 3 }
+  ]
+
+  const [todayUsage, setTodayUsage] = useState<number>(0)
+  const [yesterdayUsage, setYesterdayUsage] = useState<number>(0)
+  const [monthUsage, setMonthUsage] = useState<number>(0)
+  const [lastMonthSameDay, setLastMonthSameDay] = useState<number>(0)
+  const [alertCount, setAlertCount] = useState<number>(0)
+  const [deviceCount, setDeviceCount] = useState<number>(0)
+  const [offlineDevices, setOfflineDevices] = useState<string[]>([])
+  const [loading, setLoading] = useState<boolean>(true)
+  const [loadingToday, setLoadingToday] = useState<boolean>(true)
+  const [loadingMonth, setLoadingMonth] = useState<boolean>(true)
+  const [loadingOffline, setLoadingOffline] = useState<boolean>(true)
+  const [error, setError] = useState<string | null>(null)
 
   const handleLogout = () => {
     clearAuth()
     navigate('/login')
   }
 
+  const currentCampus = campuses.find(c => c.id === selectedCampus)
+
+  // 计算变化率
+  const calculateChange = (current: number, previous: number): { value: number; isPositive: boolean } => {
+    if (previous === 0) return { value: 0, isPositive: true }
+    const change = ((current - previous) / previous) * 100
+    return { value: Math.abs(change), isPositive: change >= 0 }
+  }
+
+  const todayChange = calculateChange(todayUsage, yesterdayUsage)
+  const monthChange = calculateChange(monthUsage, lastMonthSameDay)
+
+  // 格式化数字
+  const formatUsage = (value: number): string => {
+    if (value >= 1000) {
+      return `${(value / 1000).toFixed(2)}k`
+    }
+    return value.toFixed(1)
+  }
+
+  // 获取当前校区的用水量数据
+  const fetchWaterUsageData = async () => {
+    if (!currentCampus) return
+    
+    setLoading(true)
+    setLoadingToday(true)
+    setLoadingMonth(true)
+    setError(null)
+    
+    try {
+      // 使用 Promise.all 并行获取数据
+      const { todayUsage: todayData, monthUsage: monthData } = await iotApi.getWaterUsage(currentCampus.schoolId)
+      
+      setTodayUsage(todayData.data)
+      setYesterdayUsage(todayData.yesterday || 0)
+      setMonthUsage(monthData.data)
+      setLastMonthSameDay(monthData.lastMonthSameDay || 0)
+    } catch (err) {
+      console.error('获取用水量数据失败:', err)
+      setError('获取用水量数据失败')
+    } finally {
+      setLoadingToday(false)
+      setLoadingMonth(false)
+      setLoading(false)
+      // 模拟数据，实际应该从 API 获取
+      setAlertCount(Math.floor(Math.random() * 5))
+      setDeviceCount(Math.floor(Math.random() * 200) + 50)
+    }
+
+    // 获取离线设备列表
+    const fetchOfflineDevices = async () => {
+      if (!currentCampus) return
+      
+      setLoadingOffline(true)
+      try {
+        const offlineList = await iotApi.getOfflineDeviceList(currentCampus.schoolId)
+        setOfflineDevices(offlineList)
+      } catch (err) {
+        console.error('获取离线设备列表失败:', err)
+        setOfflineDevices([])
+      } finally {
+        setLoadingOffline(false)
+      }
+    }
+
+    fetchOfflineDevices()
+  }
+
+  // 手动刷新
+  const handleRefresh = () => {
+    fetchWaterUsageData()
+  }
+
+  // 打开个人中心
+  const openProfileModal = () => {
+    setEditingNickname(nickname || '')
+    setOldPassword('')
+    setNewPassword('')
+    setProfileMessage(null)
+    setShowProfileModal(true)
+  }
+
+  // 更新昵称
+  const handleUpdateNickname = async () => {
+    if (!editingNickname.trim()) {
+      setProfileMessage({ type: 'error', text: '昵称不能为空' })
+      return
+    }
+    setProfileLoading(true)
+    setProfileMessage(null)
+    try {
+      await authApi.updateNickname({ nickname: editingNickname.trim() })
+      updateProfile(editingNickname.trim())
+      setProfileMessage({ type: 'success', text: '昵称更新成功' })
+    } catch (error: any) {
+      setProfileMessage({ type: 'error', text: error.message || '更新失败' })
+    } finally {
+      setProfileLoading(false)
+    }
+  }
+
+  // 更新密码
+  const handleUpdatePassword = async () => {
+    if (!oldPassword || !newPassword) {
+      setProfileMessage({ type: 'error', text: '请填写完整密码信息' })
+      return
+    }
+    if (newPassword.length < 6) {
+      setProfileMessage({ type: 'error', text: '新密码至少6位' })
+      return
+    }
+    setProfileLoading(true)
+    setProfileMessage(null)
+    try {
+      await authApi.updatePassword({ oldPassword, newPassword })
+      setOldPassword('')
+      setNewPassword('')
+      setProfileMessage({ type: 'success', text: '密码更新成功' })
+    } catch (error: any) {
+      setProfileMessage({ type: 'error', text: error.message || '更新失败' })
+    } finally {
+      setProfileLoading(false)
+    }
+  }
+
+  // 更新头像
+  const handleAvatarChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0]
+    if (!file) return
+    
+    // Convert to base64
+    const reader = new FileReader()
+    reader.onload = async () => {
+      const base64 = reader.result as string
+      setProfileLoading(true)
+      setProfileMessage(null)
+      try {
+        await authApi.updateAvatar({ avatar: base64 })
+        updateProfile(undefined, base64)
+        setProfileMessage({ type: 'success', text: '头像更新成功' })
+      } catch (error: any) {
+        setProfileMessage({ type: 'error', text: error.message || '更新失败' })
+      } finally {
+        setProfileLoading(false)
+      }
+    }
+    reader.readAsDataURL(file)
+  }
+
+  useEffect(() => {
+    fetchWaterUsageData()
+  }, [selectedCampus])
+
+  const menuItems = [
+    { id: 'dashboard', label: '仪表盘', icon: LayoutDashboard },
+    { id: 'monitoring', label: '实时监测', icon: Activity },
+    { id: 'map', label: '数字孪生', icon: Map },
+    { id: 'reports', label: '数据报表', icon: FileText },
+    { id: 'settings', label: '系统设置', icon: Settings },
+    { id: 'help', label: '帮助中心', icon: HelpCircle },
+  ]
+
   return (
-    <div className="min-h-screen bg-gray-50">
-      <header className="bg-white shadow-sm">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4 flex items-center justify-between">
+    <div className="min-h-screen bg-gray-50 flex">
+      {/* Sidebar */}
+      <aside className={`${sidebarOpen ? 'w-64' : 'w-20'} bg-white shadow-lg transition-all duration-300 flex flex-col`}>
+        {/* Sidebar Header */}
+        <div className="p-6 border-b border-gray-200">
           <div className="flex items-center gap-3">
             <div className="flex items-center justify-center w-10 h-10 bg-primary-100 rounded-lg">
               <Droplets className="w-6 h-6 text-primary-600" />
             </div>
-            <h1 className="text-xl font-bold text-gray-900">校园水务数字孪生平台</h1>
+            {sidebarOpen && (
+              <h1 className="text-lg font-bold text-gray-900">水务平台</h1>
+            )}
           </div>
-          <button
-            onClick={handleLogout}
-            className="flex items-center gap-2 px-4 py-2 text-gray-600 hover:text-gray-900 transition-colors"
-          >
-            <LogOut className="w-5 h-5" />
-            <span>退出登录</span>
-          </button>
         </div>
-      </header>
 
-      <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+        {/* Navigation Menu */}
+        <nav className="flex-1 p-4 overflow-auto">
+          <ul className="space-y-2">
+            {menuItems.map((item) => {
+              const Icon = item.icon
+              return (
+                <li key={item.id}>
+                  <button
+                    onClick={() => setActiveMenu(item.id)}
+                    className={`w-full flex items-center gap-3 px-4 py-3 rounded-lg transition-all duration-200 ${
+                      activeMenu === item.id
+                        ? 'bg-primary-50 text-primary-600 border-r-2 border-primary-600'
+                        : 'text-gray-600 hover:bg-gray-50 hover:text-gray-900'
+                    }`}
+                  >
+                    <Icon className="w-5 h-5 flex-shrink-0" />
+                    {sidebarOpen && (
+                      <span className="font-medium">{item.label}</span>
+                    )}
+                  </button>
+                </li>
+              )
+            })}
+          </ul>
+
+          {/* Campus Selector in Sidebar */}
+          {sidebarOpen && (
+            <div className="mt-6 pt-4 border-t border-gray-200">
+              <p className="px-4 mb-2 text-xs font-medium text-gray-400 uppercase tracking-wider">切换校区</p>
+              <div className="space-y-1">
+                {campuses.map((campus) => (
+                  <button
+                    key={campus.id}
+                    onClick={() => setSelectedCampus(campus.id)}
+                    className={`w-full flex items-center gap-3 px-4 py-2.5 rounded-lg transition-all duration-200 ${
+                      selectedCampus === campus.id
+                        ? 'bg-primary-50 text-primary-700 border border-primary-200'
+                        : 'text-gray-600 hover:bg-gray-50 hover:text-gray-900 border border-transparent'
+                    }`}
+                  >
+                    <div className={`w-2 h-2 rounded-full ${selectedCampus === campus.id ? 'bg-primary-600' : 'bg-gray-300'}`}></div>
+                    <div className="flex-1 text-left">
+                      <div className="text-sm font-medium">{campus.name}</div>
+                      <div className="text-xs text-gray-400">{campus.code}</div>
+                    </div>
+                  </button>
+                ))}
+              </div>
+            </div>
+          )}
+        </nav>
+
+        {/* Sidebar Footer */}
+        <div className="p-4 border-t border-gray-200">
+          <div className="flex items-center gap-3 px-4 py-3">
+            {avatar ? (
+              <img src={avatar} alt="头像" className="w-8 h-8 rounded-full object-cover" />
+            ) : (
+              <div className="w-8 h-8 bg-gray-200 rounded-full flex items-center justify-center">
+                <User className="w-4 h-4 text-gray-600" />
+              </div>
+            )}
+            {sidebarOpen && (
+              <div className="flex-1 min-w-0">
+                <p className="text-sm font-medium text-gray-900 truncate">
+                  {nickname || '用户'}
+                </p>
+                <p className="text-xs text-gray-500 truncate">
+                  UID: {uid || '未知'}
+                </p>
+              </div>
+            )}
+          </div>
+          {sidebarOpen && (
+            <div className="flex gap-2 mt-2">
+              <button
+                onClick={openProfileModal}
+                className="flex-1 flex items-center justify-center gap-2 px-4 py-2 text-gray-600 hover:bg-gray-100 rounded-lg transition-all duration-200"
+              >
+                <User className="w-4 h-4" />
+                <span className="text-sm font-medium">个人中心</span>
+              </button>
+              <button
+                onClick={handleLogout}
+                className="flex items-center justify-center px-3 text-gray-600 hover:text-red-600 hover:bg-red-50 rounded-lg transition-all duration-200"
+              >
+                <LogOut className="w-4 h-4" />
+              </button>
+            </div>
+          )}
+        </div>
+      </aside>
+
+      {/* Main Content */}
+      <div className="flex-1 flex flex-col">
+        {/* Top Header */}
+        <header className="bg-white shadow-sm">
+          <div className="px-6 py-4 flex items-center justify-between">
+            <div className="flex items-center gap-4">
+              <button
+                onClick={() => setSidebarOpen(!sidebarOpen)}
+                className="p-2 text-gray-600 hover:text-gray-900 hover:bg-gray-100 rounded-lg transition-colors"
+              >
+                {sidebarOpen ? <X className="w-5 h-5" /> : <Menu className="w-5 h-5" />}
+              </button>
+              <h2 className="text-xl font-semibold text-gray-900">
+                {menuItems.find(item => item.id === activeMenu)?.label || '仪表盘'}
+              </h2>
+              
+              {/* Current Campus Indicator */}
+              <div className="flex items-center gap-2 px-3 py-1.5 bg-gray-100 rounded-lg">
+                <div className="w-2 h-2 bg-primary-600 rounded-full"></div>
+                <span className="text-sm text-gray-600">{currentCampus?.name}</span>
+              </div>
+            </div>
+            
+            {!sidebarOpen && (
+              <div className="flex items-center gap-4">
+                <div className="flex items-center gap-2 text-sm text-gray-600">
+                  <User className="w-4 h-4" />
+                  <span>{nickname || '用户'}</span>
+                  <span className="text-gray-400">|</span>
+                  <span className="text-xs text-gray-500">UID: {uid || '未知'}</span>
+                </div>
+                <button
+                  onClick={handleLogout}
+                  className="flex items-center gap-2 px-4 py-2 text-gray-600 hover:text-gray-900 transition-colors"
+                >
+                  <LogOut className="w-5 h-5" />
+                  <span>退出登录</span>
+                </button>
+              </div>
+            )}
+          </div>
+        </header>
+
+        {/* Main Content Area */}
+        <main className="flex-1 p-6 overflow-auto">
+          {/* 错误提示 */}
+          {error && (
+            <div className="mb-4 p-4 bg-red-50 border border-red-200 rounded-lg flex items-center justify-between">
+              <div className="flex items-center gap-2 text-red-700">
+                <AlertTriangle className="w-5 h-5" />
+                <span>{error}</span>
+              </div>
+              <button
+                onClick={handleRefresh}
+                className="px-3 py-1 text-sm text-red-700 hover:bg-red-100 rounded transition-colors"
+              >
+                重试
+              </button>
+            </div>
+          )}
+
+          {/* 刷新按钮 */}
+          <div className="flex justify-end mb-4">
+            <button
+              onClick={handleRefresh}
+              disabled={loading}
+              className="flex items-center gap-2 px-4 py-2 text-gray-600 hover:bg-gray-100 rounded-lg transition-colors disabled:opacity-50"
+            >
+              <RefreshCw className={`w-4 h-4 ${loading ? 'animate-spin' : ''}`} />
+              <span className="text-sm">刷新数据</span>
+            </button>
+          </div>
+          
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+          {/* 今日用水量 */}
           <div className="bg-white rounded-xl p-6 shadow-sm">
             <div className="flex items-center justify-between mb-4">
               <div className="p-3 bg-blue-100 rounded-lg">
                 <Droplets className="w-6 h-6 text-blue-600" />
               </div>
-              <span className="text-sm text-green-600">+12.5%</span>
+              {loadingToday ? (
+                <RefreshCw className="w-4 h-4 text-gray-400 animate-spin" />
+              ) : (
+                <div className={`flex items-center gap-1 text-sm ${todayChange.isPositive ? 'text-red-600' : 'text-green-600'}`}>
+                  {todayChange.isPositive ? <TrendingUp className="w-4 h-4" /> : <TrendingDown className="w-4 h-4" />}
+                  <span>{todayChange.value.toFixed(1)}%</span>
+                </div>
+              )}
             </div>
             <p className="text-sm text-gray-500">今日用水量</p>
-            <p className="text-2xl font-bold text-gray-900">1,234 m³</p>
+            <p className="text-2xl font-bold text-gray-900">
+              {loadingToday ? (
+                <span className="text-gray-300">加载中...</span>
+              ) : (
+                <span>{formatUsage(todayUsage)} m³</span>
+              )}
+            </p>
+            {!loadingToday && yesterdayUsage > 0 && (
+              <p className="text-xs text-gray-400 mt-1">昨日同期: {formatUsage(yesterdayUsage)} m³</p>
+            )}
           </div>
 
+          {/* 本月用水量 */}
           <div className="bg-white rounded-xl p-6 shadow-sm">
             <div className="flex items-center justify-between mb-4">
               <div className="p-3 bg-purple-100 rounded-lg">
                 <BarChart3 className="w-6 h-6 text-purple-600" />
               </div>
-              <span className="text-sm text-green-600">+8.3%</span>
+              {loadingMonth ? (
+                <RefreshCw className="w-4 h-4 text-gray-400 animate-spin" />
+              ) : (
+                <div className={`flex items-center gap-1 text-sm ${monthChange.isPositive ? 'text-red-600' : 'text-green-600'}`}>
+                  {monthChange.isPositive ? <TrendingUp className="w-4 h-4" /> : <TrendingDown className="w-4 h-4" />}
+                  <span>{monthChange.value.toFixed(1)}%</span>
+                </div>
+              )}
             </div>
             <p className="text-sm text-gray-500">本月用水量</p>
-            <p className="text-2xl font-bold text-gray-900">36,780 m³</p>
+            <p className="text-2xl font-bold text-gray-900">
+              {loadingMonth ? (
+                <span className="text-gray-300">加载中...</span>
+              ) : (
+                <span>{formatUsage(monthUsage)} m³</span>
+              )}
+            </p>
+            {!loadingMonth && lastMonthSameDay > 0 && (
+              <p className="text-xs text-gray-400 mt-1">上月同期: {formatUsage(lastMonthSameDay)} m³</p>
+            )}
           </div>
 
+          {/* 异常告警 */}
           <div className="bg-white rounded-xl p-6 shadow-sm">
             <div className="flex items-center justify-between mb-4">
               <div className="p-3 bg-yellow-100 rounded-lg">
                 <AlertTriangle className="w-6 h-6 text-yellow-600" />
               </div>
-              <span className="text-sm text-red-600">+2</span>
+              <span className="text-sm text-red-600">+{alertCount}</span>
             </div>
             <p className="text-sm text-gray-500">异常告警</p>
-            <p className="text-2xl font-bold text-gray-900">3 条</p>
+            <p className="text-2xl font-bold text-gray-900">
+              {loading ? '加载中...' : `${alertCount} 条`}
+            </p>
           </div>
 
+          {/* 在线设备 */}
           <div className="bg-white rounded-xl p-6 shadow-sm">
             <div className="flex items-center justify-between mb-4">
               <div className="p-3 bg-green-100 rounded-lg">
@@ -73,7 +469,19 @@ export default function Dashboard() {
               </div>
             </div>
             <p className="text-sm text-gray-500">在线设备</p>
-            <p className="text-2xl font-bold text-gray-900">128 台</p>
+            <p className="text-2xl font-bold text-gray-900">
+              {loading ? '加载中...' : `${deviceCount} 台`}
+            </p>
+            {loadingOffline ? (
+              <p className="text-xs text-gray-300 mt-1">离线设备加载中...</p>
+            ) : offlineDevices.length > 0 ? (
+              <p className="text-xs text-red-500 mt-1 flex items-center gap-1">
+                <WifiOff className="w-3 h-3" />
+                离线 {offlineDevices.length} 台
+              </p>
+            ) : (
+              <p className="text-xs text-green-500 mt-1">设备全部在线</p>
+            )}
           </div>
         </div>
 
@@ -132,7 +540,29 @@ export default function Dashboard() {
             </div>
           </div>
         </div>
+
+        {/* 离线设备列表 */}
+        {!loadingOffline && offlineDevices.length > 0 && (
+          <div className="mt-6 bg-white rounded-xl p-6 shadow-sm">
+            <div className="flex items-center gap-2 mb-4">
+              <WifiOff className="w-5 h-5 text-red-500" />
+              <h2 className="text-lg font-semibold text-gray-900">离线设备列表</h2>
+              <span className="px-2 py-0.5 bg-red-100 text-red-700 text-sm rounded-full">{offlineDevices.length}</span>
+            </div>
+            <div className="flex flex-wrap gap-2">
+              {offlineDevices.map((deviceId, index) => (
+                <span
+                  key={index}
+                  className="px-3 py-1.5 bg-red-50 border border-red-200 text-red-700 text-sm rounded-lg font-mono"
+                >
+                  {deviceId}
+                </span>
+              ))}
+            </div>
+          </div>
+        )}
       </main>
+      </div>
     </div>
   )
 }

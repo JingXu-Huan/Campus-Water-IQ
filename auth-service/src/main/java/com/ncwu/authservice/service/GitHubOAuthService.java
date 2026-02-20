@@ -1,5 +1,7 @@
 package com.ncwu.authservice.service;
 
+import com.fasterxml.jackson.core.type.TypeReference;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import com.ncwu.authservice.config.oauthconfig.GitHubOAuthProperties;
 import com.ncwu.authservice.exception.GitHubOAuthException;
 import lombok.Data;
@@ -71,8 +73,12 @@ public class GitHubOAuthService {
                                     retrySignal.totalRetries() + 1)))
                     .block();
 
+            log.info("GitHub token response: {}", response);
+
             if (response != null && response.containsKey("access_token")) {
-                return (String) response.get("access_token");
+                String accessToken = (String) response.get("access_token");
+                log.info("Successfully obtained access token, length: {}", accessToken != null ? accessToken.length() : 0);
+                return accessToken;
             } else {
                 String error = response != null ? (String) response.get("error") : "Unknown error";
                 throw new GitHubOAuthException("Failed to get access token: " + error);
@@ -87,27 +93,40 @@ public class GitHubOAuthService {
      * 获取GitHub用户信息
      */
     public GitHubUserInfo getUserInfo(String accessToken) {
-        WebClient webClient = webClientBuilder.build();
         try {
-            // 获取用户基本信息
-            Map<String, Object> userInfo = webClient.get()
+            // 使用 exchangeToMono 获取更详细的响应信息
+            String userInfoResponse = webClientBuilder.build()
+                    .get()
                     .uri(gitHubOAuthProperties.getUserInfoUrl())
-                    .header("Authorization", "token " + accessToken)
+                    .header("Authorization", "Bearer " + accessToken)
                     .header("User-Agent", "Campus-Water-IQ")
+                    .header("Accept", "application/vnd.github.v3+json")
                     .retrieve()
-                    .bodyToMono(new ParameterizedTypeReference<Map<String, Object>>() {
-                    })
+                    .bodyToMono(String.class)
                     .block();
+            
+            log.debug("Raw user info response: {}", userInfoResponse);
+            
+            // 解析JSON响应
+            ObjectMapper mapper = new ObjectMapper();
+            Map<String, Object> userInfo = mapper.readValue(userInfoResponse, 
+                    new TypeReference<Map<String, Object>>() {});
 
             // 获取用户邮箱信息
-            List<Map<String, Object>> emailInfo = webClient.get()
+            String emailInfoResponse = webClientBuilder.build()
+                    .get()
                     .uri(gitHubOAuthProperties.getUserEmailUrl())
-                    .header("Authorization", "token " + accessToken)
+                    .header("Authorization", "Bearer " + accessToken)
                     .header("User-Agent", "Campus-Water-IQ")
+                    .header("Accept", "application/vnd.github.v3+json")
                     .retrieve()
-                    .bodyToMono(new ParameterizedTypeReference<List<Map<String, Object>>>() {
-                    })
+                    .bodyToMono(String.class)
                     .block();
+            
+            log.debug("Raw email info response: {}", emailInfoResponse);
+            
+            List<Map<String, Object>> emailInfo = mapper.readValue(emailInfoResponse,
+                    new TypeReference<List<Map<String, Object>>>() {});
 
             if (userInfo != null) {
                 GitHubUserInfo result = new GitHubUserInfo();

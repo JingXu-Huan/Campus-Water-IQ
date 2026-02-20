@@ -15,6 +15,7 @@ public class AuthResult {
     boolean isSuccess;
     String uid;
     String token;
+    String nickName;
 
     public AuthResult(boolean isSuccess) {
         this.isSuccess = isSuccess;

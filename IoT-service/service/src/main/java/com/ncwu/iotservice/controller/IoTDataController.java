@@ -20,6 +20,7 @@ import org.springframework.format.annotation.DateTimeFormat;
 import org.springframework.web.bind.annotation.*;
 
 import java.time.LocalDateTime;
+import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
@@ -35,6 +36,7 @@ import java.util.Map;
 @RestController
 @RequestMapping("/Data")
 @RequiredArgsConstructor
+@CrossOrigin(origins = "*", allowedHeaders = "*", methods = {RequestMethod.GET, RequestMethod.POST, RequestMethod.PUT, RequestMethod.DELETE, RequestMethod.OPTIONS})
 public class IoTDataController {
 
     private final IoTDataService ioTDataService;
@@ -206,5 +208,13 @@ public class IoTDataController {
     @GetMapping("/getOffLineRate")
     public Result<Double> getOfflineRate() {
         return ioTDataService.getOfflineRate();
+    }
+
+    /**
+     * 获取某校区的离线水表设备列表
+     */
+    @GetMapping("/getCampusOffLineDeviceList")
+    public Result<Collection<String>> getOffLineDeviceList(@Min(1) @Max(3) int campus) {
+        return ioTDataService.getOffLineList(campus);
     }
 }

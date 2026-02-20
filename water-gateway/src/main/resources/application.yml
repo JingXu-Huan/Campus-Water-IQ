@@ -33,7 +33,7 @@ spring:
           uri: lb://Auth-service
           predicates:
             # 按需替换，添加即可
-            - Path=/auth/**
+            - Path=/auth/**,/signup/**
   main:
     web-application-type: reactive
 # 网关配置
@@ -50,6 +50,8 @@ gateway:
       - /auth/github/callback
       - /auth/wechat/authorize
       - /auth/wechat/callback
+      - /signup
+      - /signup/send-code
       - /actuator/**
       - /health
       - /favicon.ico

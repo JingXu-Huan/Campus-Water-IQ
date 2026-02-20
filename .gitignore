@@ -13,6 +13,12 @@ target/
 *.iml
 *.ipr
 
+### Frontend ###
+frontend/node_modules/
+frontend/dist/
+frontend/.vite/
+*.log
+
 ### Eclipse ###
 .apt_generated
 .classpath

@@ -33,6 +33,7 @@ import static com.ncwu.common.utils.Utils.keep2;
 
 /**
  * 查询、计算Iot设备数据
+ *
  * @author jingxu
  * @version 1.0.0
  * @since 2025/12/20
@@ -442,5 +443,28 @@ public class IoTDataServiceImpl extends ServiceImpl<IoTDeviceDataMapper, IotDevi
             return Result.ok(keep2(healthScore));
         }
         return Result.fail(Double.NaN, ErrorCode.GET_HEALTHY_SCORE_ERROR.code(), ErrorCode.GET_HEALTHY_SCORE_ERROR.message());
+    }
+
+    @Override
+    public Result<Collection<String>> getOffLineList(int campus) {
+        Map<Object, Object> entries = redisTemplate.opsForHash().entries("OnLineMap");
+        Set<Object> ids = entries.keySet();
+
+        Set<String> res = ids.stream()
+                .map(Object::toString)
+                .filter(id -> id.substring(1, 2)
+                        //保留目标校区
+                        .equals(String.valueOf(campus)) && id.startsWith("1"))
+                .collect(Collectors.toSet());
+        //全量列表
+        Set<String> meters = redisTemplate.opsForSet().members("device:meter");
+        assert meters != null;
+        //移除其他校区的
+        Set<String> collect = meters.stream()
+                .filter(id -> id.substring(1, 2).equals(String.valueOf(campus)))
+                .collect(Collectors.toSet());
+        //移除在线列表
+        collect.removeAll(res);
+        return Result.ok(collect);
     }
 }

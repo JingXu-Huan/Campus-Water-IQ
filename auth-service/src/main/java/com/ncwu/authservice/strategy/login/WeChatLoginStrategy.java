@@ -135,11 +135,12 @@ public class WeChatLoginStrategy implements LoginStrategy {
      */
     private AuthResult handleNewWeChatUser(WeChatOAuthService.WeChatUserInfo weChatUser) {
         // 自动创建新用户
-        log.info("WeChat用户 {} 未绑定系统账号，自动创建新用户", weChatUser.getNickname());
+        String nickname = weChatUser.getNickname();
+        log.info("WeChat用户 {} 未绑定系统账号，自动创建新用户", nickname);
 
         try {
             User newUser = new User();
-            newUser.setNickName(weChatUser.getNickname());
+            newUser.setNickName(nickname);
             newUser.setWechatOpenId(weChatUser.getOpenId());
             newUser.setPhoneNum(null);
             newUser.setEmail(null);
@@ -156,10 +157,10 @@ public class WeChatLoginStrategy implements LoginStrategy {
                 log.error("创建WeChat用户失败");
                 return new AuthResult(false);
             }
-            log.info("WeChat用户 {} 创建成功，UID: {}", weChatUser.getNickname(), newUser.getUid());
-            // 生成登录令牌
-            String token = tokenHelper.genToken(newUser.getUid(), newUser.getNickName(), newUser.getUserType());
-            return new AuthResult(true, newUser.getUid(), token);
+            String uid = newUser.getUid();
+            log.info("WeChat用户 {} 创建成功，UID: {}", nickname, uid);
+            String token = tokenHelper.genToken(uid, nickname, newUser.getUserType());
+            return new AuthResult(true, uid, token,nickname);
         } catch (Exception e) {
             log.error("创建WeChat用户时发生异常", e);
             return new AuthResult(false);
@@ -184,12 +185,14 @@ public class WeChatLoginStrategy implements LoginStrategy {
      * 认证用户并生成令牌
      */
     private AuthResult authenticateUser(User user) {
+        String uid = user.getUid();
         if (user.getStatus() != 1) {
-            log.warn("用户 {} 状态异常: {}", user.getUid(), user.getStatus());
+            log.warn("用户 {} 状态异常: {}", uid, user.getStatus());
             return new AuthResult(false);
         }
-        String token = tokenHelper.genToken(user.getUid(), user.getNickName(), user.getUserType());
-        log.info("WeChat用户 {} 登录成功", user.getUid());
-        return new AuthResult(true, user.getUid(), token);
+        String nickName = user.getNickName();
+        String token = tokenHelper.genToken(uid, nickName, user.getUserType());
+        log.info("WeChat用户 {} 登录成功", uid);
+        return new AuthResult(true, uid, token,nickName);
     }
 }

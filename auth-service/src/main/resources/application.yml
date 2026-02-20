@@ -24,4 +24,4 @@ wechat:
 logging:
   # 2. 级别改为 INFO 或 ERROR
   level:
-    com.ncwu.authservice: info
+    com.ncwu.authservice: debug

@@ -72,7 +72,7 @@ public class EmailCodeLoginStrategy implements LoginStrategy, CodeSender {
         String email = request.getIdentifier();
         String code = request.getCredential();
         // 校验邮箱格式
-        //引入布隆过滤器，防止缓存穿透(必做,在初始化的时候执行一次全量加入过滤器)
+        //引入布隆过滤器，防止缓存穿透
         boolean contains = emailBloomFilter.contains(email);
         if (!isValidEmail(email) || !contains) {
             log.warn("邮箱验证失败: 格式={}, 布隆过滤器={}", isValidEmail(email), contains);
@@ -91,6 +91,7 @@ public class EmailCodeLoginStrategy implements LoginStrategy, CodeSender {
             //查询数据库
             User user = userMapper.selectOne(new LambdaQueryWrapper<User>()
                     .eq(User::getEmail, email)
+                    .eq(User::getGithubId, null)
                     .select(User::getUid, User::getNickName, User::getUserType, User::getStatus)
             );
             if (user == null) {
@@ -131,7 +132,7 @@ public class EmailCodeLoginStrategy implements LoginStrategy, CodeSender {
         }
         if (code.equals(validCode)) {
             String token = tokenHelper.genToken(uid, nickName, userType);
-            return new AuthResult(true, uid, token);
+            return new AuthResult(true, uid, token,nickName);
         } else {
             return new AuthResult(false);
         }

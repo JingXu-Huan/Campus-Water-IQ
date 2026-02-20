@@ -3,6 +3,7 @@ import { useNavigate, Link } from 'react-router-dom'
 import { authApi, SignUpResult } from '@/api/auth'
 import { Eye, EyeOff, Droplets, Mail, Phone, Lock, User, MessageSquare, Loader2, Check, X, ArrowRight } from 'lucide-react'
 import { motion, AnimatePresence } from 'framer-motion'
+import * as React from "react";
 
 type RegisterMethod = 'email' | 'phone'
 
@@ -113,7 +114,7 @@ export default function Register() {
     setLoading(true)
     try {
       const res = await authApi.signUp({
-        type: registerMethod === 'email' ? 'EMAIL' : 'PHONE',
+        type: registerMethod === 'email' ? 'MAIL_AND_CODE' : 'PHONE_AND_CODE',
         identifier,
         credential: code,
         pwd: credential,

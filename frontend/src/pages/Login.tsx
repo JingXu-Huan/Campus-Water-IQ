@@ -54,7 +54,7 @@ export default function Login() {
     try {
       const res = await authApi.signIn({ type, identifier: '', credential: code }) as unknown as AuthResult
       if (res.success && res.token) {
-        setAuth(res.token, res.uid || '', '')
+        setAuth(res.token, res.uid || '', res.nickName || '')
         navigate('/dashboard')
       } else {
         setError('OAuth登录失败，请重试')
@@ -94,7 +94,7 @@ export default function Login() {
       }) as unknown as AuthResult
       
       if (res.success && res.token) {
-        setAuth(res.token, res.uid || '', '')
+        setAuth(res.token, res.uid || '', res.nickName || '')
         navigate('/dashboard')
       } else {
         setError('登录失败，请检查账号密码')

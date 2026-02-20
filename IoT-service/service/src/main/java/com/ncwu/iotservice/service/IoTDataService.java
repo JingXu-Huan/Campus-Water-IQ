@@ -9,6 +9,7 @@ import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Size;
 
 import java.time.LocalDateTime;
+import java.util.Collection;
 import java.util.List;
 import java.util.Map;
 
@@ -44,4 +45,5 @@ public interface IoTDataService extends IService<IotDeviceData> {
 
     Result<Double> getHealthyScoreOfDevices();
 
+    Result<Collection<String>> getOffLineList(int campus);
 }

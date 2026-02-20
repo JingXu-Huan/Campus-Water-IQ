@@ -8,11 +8,14 @@ import com.ncwu.authservice.domain.entity.User;
 import com.ncwu.authservice.domain.enums.SignUpType;
 import com.ncwu.authservice.factory.signup.SignUpStrategy;
 import com.ncwu.authservice.mapper.UserMapper;
+import jakarta.annotation.PostConstruct;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.redisson.api.RBloomFilter;
 import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.stereotype.Service;
 
+import java.util.List;
 import java.util.regex.Pattern;
 
 import static com.ncwu.authservice.util.Utils.genUid;
@@ -26,6 +29,13 @@ import static com.ncwu.authservice.util.Utils.genUid;
 @Service
 @RequiredArgsConstructor
 public class EmailCodeSignUpStrategy implements SignUpStrategy {
+
+    private final List<RBloomFilter<String>> bloomFilters;
+    private RBloomFilter<String> passwordBloomFilter;
+    @PostConstruct
+    void init() {
+        passwordBloomFilter = bloomFilters.getLast();
+    }
     //邮箱正则表达式
     private static final Pattern EMAIL_PATTERN = Pattern
             .compile("^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\\.[a-zA-Z]{2,}$");
@@ -40,6 +50,7 @@ public class EmailCodeSignUpStrategy implements SignUpStrategy {
 
     @Override
     public SignUpResult signUp(SignUpRequest signUpRequest) {
+        //根据邮箱注册
         String toEmail = signUpRequest.getIdentifier();
         if (!isValidEmail(toEmail)) {
             return new SignUpResult(false, "", "", "");
@@ -65,7 +76,7 @@ public class EmailCodeSignUpStrategy implements SignUpStrategy {
         userEntity.setPassword(pwd);
         userEntity.setUid(uid);
         userMapper.insert(userEntity);
-
+        passwordBloomFilter.add(uid);
         return new SignUpResult(true, uid, nickname, "注册成功，请登录");
     }
 

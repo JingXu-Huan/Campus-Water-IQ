@@ -12,6 +12,7 @@ import com.ncwu.authservice.config.oauthconfig.WeChatOAuthProperties;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.web.servlet.view.RedirectView;
 
 import java.util.Map;
 
@@ -73,15 +74,17 @@ public class SignInController {
      * GitHub OAuth回调处理
      */
     @GetMapping("/github/callback")
-    public String githubCallback(@RequestParam String code) {
+    public RedirectView githubCallback(@RequestParam String code) {
         try {
-            // 这里可以处理OAuth回调，例如重定向到前端页面并传递code
             log.info("收到GitHub OAuth回调，code: {}", code);
-            // todo 暂时返回成功信息，实际应用中应该重定向到前端页面
-            return "GitHub OAuth授权成功，请使用返回的code进行登录: " + code;
+            // 重定向到前端页面，并传递授权码
+            String redirectUrl = "http://localhost:5173/login?github_code=" + code;
+            return new RedirectView(redirectUrl);
         } catch (Exception e) {
             log.error("GitHub OAuth回调处理失败", e);
-            return "GitHub OAuth授权失败: " + e.getMessage();
+            // 重定向到前端登录页面，并传递错误信息
+            String redirectUrl = "http://localhost:5173/login?error=github_oauth_failed";
+            return new RedirectView(redirectUrl);
         }
     }
 
@@ -97,15 +100,17 @@ public class SignInController {
      * WeChat OAuth回调处理
      */
     @GetMapping("/wechat/callback")
-    public String wechatCallback(@RequestParam String code) {
+    public RedirectView wechatCallback(@RequestParam String code) {
         try {
-            // 这里可以处理OAuth回调，例如重定向到前端页面并传递code
             log.info("收到WeChat OAuth回调，code: {}", code);
-            // todo 暂时返回成功信息，实际应用中应该重定向到前端页面
-            return "WeChat OAuth授权成功，请使用返回的code进行登录: " + code;
+            // 重定向到前端页面，并传递授权码
+            String redirectUrl = "http://localhost:5173/login?wechat_code=" + code;
+            return new RedirectView(redirectUrl);
         } catch (Exception e) {
             log.error("WeChat OAuth回调处理失败", e);
-            return "WeChat OAuth授权失败: " + e.getMessage();
+            // 重定向到前端登录页面，并传递错误信息
+            String redirectUrl = "http://localhost:5173/login?error=wechat_oauth_failed";
+            return new RedirectView(redirectUrl);
         }
     }
 }

@@ -68,6 +68,6 @@ public class PhoneCodeLoginStrategy implements LoginStrategy {
             return new AuthResult(false);
         }
         String token = tokenHelper.genToken(uid, nickName, userType);
-        return new AuthResult(true, uid, token);
+        return new AuthResult(true, uid, token,nickName);
     }
 }

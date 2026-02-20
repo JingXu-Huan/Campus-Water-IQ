@@ -36,6 +36,7 @@ public class DeviceController {
     private final VirtualMeterDeviceService virtualMeterDeviceService;
     private final VirtualWaterQualityDeviceService virtualWaterQualityDeviceService;
     private final Utils utils;
+
     /**
      * 初始化
      * 建议前端传入参数，或者从配置文件读取默认值
@@ -128,7 +129,6 @@ public class DeviceController {
     }
 
 
-
     /**
      * 设置模拟模式 支持：leaking、burstPipe、normal三种模式
      */
@@ -137,8 +137,11 @@ public class DeviceController {
         return virtualMeterDeviceService.changeMode(mode);
     }
 
+    /**
+     * 得到所有开启的设备数量
+     */
     @GetMapping("/getDevicesNum")
-    public Result<Integer> getNums(){
+    public Result<Integer> getNums() {
         return virtualMeterDeviceService.getDeviceNums();
     }
 }

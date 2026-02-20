@@ -11,6 +11,7 @@ import com.ncwu.iotdevice.service.VirtualWaterQualityDeviceService;
 import com.ncwu.iotdevice.utils.Utils;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.*;
+import lombok.Data;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.redis.core.StringRedisTemplate;
@@ -30,12 +31,14 @@ import java.util.Objects;
 @Slf4j
 @RestController
 @RequestMapping("/device")
+@CrossOrigin(origins = "*", allowedHeaders = "*")
 @RequiredArgsConstructor
 public class DeviceController {
 
     private final VirtualMeterDeviceService virtualMeterDeviceService;
     private final VirtualWaterQualityDeviceService virtualWaterQualityDeviceService;
     private final Utils utils;
+    private final StringRedisTemplate stringRedisTemplate;
 
     /**
      * 初始化
@@ -143,5 +146,69 @@ public class DeviceController {
     @GetMapping("/getDevicesNum")
     public Result<Integer> getNums() {
         return virtualMeterDeviceService.getDeviceNums();
+    }
+
+    /**
+     * 获取楼宇配置信息
+     * 从 Redis 中读取教学楼、实验楼的终止编号，计算宿舍楼终止编号
+     */
+    @GetMapping("/buildingConfig")
+    public Result<BuildingConfigVO> getBuildingConfig() {
+        try {
+            // 从 Redis 获取配置
+            String eduEndStr = stringRedisTemplate.opsForValue().get("device:educationBuildings");
+            String expEndStr = stringRedisTemplate.opsForValue().get("device:experimentBuildings");
+            String totalBuildings = stringRedisTemplate.opsForValue().get("TotalBuildings");
+            String floorsStr = stringRedisTemplate.opsForValue().get("Floors");
+            String roomsStr = stringRedisTemplate.opsForValue().get("Rooms");
+
+            // 使用默认值
+            int educationEnd = eduEndStr != null ? Integer.parseInt(eduEndStr) : 1;
+            int experimentEnd = expEndStr != null ? Integer.parseInt(expEndStr) : 3;
+            int floors = floorsStr != null ? Integer.parseInt(floorsStr) : 6;
+            int rooms = roomsStr != null ? Integer.parseInt(roomsStr) : 10;
+
+            // 从配置或数据库获取总楼栋数，这里从 Redis 获取 allDeviceNums 估算
+            String totalDevicesStr = stringRedisTemplate.opsForValue().get("allDeviceNums");
+            int totalDevices = totalDevicesStr != null ? Integer.parseInt(totalDevicesStr) : 6;
+
+            // 计算宿舍楼起始编号 = Total - (experimentEnd + educationEnd) - 1
+            assert totalBuildings != null;
+            int dormitoryStart = Integer.parseInt(totalBuildings) - experimentEnd;
+
+            BuildingConfigVO config = new BuildingConfigVO();
+            config.setEducationStart(educationEnd);
+            config.setExperimentStart(experimentEnd);
+            config.setDormitoryStart(dormitoryStart);
+            config.setTotalBuildings(Integer.parseInt(totalBuildings));
+            config.setFloors(floors);
+            config.setRooms(rooms);
+
+            return Result.ok(config);
+        } catch (Exception e) {
+            log.error("获取楼宇配置失败", e);
+            // 返回默认值
+            BuildingConfigVO config = new BuildingConfigVO();
+            config.setEducationStart(1);
+            config.setExperimentStart(3);
+            config.setDormitoryStart(4);
+            config.setTotalBuildings(6);
+            config.setFloors(6);
+            config.setRooms(10);
+            return Result.ok(config);
+        }
+    }
+
+    /**
+     * 楼宇配置 VO
+     */
+    @Data
+    public static class BuildingConfigVO {
+        private Integer educationStart;
+        private Integer experimentStart;
+        private Integer dormitoryStart;
+        private Integer totalBuildings;
+        private Integer floors;
+        private Integer rooms;
     }
 }

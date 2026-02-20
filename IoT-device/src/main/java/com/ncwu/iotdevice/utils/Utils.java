@@ -78,6 +78,10 @@ public class Utils {
         Map<String, String> map = Stream.concat(meterDeviceIds.stream(), waterQualityDeviceIds.stream())
                 .collect(Collectors.toMap(Function.identity(), id -> "-1"));
         try {
+            redisTemplate.opsForValue().set("TotalBuildings",String.valueOf(buildings));
+            redisTemplate.opsForValue().set("Floors",String.valueOf(floors));
+
+            redisTemplate.opsForValue().set("Rooms",String.valueOf(rooms));
             //初始化标志位
             redisTemplate.opsForValue().set("isInit", "1");
             //水表总用水量

@@ -200,13 +200,21 @@ export default function Dashboard() {
   }, [selectedCampus])
 
   const menuItems = [
-    { id: 'dashboard', label: '仪表盘', icon: LayoutDashboard },
-    { id: 'monitoring', label: '实时监测', icon: Activity },
-    { id: 'map', label: '数字孪生', icon: Map },
-    { id: 'reports', label: '数据报表', icon: FileText },
-    { id: 'settings', label: '系统设置', icon: Settings },
-    { id: 'help', label: '帮助中心', icon: HelpCircle },
+    { id: 'dashboard', label: '仪表盘', icon: LayoutDashboard, path: '/dashboard' },
+    { id: 'monitoring', label: '实时监测', icon: Activity, path: '/monitoring' },
+    { id: 'map', label: '数字孪生', icon: Map, path: '' },
+    { id: 'reports', label: '数据报表', icon: FileText, path: '' },
+    { id: 'settings', label: '系统设置', icon: Settings, path: '' },
+    { id: 'help', label: '帮助中心', icon: HelpCircle, path: '' },
   ]
+
+  const handleMenuClick = (item: typeof menuItems[0]) => {
+    if (item.path && item.path !== '/dashboard') {
+      navigate(item.path)
+    } else {
+      setActiveMenu(item.id)
+    }
+  }
 
   return (
     <div className="min-h-screen bg-gray-50 flex">
@@ -232,7 +240,7 @@ export default function Dashboard() {
               return (
                 <li key={item.id}>
                   <button
-                    onClick={() => setActiveMenu(item.id)}
+                    onClick={() => handleMenuClick(item)}
                     className={`w-full flex items-center gap-3 px-4 py-3 rounded-lg transition-all duration-200 ${
                       activeMenu === item.id
                         ? 'bg-primary-50 text-primary-600 border-r-2 border-primary-600'
@@ -562,6 +570,148 @@ export default function Dashboard() {
           </div>
         )}
       </main>
+
+      {/* Profile Modal */}
+      {showProfileModal && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
+          <div className="bg-white rounded-2xl shadow-xl w-full max-w-md mx-4">
+            <div className="flex items-center justify-between p-6 border-b border-gray-200">
+              <h2 className="text-xl font-semibold text-gray-900">个人中心</h2>
+              <button
+                onClick={() => setShowProfileModal(false)}
+                className="p-2 hover:bg-gray-100 rounded-lg"
+              >
+                <X className="w-5 h-5 text-gray-500" />
+              </button>
+            </div>
+
+            <div className="p-6">
+              {/* Avatar */}
+              <div className="flex flex-col items-center mb-6">
+                <div className="relative">
+                  {avatar ? (
+                    <img src={avatar} alt="头像" className="w-20 h-20 rounded-full object-cover border-4 border-gray-100" />
+                  ) : (
+                    <div className="w-20 h-20 rounded-full bg-gray-200 flex items-center justify-center border-4 border-gray-100">
+                      <User className="w-10 h-10 text-gray-400" />
+                    </div>
+                  )}
+                  <label className="absolute bottom-0 right-0 p-1.5 bg-primary-600 text-white rounded-full cursor-pointer hover:bg-primary-700">
+                    <Camera className="w-4 h-4" />
+                    <input
+                      type="file"
+                      accept="image/*"
+                      onChange={handleAvatarChange}
+                      className="hidden"
+                      disabled={profileLoading}
+                    />
+                  </label>
+                </div>
+                <p className="mt-2 text-sm text-gray-500">点击更换头像</p>
+              </div>
+
+              {/* Tabs */}
+              <div className="flex border-b border-gray-200 mb-4">
+                <button
+                  onClick={() => { setProfileTab('info'); setProfileMessage(null) }}
+                  className={`flex-1 pb-3 text-sm font-medium ${
+                    profileTab === 'info'
+                      ? 'text-primary-600 border-b-2 border-primary-600'
+                      : 'text-gray-500 hover:text-gray-700'
+                  }`}
+                >
+                  昵称
+                </button>
+                <button
+                  onClick={() => { setProfileTab('password'); setProfileMessage(null) }}
+                  className={`flex-1 pb-3 text-sm font-medium ${
+                    profileTab === 'password'
+                      ? 'text-primary-600 border-b-2 border-primary-600'
+                      : 'text-gray-500 hover:text-gray-700'
+                  }`}
+                >
+                  密码
+                </button>
+              </div>
+
+              {/* Message */}
+              {profileMessage && (
+                <div className={`mb-4 p-3 rounded-lg text-sm ${
+                  profileMessage.type === 'success'
+                    ? 'bg-green-50 text-green-700 border border-green-200'
+                    : 'bg-red-50 text-red-700 border border-red-200'
+                }`}>
+                  {profileMessage.text}
+                </div>
+              )}
+
+              {/* Tab Content */}
+              {profileTab === 'info' && (
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">昵称</label>
+                  <input
+                    type="text"
+                    value={editingNickname}
+                    onChange={(e) => setEditingNickname(e.target.value)}
+                    placeholder="请输入新昵称"
+                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500 outline-none"
+                  />
+                  <button
+                    onClick={handleUpdateNickname}
+                    disabled={profileLoading}
+                    className="w-full mt-4 flex items-center justify-center gap-2 px-4 py-2.5 bg-primary-600 text-white rounded-lg hover:bg-primary-700 disabled:opacity-50"
+                  >
+                    {profileLoading ? <RefreshCw className="w-4 h-4 animate-spin" /> : <Check className="w-4 h-4" />}
+                    保存昵称
+                  </button>
+                </div>
+              )}
+
+              {profileTab === 'password' && (
+                <div className="space-y-4">
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">当前密码</label>
+                    <div className="relative">
+                      <input
+                        type={showPassword ? 'text' : 'password'}
+                        value={oldPassword}
+                        onChange={(e) => setOldPassword(e.target.value)}
+                        placeholder="请输入当前密码"
+                        className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500 outline-none pr-10"
+                      />
+                      <button
+                        type="button"
+                        onClick={() => setShowPassword(!showPassword)}
+                        className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600"
+                      >
+                        {showPassword ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
+                      </button>
+                    </div>
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">新密码</label>
+                    <input
+                      type={showPassword ? 'text' : 'password'}
+                      value={newPassword}
+                      onChange={(e) => setNewPassword(e.target.value)}
+                      placeholder="请输入新密码（至少6位）"
+                      className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500 outline-none"
+                    />
+                  </div>
+                  <button
+                    onClick={handleUpdatePassword}
+                    disabled={profileLoading}
+                    className="w-full flex items-center justify-center gap-2 px-4 py-2.5 bg-primary-600 text-white rounded-lg hover:bg-primary-700 disabled:opacity-50"
+                  >
+                    {profileLoading ? <RefreshCw className="w-4 h-4 animate-spin" /> : <Check className="w-4 h-4" />}
+                    修改密码
+                  </button>
+                </div>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
       </div>
     </div>
   )

@@ -788,7 +788,7 @@ public class VirtualMeterDeviceServiceImpl extends ServiceImpl<DeviceMapper, Vir
                                 && eachDeviceRemainingReportActiveWaterInfoCounts.get(id) > 0) {
                             Integer cnt = eachDeviceRemainingReportActiveWaterInfoCounts.get(id);
                             eachDeviceRemainingReportActiveWaterInfoCounts.put(id, --cnt);
-                            return ThreadLocalRandom.current().nextDouble(0.17, 0.25);
+                            return ThreadLocalRandom.current().nextDouble(0.2, 0.3);
                         }
                     }
                 }
@@ -847,7 +847,7 @@ public class VirtualMeterDeviceServiceImpl extends ServiceImpl<DeviceMapper, Vir
                         .map(Object::toString)
                         .filter(id -> id.startsWith("1"))
                         .filter(id -> Integer.parseInt(id.substring(2, 4)) > firstIndex)
-                        .collect(Collectors.toMap(id -> id, id -> 8));
+                        .collect(Collectors.toMap(id -> id, id -> 15));
             }
         }
         return null;
@@ -1086,6 +1086,7 @@ public class VirtualMeterDeviceServiceImpl extends ServiceImpl<DeviceMapper, Vir
         clearRedisAndDbData(redisTemplate, deviceMapper);
         redisTemplate.opsForValue().set(prefix + "educationBuildings", String.valueOf(educationBuildings));
         redisTemplate.opsForValue().set(prefix + "experimentBuildings", String.valueOf(educationBuildings + experimentBuildings));
+
         DeviceIdList deviceIdList = initAllRedisData(buildings, floors, rooms, redisTemplate, redissonClient);
 
         List<String> meterDeviceIds = deviceIdList.getMeterDeviceIds();

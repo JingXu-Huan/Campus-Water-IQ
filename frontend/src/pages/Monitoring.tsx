@@ -309,97 +309,110 @@ export default function Monitoring() {
           ) : (
             <div className="space-y-6">
               {/* 统计卡片 */}
-              <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-                <div className="bg-white rounded-xl p-4 shadow-sm">
-                  <div className="flex items-center gap-3">
-                    <div className="p-2 bg-blue-100 rounded-lg">
+              <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                <div className="bg-white rounded-xl p-5 shadow-sm hover:shadow-md transition-shadow">
+                  <div className="flex items-center gap-3 mb-2">
+                    <div className="p-2.5 bg-blue-100 rounded-xl">
                       <Droplets className="w-5 h-5 text-blue-600" />
                     </div>
-                    <div>
-                      <p className="text-sm text-gray-500">总流量</p>
-                      <p className="text-xl font-bold text-gray-900">{totalFlow.toFixed(1)} L/s</p>
+                  </div>
+                  <p className="text-sm text-gray-500">总流量</p>
+                  <p className="text-2xl font-bold text-gray-900">{totalFlow.toFixed(1)} <span className="text-sm font-normal text-gray-400">L/s</span></p>
+                </div>
+                <div className="bg-white rounded-xl p-5 shadow-sm hover:shadow-md transition-shadow">
+                  <div className="flex items-center gap-3 mb-2">
+                    <div className="p-2.5 bg-purple-100 rounded-xl">
+                      <Activity className="w-5 h-5 text-purple-600" />
                     </div>
                   </div>
+                  <p className="text-sm text-gray-500">平均流量</p>
+                  <p className="text-2xl font-bold text-gray-900">{avgFlow.toFixed(2)} <span className="text-sm font-normal text-gray-400">L/s</span></p>
                 </div>
-                <div className="bg-white rounded-xl p-4 shadow-sm">
-                  <div className="flex items-center gap-3">
-                    <div className="p-2 bg-green-100 rounded-lg">
-                      <Activity className="w-5 h-5 text-green-600" />
-                    </div>
-                    <div>
-                      <p className="text-sm text-gray-500">平均流量</p>
-                      <p className="text-xl font-bold text-gray-900">{avgFlow.toFixed(2)} L/s</p>
-                    </div>
-                  </div>
-                </div>
-                <div className="bg-white rounded-xl p-4 shadow-sm">
-                  <div className="flex items-center gap-3">
-                    <div className="p-2 bg-green-100 rounded-lg">
+                <div className="bg-white rounded-xl p-5 shadow-sm hover:shadow-md transition-shadow">
+                  <div className="flex items-center gap-3 mb-2">
+                    <div className="p-2.5 bg-green-100 rounded-xl">
                       <CheckCircle className="w-5 h-5 text-green-600" />
                     </div>
-                    <div>
-                      <p className="text-sm text-gray-500">在线设备</p>
-                      <p className="text-xl font-bold text-green-600">{onlineCount}</p>
-                    </div>
                   </div>
+                  <p className="text-sm text-gray-500">在线设备</p>
+                  <p className="text-2xl font-bold text-green-600">{onlineCount}</p>
                 </div>
-                <div className="bg-white rounded-xl p-4 shadow-sm">
-                  <div className="flex items-center gap-3">
-                    <div className="p-2 bg-red-100 rounded-lg">
+                <div className="bg-white rounded-xl p-5 shadow-sm hover:shadow-md transition-shadow">
+                  <div className="flex items-center gap-3 mb-2">
+                    <div className="p-2.5 bg-red-100 rounded-xl">
                       <XCircle className="w-5 h-5 text-red-600" />
                     </div>
-                    <div>
-                      <p className="text-sm text-gray-500">离线设备</p>
-                      <p className="text-xl font-bold text-red-600">{offlineCount}</p>
-                    </div>
                   </div>
+                  <p className="text-sm text-gray-500">离线设备</p>
+                  <p className="text-2xl font-bold text-red-600">{offlineCount}</p>
                 </div>
               </div>
 
-              {/* 实时流量显示 */}
-              <div className="bg-white rounded-xl p-6 shadow-sm mb-6">
+              {/* 实时流量显示 - 优化样式 */}
+              <div className="bg-gradient-to-br from-blue-50 to-indigo-50 rounded-2xl p-8 shadow-sm mb-6">
                 <div className="flex items-center justify-between mb-6">
-                  <h3 className="text-lg font-semibold text-gray-900">{selectedBuilding.name} - 实时流量</h3>
-                  <span className="text-sm text-gray-500">
-                    共 {deviceData.length} 个用水单元
-                  </span>
+                  <div>
+                    <h3 className="text-xl font-bold text-gray-900">{selectedBuilding.name}</h3>
+                    <p className="text-sm text-gray-500">实时流量监测</p>
+                  </div>
+                  <div className="flex items-center gap-2 px-3 py-1.5 bg-white rounded-full shadow-sm">
+                    <span className="w-2 h-2 bg-green-500 rounded-full animate-pulse"></span>
+                    <span className="text-sm text-gray-600">在线监测中</span>
+                  </div>
                 </div>
                 <div className="flex items-center justify-center">
-                  <GaugeMeter value={totalFlow} max={Math.max(totalFlow * 1.5, 50)} size={200} />
+                  <GaugeMeter value={totalFlow} max={Math.max(totalFlow * 1.5, 50)} size={220} />
                 </div>
-                <div className="mt-4 text-center">
-                  <p className="text-3xl font-bold text-gray-900">{totalFlow.toFixed(2)} L/s</p>
-                  <p className="text-sm text-gray-500">当前总流量</p>
+                <div className="mt-6 text-center">
+                  <p className="text-4xl font-bold bg-gradient-to-r from-blue-600 to-indigo-600 bg-clip-text text-transparent">
+                    {totalFlow.toFixed(2)} L/s
+                  </p>
+                  <p className="text-sm text-gray-500 mt-1">当前总流量 · 共 {deviceData.length} 个用水单元</p>
                 </div>
               </div>
 
               {/* 房间设备列表 */}
               <div className="bg-white rounded-xl p-6 shadow-sm">
-                <h3 className="text-lg font-semibold text-gray-900 mb-4">各房间实时流量</h3>
+                <div className="flex items-center justify-between mb-4">
+                  <h3 className="text-lg font-semibold text-gray-900">各房间实时流量</h3>
+                  <div className="flex items-center gap-4 text-sm">
+                    <span className="flex items-center gap-1">
+                      <span className="w-2 h-2 bg-green-500 rounded-full"></span>
+                      <span className="text-gray-500">在线 {onlineCount}</span>
+                    </span>
+                    <span className="flex items-center gap-1">
+                      <span className="w-2 h-2 bg-red-500 rounded-full"></span>
+                      <span className="text-gray-500">离线 {offlineCount}</span>
+                    </span>
+                  </div>
+                </div>
                 {loading ? (
                   <div className="flex items-center justify-center h-40">
                     <RefreshCw className="w-8 h-8 text-gray-400 animate-spin" />
                   </div>
                 ) : (
-                  <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
+                  <div className="grid grid-cols-2 md:grid-cols-5 gap-3">
                     {deviceData.map((device) => (
                       <div
                         key={device.deviceId}
-                        className={`p-4 rounded-lg border ${
-                          device.status === 'online' ? 'bg-white border-gray-200' : 'bg-gray-50 border-gray-100'
+                        className={`p-4 rounded-xl border-2 transition-all hover:shadow-md ${
+                          device.status === 'online' 
+                            ? 'bg-white border-gray-100 hover:border-blue-200 hover:-translate-y-1' 
+                            : 'bg-gray-50 border-gray-100 opacity-75'
                         }`}
                       >
                         <div className="text-center">
-                          <p className="text-sm font-medium text-gray-900">
-                            {parseDeviceCode(device.deviceId)?.unitNo} 单元
+                          <p className="text-sm font-semibold text-gray-800">
+                            {parseDeviceCode(device.deviceId)?.unitNo}
                           </p>
+                          <p className="text-xs text-gray-400 mb-2">单元</p>
                           {device.status === 'online' ? (
                             <>
-                              <p className="text-xl font-bold text-blue-600 mt-1">{device.flow.toFixed(2)}</p>
+                              <p className="text-2xl font-bold text-blue-600">{device.flow.toFixed(1)}</p>
                               <p className="text-xs text-gray-400">L/s</p>
                             </>
                           ) : (
-                            <div className="flex items-center justify-center gap-1 text-red-500 mt-1">
+                            <div className="flex items-center justify-center gap-1 text-red-500">
                               <XCircle className="w-4 h-4" />
                               <span className="text-xs">离线</span>
                             </div>

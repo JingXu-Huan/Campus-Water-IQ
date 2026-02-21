@@ -172,7 +172,7 @@ export default function Monitoring() {
     .sort((a, b) => b.floor - a.floor)
   
   return (
-    <div className="min-h-screen bg-gray-50 flex">
+    <div className="h-screen bg-gray-50 flex overflow-hidden">
       {/* Sidebar */}
       <aside className={`${sidebarOpen ? 'w-64' : 'w-20'} bg-white shadow-lg transition-all duration-300 flex flex-col h-screen`}>
         <div className="p-6 border-b border-gray-200">
@@ -187,7 +187,7 @@ export default function Monitoring() {
         </div>
 
         {/* 返回主界面 */}
-        <div className="p-2 border-b border-gray-200">
+        <div className="p-2 border-b border-gray-200 flex-shrink-0">
           <button onClick={() => navigate('/dashboard')} className={`flex items-center gap-2 px-3 py-2 rounded-lg bg-primary-50 text-primary-700 hover:bg-primary-100 text-sm ${sidebarOpen ? 'w-full' : 'mx-auto justify-center'}`}>
             <LayoutDashboard className="w-5 h-5" />
             {sidebarOpen && <span>返回主界面</span>}
@@ -305,7 +305,7 @@ export default function Monitoring() {
           </div>
         </header>
 
-        <main className="flex-1 p-6 overflow-auto">
+        <main className="flex-1 p-6 overflow-y-auto">
           {!selectedBuilding ? (
             <div className="flex items-center justify-center h-full">
               <div className="text-center">
@@ -359,21 +359,21 @@ export default function Monitoring() {
               <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
                 <div className="bg-gradient-to-br from-blue-50 to-indigo-50 rounded-xl p-4 shadow-sm">
                   <div className="flex items-center justify-between mb-2">
-                    <span className="text-sm font-medium text-gray-700">流量监测</span>
+                    <span className="text-sm font-medium text-gray-700">总流量监测</span>
                     <GaugeMeter value={totalFlow} max={Math.max(totalFlow * 1.5, 50)} size={80} color="#3b82f6" />
                   </div>
                   <p className="text-xl font-bold text-blue-600">{totalFlow.toFixed(1)} L/s</p>
                 </div>
                 <div className="bg-gradient-to-br from-cyan-50 to-teal-50 rounded-xl p-4 shadow-sm">
                   <div className="flex items-center justify-between mb-2">
-                    <span className="text-sm font-medium text-gray-700">水压监测</span>
+                    <span className="text-sm font-medium text-gray-700">平均水压监测</span>
                     <GaugeMeter value={avgPressure} max={Math.max(avgPressure * 1.5, 1)} size={80} color="#06b6d4" />
                   </div>
                   <p className="text-xl font-bold text-cyan-600">{avgPressure.toFixed(2)} MPa</p>
                 </div>
                 <div className="bg-gradient-to-br from-orange-50 to-red-50 rounded-xl p-4 shadow-sm">
                   <div className="flex items-center justify-between mb-2">
-                    <span className="text-sm font-medium text-gray-700">水温监测</span>
+                    <span className="text-sm font-medium text-gray-700">平均水温监测</span>
                     <GaugeMeter value={avgTemperature} max={Math.max(avgTemperature * 1.5, 30)} size={80} color="#f97316" />
                   </div>
                   <p className="text-xl font-bold text-orange-600">{avgTemperature.toFixed(1)} °C</p>

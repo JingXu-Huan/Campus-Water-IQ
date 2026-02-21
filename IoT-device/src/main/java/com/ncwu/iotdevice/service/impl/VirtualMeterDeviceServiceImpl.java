@@ -18,15 +18,18 @@ import com.ncwu.iotdevice.domain.Bo.MeterDataBo;
 import com.ncwu.iotdevice.domain.entity.VirtualDevice;
 import com.ncwu.iotdevice.mapper.DeviceMapper;
 import com.ncwu.iotdevice.service.DataSender;
+import org.springframework.beans.factory.ObjectProvider;
 import com.ncwu.iotdevice.service.VirtualMeterDeviceService;
 import jakarta.annotation.PostConstruct;
 import jakarta.annotation.PreDestroy;
+import lombok.Getter;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.dubbo.config.annotation.DubboService;
 import org.apache.rocketmq.spring.core.RocketMQTemplate;
 import org.redisson.api.RedissonClient;
 import org.springframework.aop.framework.AopContext;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.stereotype.Service;
 
@@ -94,7 +97,8 @@ public class VirtualMeterDeviceServiceImpl extends ServiceImpl<DeviceMapper, Vir
     /**
      * 数据发送器，负责发送设备数据
      */
-    private final DataSender dataSender;
+    @Autowired
+    private ObjectProvider<DataSender> dataSender;
     /**
      * Redisson客户端，用于分布式锁等操作
      */
@@ -469,6 +473,7 @@ public class VirtualMeterDeviceServiceImpl extends ServiceImpl<DeviceMapper, Vir
             return Result.fail(ErrorCode.DEVICE_CANT_RESET_ERROR.code(), ErrorCode.DEVICE_CANT_RESET_ERROR.message());
         }
         this.isInit = false;
+        cache.invalidateAll();
         redisTemplate.opsForValue().set("isInit", "0");
         return Result.ok(SuccessCode.DEVICE_RESET_SUCCESS.getCode(), SuccessCode.DEVICE_RESET_SUCCESS.getMessage());
     }
@@ -516,7 +521,7 @@ public class VirtualMeterDeviceServiceImpl extends ServiceImpl<DeviceMapper, Vir
     @Override
     public Result<String> changeMode(String mode) {
         // 验证模式参数的有效性
-        if (mode.equals("burstPipe") || mode.equals("leaking") || mode.equals("normal")) {
+        if (mode.equals("burstPipe") || mode.equals("leaking") || mode.equals("normal")||mode.equals("shows")) {
             // 将模式存储到Redis中，供所有设备使用
             redisTemplate.opsForValue().set("mode", mode);
             return Result.ok(SuccessCode.METER_MODE_CHANGE_SUCCESS.getCode(),
@@ -578,7 +583,7 @@ public class VirtualMeterDeviceServiceImpl extends ServiceImpl<DeviceMapper, Vir
 
             try {
                 // 发送心跳信息
-                dataSender.heartBeat(deviceId, reportTime);
+                dataSender.getObject().heartBeat(deviceId, reportTime);
             } catch (Exception e) {
                 log.error("心跳发送异常: {}", e.getMessage(), e);
             }
@@ -698,7 +703,7 @@ public class VirtualMeterDeviceServiceImpl extends ServiceImpl<DeviceMapper, Vir
         dataBo.setStatus(DeviceStatus.NORMAL);     // 设备运行状态
 
         // 发送数据到消息队列或数据接收端
-        dataSender.sendMeterData(dataBo);
+        dataSender.getObject().sendMeterData(dataBo);
     }
 
     /**
@@ -1102,18 +1107,17 @@ public class VirtualMeterDeviceServiceImpl extends ServiceImpl<DeviceMapper, Vir
         //异步写入数据库
         pool.submit(() -> proxy.saveBatch(meterList, 2000));
         pool.submit(() -> proxy.saveBatch(waterList, 2000));
-        pool.shutdown();
-        boolean terminated = pool.awaitTermination(1, TimeUnit.MINUTES);
-        if (!terminated) {
-            log.warn("线程池未在指定时间内完成关闭，可能存在未完成的任务");
-        }
+//        pool.shutdown();
+//        boolean terminated = pool.awaitTermination(1, TimeUnit.MINUTES);
+//        if (!terminated) {
+//            log.warn("线程池未在指定时间内完成关闭，可能存在未完成的任务");
+//        }
         this.isInit = true;
         waterQualityDeviceService.setInit(true);
         log.info("设备注册完成：校区 3 楼宇 {} 层数 {} 房间 {}", buildings, floors, rooms);
         this.allSize = buildings * floors * rooms * 3;
         //总数量写入redis
         redisTemplate.opsForValue().set("allDeviceNums", String.valueOf(allSize));
-
         return Result.ok(SuccessCode.DEVICE_REGISTER_SUCCESS.getCode(),
                 SuccessCode.DEVICE_REGISTER_SUCCESS.getMessage());
     }
@@ -1142,7 +1146,32 @@ public class VirtualMeterDeviceServiceImpl extends ServiceImpl<DeviceMapper, Vir
             virtualDeviceList.add(virtualDevice);
         });
     }
+    /**
+     * 设备上线后置处理器
+     */
+    public void markDeviceOnline(String deviceCode, long timestamp, DeviceMapper deviceMapper,
+                                 StringRedisTemplate redisTemplate) {
+        //得到自定义线程池
+        ExecutorService pools = getExecutorPools("markDeviceOnline", 5, 10, 60, 1000);
+        // 1. 更新数据库状态（仅当当前为 offline 时）
+        pools.submit(() -> {
+            LambdaUpdateWrapper<VirtualDevice> updateWrapper =
+                    new LambdaUpdateWrapper<VirtualDevice>()
+                            .eq(VirtualDevice::getDeviceCode, deviceCode)
+                            .eq(VirtualDevice::getStatus, "offline")
+                            .set(VirtualDevice::getIsRunning, true)
+                            .set(VirtualDevice::getStatus, "online");
+            deviceMapper.update(updateWrapper);
+        });
 
+        // 2. 清理离线缓存
+        redisTemplate.delete("device:OffLine:" + deviceCode);
+        redisTemplate.delete("cache:device:status:" + deviceCode);
+        cache.invalidate(deviceCode);
+        // 3. 加入心跳监控
+        redisTemplate.opsForHash()
+                .put("OnLineMap", deviceCode, String.valueOf(timestamp));
+    }
     public void madeSomeLocalCacheInvalidated(List<String> ids) {
         ids.forEach(cache::invalidate);
     }

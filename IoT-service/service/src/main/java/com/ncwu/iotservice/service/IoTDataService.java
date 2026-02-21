@@ -4,6 +4,7 @@ import com.baomidou.mybatisplus.extension.service.IService;
 import com.ncwu.common.domain.vo.Result;
 import com.ncwu.iotservice.entity.IotDeviceData;
 import jakarta.validation.Valid;
+import jakarta.validation.constraints.Max;
 import jakarta.validation.constraints.Min;
 import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Size;
@@ -46,4 +47,10 @@ public interface IoTDataService extends IService<IotDeviceData> {
     Result<Double> getHealthyScoreOfDevices();
 
     Result<Collection<String>> getOffLineList(int campus);
+
+    Result<Long> getCampusOnLineNum(@Min(1) @Max(3) int campus);
+
+    Result<Double> getPressureNow(String deviceId);
+
+    Result<Double> getTemNow(String deviceId);
 }

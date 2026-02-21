@@ -23,8 +23,8 @@ export default function Dashboard() {
   const [profileMessage, setProfileMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null)
 
   const campuses = [
-    { id: 'longzi', name: '龙子湖校区', code: 'LZ', schoolId: 1 },
-    { id: 'huayuan', name: '花园校区', code: 'HY', schoolId: 2 },
+    { id: 'huayuan', name: '花园校区', code: 'HY', schoolId: 1 },
+    { id: 'longzi', name: '龙子湖校区', code: 'LZ', schoolId: 2 },
     { id: 'jianghuai', name: '江淮校区', code: 'JH', schoolId: 3 }
   ]
 
@@ -90,9 +90,17 @@ export default function Dashboard() {
       setLoadingToday(false)
       setLoadingMonth(false)
       setLoading(false)
-      // 模拟数据，实际应该从 API 获取
+      // 模拟告警数据，实际应该从 API 获取
       setAlertCount(Math.floor(Math.random() * 5))
-      setDeviceCount(Math.floor(Math.random() * 200) + 50)
+      
+      // 从 iot-service 获取在线设备数量
+      try {
+        const onlineCount = await iotApi.getCampusOnlineDeviceCount(currentCampus.schoolId)
+        setDeviceCount(onlineCount)
+      } catch (err) {
+        console.error('获取在线设备数量失败:', err)
+        setDeviceCount(0)
+      }
     }
 
     // 获取离线设备列表
@@ -219,11 +227,11 @@ export default function Dashboard() {
   return (
     <div className="min-h-screen bg-gray-50 flex">
       {/* Sidebar */}
-      <aside className={`${sidebarOpen ? 'w-64' : 'w-20'} bg-white shadow-lg transition-all duration-300 flex flex-col`}>
+      <aside className={`${sidebarOpen ? 'w-64' : 'w-20'} bg-white shadow-lg transition-all duration-300 flex flex-col h-screen`}>
         {/* Sidebar Header */}
-        <div className="p-6 border-b border-gray-200">
+        <div className="p-4 border-b border-gray-200">
           <div className="flex items-center gap-3">
-            <div className="flex items-center justify-center w-10 h-10 bg-primary-100 rounded-lg">
+            <div className="flex items-center justify-center w-10 h-10 bg-primary-100 rounded-lg flex-shrink-0">
               <Droplets className="w-6 h-6 text-primary-600" />
             </div>
             {sidebarOpen && (
@@ -233,15 +241,15 @@ export default function Dashboard() {
         </div>
 
         {/* Navigation Menu */}
-        <nav className="flex-1 p-4 overflow-auto">
-          <ul className="space-y-2">
+        <nav className="flex-1 p-2 overflow-y-auto">
+          <ul className="space-y-1">
             {menuItems.map((item) => {
               const Icon = item.icon
               return (
                 <li key={item.id}>
                   <button
                     onClick={() => handleMenuClick(item)}
-                    className={`w-full flex items-center gap-3 px-4 py-3 rounded-lg transition-all duration-200 ${
+                    className={`w-full flex items-center gap-2 px-3 py-2 rounded-lg transition-all duration-200 ${
                       activeMenu === item.id
                         ? 'bg-primary-50 text-primary-600 border-r-2 border-primary-600'
                         : 'text-gray-600 hover:bg-gray-50 hover:text-gray-900'
@@ -259,14 +267,14 @@ export default function Dashboard() {
 
           {/* Campus Selector in Sidebar */}
           {sidebarOpen && (
-            <div className="mt-6 pt-4 border-t border-gray-200">
-              <p className="px-4 mb-2 text-xs font-medium text-gray-400 uppercase tracking-wider">切换校区</p>
+            <div className="border-t border-gray-200">
+              <p className="px-2 py-2 text-xs font-medium text-gray-400 uppercase">切换校区</p>
               <div className="space-y-1">
                 {campuses.map((campus) => (
                   <button
                     key={campus.id}
                     onClick={() => setSelectedCampus(campus.id)}
-                    className={`w-full flex items-center gap-3 px-4 py-2.5 rounded-lg transition-all duration-200 ${
+                    className={`w-full flex items-center gap-2 px-3 py-2 rounded-lg transition-all duration-200 ${
                       selectedCampus === campus.id
                         ? 'bg-primary-50 text-primary-700 border border-primary-200'
                         : 'text-gray-600 hover:bg-gray-50 hover:text-gray-900 border border-transparent'
@@ -285,7 +293,7 @@ export default function Dashboard() {
         </nav>
 
         {/* Sidebar Footer */}
-        <div className="p-4 border-t border-gray-200">
+        <div className="p-2 border-t border-gray-200 flex-shrink-0">
           <div className="flex items-center gap-3 px-4 py-3">
             {avatar ? (
               <img src={avatar} alt="头像" className="w-8 h-8 rounded-full object-cover" />

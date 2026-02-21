@@ -41,6 +41,7 @@ import static com.ncwu.iotdevice.AOP.Aspects.InitLuaScript.Lua_script;
 public class Utils {
     private final StringRedisTemplate redisTemplate;
 
+
     /**
      * 此方法用于向 redis中初始化设备 id
      *
@@ -217,6 +218,7 @@ public class Utils {
         // 2. 清理离线缓存
         redisTemplate.delete("device:OffLine:" + deviceCode);
         redisTemplate.delete("cache:device:status:" + deviceCode);
+
         // 3. 加入心跳监控
         redisTemplate.opsForHash()
                 .put("OnLineMap", deviceCode, String.valueOf(timestamp));

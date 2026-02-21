@@ -4,8 +4,10 @@ package com.ncwu.iotdevice.service;
 import com.baomidou.mybatisplus.extension.service.IService;
 import com.ncwu.common.domain.vo.Result;
 import com.ncwu.iotdevice.domain.entity.VirtualDevice;
+import com.ncwu.iotdevice.mapper.DeviceMapper;
 import jakarta.validation.constraints.NotEmpty;
 import jakarta.validation.constraints.NotNull;
+import org.springframework.data.redis.core.StringRedisTemplate;
 
 import java.util.List;
 import java.util.Map;
@@ -49,4 +51,7 @@ public interface VirtualMeterDeviceService extends IService<VirtualDevice> {
     Result<Integer> getDeviceNums();
 
     void madeSomeLocalCacheInvalidated(List<String> ids);
+
+    void markDeviceOnline(String deviceCode, long timestamp, DeviceMapper deviceMapper,
+                                 StringRedisTemplate redisTemplate);
 }

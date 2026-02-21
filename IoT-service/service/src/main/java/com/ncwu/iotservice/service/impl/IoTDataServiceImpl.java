@@ -467,4 +467,71 @@ public class IoTDataServiceImpl extends ServiceImpl<IoTDeviceDataMapper, IotDevi
         collect.removeAll(res);
         return Result.ok(collect);
     }
+
+    @Override
+    public Result<Long> getCampusOnLineNum(int campus) {
+        return Result.ok(redisTemplate.opsForHash()
+                .entries("OnLineMap")
+                .keySet()
+                .stream()
+                .map(Object::toString)
+                .filter(id-> id.substring(1,2).equals(String.valueOf(campus))&&id.startsWith("1")).count());
+    }
+
+    @Override
+    public Result<Double> getPressureNow(String deviceId) {
+        //todo 加入redis缓存
+        // TTL 不超过10秒 key自定(value结构即可)
+        String fluxQuery = String.format("""
+                from(bucket: "water")
+                |> range(start: -1m)
+                |> filter(fn: (r) =>
+                                r._measurement == "water_meter" and
+                        r._field == "pressure" and
+                        r.deviceId == "%s"
+                   )
+                |> last()
+                |> keep(columns: ["_time", "_value"])
+                """, deviceId);
+        Double pressure;
+        try {
+            pressure = influxDBClient.getQueryApi().query(fluxQuery).stream()
+                    .flatMap(t -> t.getRecords().stream())
+                    .map(r -> r.getValue() != null ? ((Number) r.getValue()).doubleValue() : 0)
+                    .findFirst()
+                    .orElse(0.0);
+        } catch (Exception e) {
+            throw new QueryFailedException("查询失败，请重试");
+        }
+        return Result.ok(pressure);
+    }
+
+    @Override
+    public Result<Double> getTemNow(String deviceId) {
+        //todo 加入redis缓存
+        // TTL 不超过10秒 key自定(value结构即可)
+        String fluxQuery = String.format("""
+                from(bucket: "water")
+                |> range(start: -1m)
+                |> filter(fn: (r) =>
+                                r._measurement == "water_meter" and
+                        r._field == "tem" and
+                        r.deviceId == "%s"
+                   )
+                |> last()
+                |> keep(columns: ["_time", "_value"])
+                """, deviceId);
+        Double tem;
+        try {
+            tem = influxDBClient.getQueryApi().query(fluxQuery).stream()
+                    .flatMap(t -> t.getRecords().stream())
+                    .map(r -> r.getValue() != null ? ((Number) r.getValue()).doubleValue() : 0)
+                    .findFirst()
+                    .orElse(0.0);
+        } catch (Exception e) {
+            throw new QueryFailedException("查询失败，请重试");
+        }
+        return Result.ok(tem);
+
+    }
 }

@@ -1,7 +1,8 @@
 import { useState, useEffect, useCallback } from 'react'
+import { useNavigate } from 'react-router-dom'
 import { useAuthStore } from '@/store/authStore'
 import { iotApi, generateDeviceId, parseDeviceCode, BuildingInfo, BuildingType, DeviceFlowData, getBuildingConfig, getBuildingType } from '@/api/iot'
-import { Droplets, User, Menu, X, Activity, Building2, Building, Home, RefreshCw, CheckCircle, XCircle } from 'lucide-react'
+import { Droplets, User, Menu, X, Activity, Building2, Building, Home, RefreshCw, CheckCircle, XCircle, LayoutDashboard } from 'lucide-react'
 
 // 校区映射
 const CAMPUS_MAP: Record<number, { name: string; code: string }> = {
@@ -50,54 +51,25 @@ const generateBuildingDeviceIds = (campusNo: number, buildingNo: number, floorCo
   return deviceIds
 }
 
-// 压力表组件
-function GaugeMeter({ value, max = 100, size = 180 }: { value: number; max?: number; size?: number }) {
+// 圆形进度条
+function GaugeMeter({ value, max = 100, size = 180, color = '#22c55e' }: { value: number; max?: number; size?: number; color?: string }) {
   const percentage = Math.min(Math.max(value / max, 0), 1)
-  const rotation = -90 + (percentage * 180)
-  
-  let color = '#22c55e'
-  if (percentage > 0.8) color = '#ef4444'
-  else if (percentage > 0.6) color = '#f59e0b'
-  
   const radius = (size - 24) / 2
-  const arcLength = Math.PI * radius * 0.75
-  
+  const circumference = 2 * Math.PI * radius
   return (
     <div className="relative" style={{ width: size, height: size }}>
-      <svg width={size} height={size} viewBox={`0 0 ${size} ${size}`} className="transform -rotate-90">
-        <circle
-          cx={size/2}
-          cy={size/2}
-          r={radius}
-          fill="none"
-          stroke="#e5e7eb"
-          strokeWidth="12"
-          strokeDasharray={`${arcLength} ${2 * Math.PI * radius}`}
-        />
-        <circle
-          cx={size/2}
-          cy={size/2}
-          r={radius}
-          fill="none"
-          stroke={color}
-          strokeWidth="12"
-          strokeDasharray={`${arcLength * percentage} ${2 * Math.PI * radius}`}
-          className="transition-all duration-500"
-        />
+      <svg width={size} height={size} viewBox={`0 0 ${size} ${size}`}>
+        <circle cx={size/2} cy={size/2} r={radius} fill="none" stroke="#e5e7eb" strokeWidth="12" />
+        <circle cx={size/2} cy={size/2} r={radius} fill="none" stroke={color} strokeWidth="12"
+          strokeLinecap="round" strokeDasharray={circumference} strokeDashoffset={circumference * (1 - percentage)}
+          transform={`rotate(-90 ${size/2} ${size/2})`} className="transition-all duration-500" />
       </svg>
-      <div 
-        className="absolute left-1/2 top-0 w-0.5 h-1/2 bg-gray-800 origin-bottom rounded-full transition-transform duration-500"
-        style={{ 
-          transform: `translateX(-50%) rotate(${rotation}deg)`,
-          height: `${radius * 0.7}px`
-        }}
-      />
-      <div className="absolute left-1/2 top-1/2 w-3 h-3 bg-gray-800 rounded-full -translate-x-1/2 -translate-y-1/2" />
     </div>
   )
 }
 
 export default function Monitoring() {
+  const navigate = useNavigate()
   const { uid, nickname, avatar } = useAuthStore()
   const [sidebarOpen, setSidebarOpen] = useState(true)
   const [selectedCampus, setSelectedCampus] = useState(2) // 默认龙子湖
@@ -171,11 +143,13 @@ export default function Monitoring() {
     ? deviceData.filter(d => d.status === 'online').reduce((sum, d) => sum + d.flow, 0) / onlineCount 
     : 0
   const totalFlow = deviceData.reduce((sum, d) => sum + d.flow, 0)
+  const avgPressure = onlineCount > 0 ? deviceData.filter(d => d.status === 'online').reduce((s, d) => s + (d.pressure || 0), 0) / onlineCount : 0
+  const avgTemperature = onlineCount > 0 ? deviceData.filter(d => d.status === 'online').reduce((s, d) => s + (d.temperature || 0), 0) / onlineCount : 0
   
   return (
     <div className="min-h-screen bg-gray-50 flex">
       {/* Sidebar */}
-      <aside className={`${sidebarOpen ? 'w-64' : 'w-20'} bg-white shadow-lg transition-all duration-300 flex flex-col`}>
+      <aside className={`${sidebarOpen ? 'w-64' : 'w-20'} bg-white shadow-lg transition-all duration-300 flex flex-col h-screen`}>
         <div className="p-6 border-b border-gray-200">
           <div className="flex items-center gap-3">
             <div className="flex items-center justify-center w-10 h-10 bg-primary-100 rounded-lg">
@@ -187,8 +161,16 @@ export default function Monitoring() {
           </div>
         </div>
 
+        {/* 返回主界面 */}
+        <div className="p-2 border-b border-gray-200">
+          <button onClick={() => navigate('/dashboard')} className={`flex items-center gap-2 px-3 py-2 rounded-lg bg-primary-50 text-primary-700 hover:bg-primary-100 text-sm ${sidebarOpen ? 'w-full' : 'mx-auto justify-center'}`}>
+            <LayoutDashboard className="w-5 h-5" />
+            {sidebarOpen && <span>返回主界面</span>}
+          </button>
+        </div>
+
         {/* 校区选择 */}
-        <nav className="flex-1 p-4 overflow-auto">
+        <nav className="flex-1 p-2 overflow-y-auto">
           <p className="px-4 mb-2 text-xs font-medium text-gray-400 uppercase">切换校区</p>
           <div className="space-y-1 mb-6">
             {campuses.map((campus) => (
@@ -246,7 +228,7 @@ export default function Monitoring() {
         </nav>
 
         {/* User Footer */}
-        <div className="p-4 border-t border-gray-200">
+        <div className="p-2 border-t border-gray-200 flex-shrink-0">
           <div className="flex items-center gap-3 px-4 py-3">
             {avatar ? (
               <img src={avatar} alt="头像" className="w-8 h-8 rounded-full object-cover" />
@@ -348,33 +330,35 @@ export default function Monitoring() {
                 </div>
               </div>
 
-              {/* 实时流量显示 - 优化样式 */}
-              <div className="bg-gradient-to-br from-blue-50 to-indigo-50 rounded-2xl p-8 shadow-sm mb-6">
-                <div className="flex items-center justify-between mb-6">
-                  <div>
-                    <h3 className="text-xl font-bold text-gray-900">{selectedBuilding.name}</h3>
-                    <p className="text-sm text-gray-500">实时流量监测</p>
+              {/* 三个监测仪表盘 */}
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
+                <div className="bg-gradient-to-br from-blue-50 to-indigo-50 rounded-xl p-4 shadow-sm">
+                  <div className="flex items-center justify-between mb-2">
+                    <span className="text-sm font-medium text-gray-700">流量监测</span>
+                    <GaugeMeter value={totalFlow} max={Math.max(totalFlow * 1.5, 50)} size={80} color="#3b82f6" />
                   </div>
-                  <div className="flex items-center gap-2 px-3 py-1.5 bg-white rounded-full shadow-sm">
-                    <span className="w-2 h-2 bg-green-500 rounded-full animate-pulse"></span>
-                    <span className="text-sm text-gray-600">在线监测中</span>
+                  <p className="text-xl font-bold text-blue-600">{totalFlow.toFixed(1)} L/s</p>
+                </div>
+                <div className="bg-gradient-to-br from-cyan-50 to-teal-50 rounded-xl p-4 shadow-sm">
+                  <div className="flex items-center justify-between mb-2">
+                    <span className="text-sm font-medium text-gray-700">水压监测</span>
+                    <GaugeMeter value={avgPressure} max={Math.max(avgPressure * 1.5, 1)} size={80} color="#06b6d4" />
                   </div>
+                  <p className="text-xl font-bold text-cyan-600">{avgPressure.toFixed(2)} MPa</p>
                 </div>
-                <div className="flex items-center justify-center">
-                  <GaugeMeter value={totalFlow} max={Math.max(totalFlow * 1.5, 50)} size={220} />
-                </div>
-                <div className="mt-6 text-center">
-                  <p className="text-4xl font-bold bg-gradient-to-r from-blue-600 to-indigo-600 bg-clip-text text-transparent">
-                    {totalFlow.toFixed(2)} L/s
-                  </p>
-                  <p className="text-sm text-gray-500 mt-1">当前总流量 · 共 {deviceData.length} 个用水单元</p>
+                <div className="bg-gradient-to-br from-orange-50 to-red-50 rounded-xl p-4 shadow-sm">
+                  <div className="flex items-center justify-between mb-2">
+                    <span className="text-sm font-medium text-gray-700">水温监测</span>
+                    <GaugeMeter value={avgTemperature} max={Math.max(avgTemperature * 1.5, 30)} size={80} color="#f97316" />
+                  </div>
+                  <p className="text-xl font-bold text-orange-600">{avgTemperature.toFixed(1)} °C</p>
                 </div>
               </div>
 
               {/* 房间设备列表 */}
               <div className="bg-white rounded-xl p-6 shadow-sm">
                 <div className="flex items-center justify-between mb-4">
-                  <h3 className="text-lg font-semibold text-gray-900">各房间实时流量</h3>
+                  <h3 className="text-lg font-semibold text-gray-900">各房间数据详情</h3>
                   <div className="flex items-center gap-4 text-sm">
                     <span className="flex items-center gap-1">
                       <span className="w-2 h-2 bg-green-500 rounded-full"></span>

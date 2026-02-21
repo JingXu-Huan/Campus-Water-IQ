@@ -40,7 +40,7 @@ public class DataSender {
     private final RocketMQTemplate rocketMQTemplate;
     private final StringRedisTemplate redisTemplate;
     private final DeviceMapper deviceMapper;
-    private final Utils utils;
+    private final VirtualMeterDeviceService virtualMeterDeviceService;
 
     //构造函数，用于自动装配
     public DataSender(@Qualifier("messageSuccessCounter") Counter MessageSuccessCounter,
@@ -49,7 +49,7 @@ public class DataSender {
                       RocketMQTemplate rocketMQTemplate,
                       StringRedisTemplate redisTemplate,
                       DeviceMapper deviceMapper,
-                      Utils utils
+                      VirtualMeterDeviceService virtualMeterDeviceService
     ) {
         this.messageSuccessCounter = MessageSuccessCounter;
         this.messageFailureCounter = MessageFailureCounter;
@@ -57,7 +57,7 @@ public class DataSender {
         this.rocketMQTemplate = rocketMQTemplate;
         this.redisTemplate = redisTemplate;
         this.deviceMapper = deviceMapper;
-        this.utils = utils;
+        this.virtualMeterDeviceService = virtualMeterDeviceService;
     }
 
 
@@ -101,7 +101,7 @@ public class DataSender {
                 messageFailureCounter.increment();
             }
             //如果设备上线,调用设备上线后置处理器
-            utils.markDeviceOnline(deviceId, now, deviceMapper, redisTemplate);
+            virtualMeterDeviceService.markDeviceOnline(deviceId, now, deviceMapper, redisTemplate);
         }
         String data;
         try {
@@ -132,7 +132,7 @@ public class DataSender {
                 messageFailureCounter.increment();
             }
             //如果设备上线,调用设备上线后置处理器
-            utils.markDeviceOnline(deviceId, timestamp, deviceMapper, redisTemplate);
+            virtualMeterDeviceService.markDeviceOnline(deviceId, timestamp, deviceMapper, redisTemplate);
         }
         String data;
         try {

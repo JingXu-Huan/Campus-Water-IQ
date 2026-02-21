@@ -10,12 +10,14 @@ import com.ncwu.iotdevice.domain.entity.VirtualDevice;
 import com.ncwu.iotdevice.exception.DeviceRegisterException;
 import com.ncwu.iotdevice.mapper.DeviceMapper;
 import com.ncwu.iotdevice.service.DataSender;
+import org.springframework.beans.factory.ObjectProvider;
 import com.ncwu.iotdevice.service.VirtualWaterQualityDeviceService;
 import jakarta.annotation.PostConstruct;
 import lombok.Getter;
 import lombok.RequiredArgsConstructor;
 import lombok.Setter;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.stereotype.Service;
 
@@ -59,7 +61,8 @@ public class VirtualWaterQualityDeviceServiceImpl extends ServiceImpl<DeviceMapp
     private final DeviceMapper deviceMapper;
     private final StringRedisTemplate redisTemplate;
     private final ServerConfig serverConfig;
-    private final DataSender dataSender;
+    @Autowired
+    private ObjectProvider<DataSender> dataSender;
 
     @PostConstruct
     void init() {
@@ -280,7 +283,7 @@ public class VirtualWaterQualityDeviceServiceImpl extends ServiceImpl<DeviceMapp
      * 发送模拟数据
      */
     private void sendData(WaterQualityDataBo dataBo) {
-        dataSender.sendWaterQualityData(dataBo);
+        dataSender.getObject().sendWaterQualityData(dataBo);
     }
 
     private boolean isRunning() {
@@ -303,7 +306,7 @@ public class VirtualWaterQualityDeviceServiceImpl extends ServiceImpl<DeviceMapp
                 if (!isDeviceOnline(deviceId)) {
                     return;
                 }
-                dataSender.heartBeat(deviceId, reportTime);
+                dataSender.getObject().heartBeat(deviceId, reportTime);
             } catch (Exception e) {
                 log.error("心跳发送异常: {}", e.getMessage(), e);
             }

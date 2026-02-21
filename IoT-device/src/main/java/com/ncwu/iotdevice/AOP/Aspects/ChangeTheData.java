@@ -63,8 +63,21 @@ public class ChangeTheData {
             MeterDataBo modifiedData = preLeakingProcessor(pjp);
             return pjp.proceed(new Object[]{modifiedData});
         }
+        if ("shows".equals(mode)) {
+            MeterDataBo modifiedData = preShowsProcessor(pjp);
+            return pjp.proceed(new Object[]{modifiedData});
+        }
         // 兜底：未知模式，不干扰
         return pjp.proceed();
+    }
+
+    /**
+     * 演示模式前置处理器
+     */
+    private MeterDataBo preShowsProcessor(ProceedingJoinPoint pjp) {
+        MeterDataBo meterDataBo = getMeterDataBo(pjp);
+        meterDataBo.setFlow(keep3(0.17 + ThreadLocalRandom.current().nextDouble(0.7)));
+        return meterDataBo;
     }
 
     /**

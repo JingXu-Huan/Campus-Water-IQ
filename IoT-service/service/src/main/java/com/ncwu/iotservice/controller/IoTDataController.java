@@ -135,6 +135,22 @@ public class IoTDataController {
     }
 
     /**
+     * 得到某设备的最近一条水压数据
+     */
+    @GetMapping("/getPressureNow")
+    public Result<Double> getPresNow(String deviceId){
+        return ioTDataService.getPressureNow(deviceId);
+    }
+
+    /**
+     * 得到某设备的最近一条水温数据
+     */
+    @GetMapping("/getTemNow")
+    public Result<Double> getTemNow(String deviceId){
+        return ioTDataService.getTemNow(deviceId);
+    }
+
+    /**
      * 返回时间段内的水流量数据
      */
     @GetMapping("/getFlowTendency")
@@ -216,5 +232,13 @@ public class IoTDataController {
     @GetMapping("/getCampusOffLineDeviceList")
     public Result<Collection<String>> getOffLineDeviceList(@Min(1) @Max(3) int campus) {
         return ioTDataService.getOffLineList(campus);
+    }
+
+    /**
+     * 获取某校区在线设备数量
+     */
+    @GetMapping("/getAnCampusOnLineDeviceNums")
+    public Result<Long> getOnLineNum(@Min(1) @Max(3) int campus) {
+        return ioTDataService.getCampusOnLineNum(campus);
     }
 }

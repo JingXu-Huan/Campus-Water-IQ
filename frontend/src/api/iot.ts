@@ -108,7 +108,9 @@ export const parseDeviceCode = (code: string): DeviceCodeInfo | null => {
 }
 
 // 生成设备ID (水表 = deviceType 1)
+// 格式: deviceType(1) + campus(1) + building(2) + floor(2) + unit(3) = 9位
 export const generateDeviceId = (campusNo: number, buildingNo: number, floorNo: number, unitNo: number): string => {
+  // campusNo 不需要补零 (1-3)
   return `1${campusNo}${String(buildingNo).padStart(2, '0')}${String(floorNo).padStart(2, '0')}${String(unitNo).padStart(3, '0')}`
 }
 
@@ -128,6 +130,8 @@ export interface BuildingInfo {
 export interface DeviceFlowData {
   deviceId: string
   flow: number
+  pressure?: number
+  temperature?: number
   timestamp?: string
   status: 'online' | 'offline'
 }
@@ -306,24 +310,62 @@ export const iotApi = {
     }
   },
 
-  // 批量获取设备流量
+  // 批量获取设备状态
+  getDeviceStatus: async (deviceIds: string[]): Promise<Record<string, boolean>> => {
+    if (!deviceIds || deviceIds.length === 0) {
+      return {}
+    }
+    try {
+      const res = await iotDeviceApi.post<Record<string, string>>('/device/status', { ids: deviceIds })
+      const data = res?.data ?? res ?? {}
+      // 解析格式: 只要是online就算在线
+      const statusMap: Record<string, boolean> = {}
+      for (const [deviceId, statusStr] of Object.entries(data)) {
+        statusMap[deviceId] = statusStr.startsWith('online')
+      }
+      return statusMap
+    } catch (error) {
+      console.error('获取设备状态失败:', error)
+      // 返回空对象，全部视为离线
+      return {}
+    }
+  },
+
+  // 批量获取设备流量、压力和温度
   getBatchFlow: async (deviceIds: string[]): Promise<DeviceFlowData[]> => {
     try {
+      // 获取设备状态
+      const statusMap = await iotApi.getDeviceStatus(deviceIds)
+      
       const results = await Promise.allSettled(
         deviceIds.map(async (deviceId) => {
+          const isOnline = statusMap[deviceId] === true
           try {
-            const flow = await iotDataApi.get<number>('/Data/getFlowNow', {
-              params: { deviceId }
-            })
+            // 不管在线离线，都请求数据
+            const [flow, pressure, temperature] = await Promise.all([
+              iotDataApi.get<number>('/Data/getFlowNow', {
+                params: { deviceId }
+              }),
+              iotDataApi.get<number>('/Data/getPressureNow', {
+                params: { deviceId }
+              }).catch(() => ({ data: 0 })),
+              iotDataApi.get<number>('/Data/getTemNow', {
+                params: { deviceId }
+              }).catch(() => ({ data: 0 }))
+            ])
             return {
               deviceId,
               flow: flow?.data ?? flow ?? 0,
-              status: 'online' as const
+              pressure: pressure?.data ?? pressure ?? 0,
+              temperature: temperature?.data ?? temperature ?? 0,
+              status: isOnline ? 'online' as const : 'offline' as const
             }
           } catch {
             return {
               deviceId,
               flow: 0,
+              pressure: 0,
+              temperature: 0,
               status: 'offline' as const
             }
           }
@@ -345,6 +387,19 @@ export const iotApi = {
       return res?.data ?? res ?? 0
     } catch (error) {
       console.error(`获取环比失败 ${deviceId}:`, error)
+      return 0
+    }
+  },
+
+  // 获取某校区在线设备数量
+  getCampusOnlineDeviceCount: async (campus: number): Promise<number> => {
+    try {
+      const res = await iotDataApi.get<number>('/Data/getAnCampusOnLineDeviceNums', {
+        params: { campus }
+      })
+      return res?.data ?? res ?? 0
+    } catch (error) {
+      console.error('获取在线设备数量失败:', error)
       return 0
     }
   }

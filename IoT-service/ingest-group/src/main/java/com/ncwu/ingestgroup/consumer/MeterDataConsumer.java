@@ -113,6 +113,7 @@ public class MeterDataConsumer extends ServiceImpl<IotDataMapper, IotDeviceData>
                 .addField("flow", meterDataBo.getFlow())
                 .addField("usage", meterDataBo.getTotalUsage())
                 .addField("tem", meterDataBo.getWaterTem())
+                .addField("pressure",meterDataBo.getPressure())
                 .time(zdt.toInstant(), WritePrecision.MS);
         WriteApiBlocking writeApi = influxDBClient.getWriteApiBlocking();
         writeApi.writePoint(bucket, org, point);

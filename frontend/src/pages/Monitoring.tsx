@@ -146,6 +146,31 @@ export default function Monitoring() {
   const avgPressure = onlineCount > 0 ? deviceData.filter(d => d.status === 'online').reduce((s, d) => s + (d.pressure || 0), 0) / onlineCount : 0
   const avgTemperature = onlineCount > 0 ? deviceData.filter(d => d.status === 'online').reduce((s, d) => s + (d.temperature || 0), 0) / onlineCount : 0
   
+  // 按楼层分组统计
+  const floorGroups = deviceData.reduce((acc, device) => {
+    const info = parseDeviceCode(device.deviceId)
+    const floor = info?.floorNo ? parseInt(info.floorNo) : 1
+    if (!acc[floor]) acc[floor] = { devices: [], online: 0, totalFlow: 0, avgPressure: 0, avgTemp: 0 }
+    acc[floor].devices.push(device)
+    if (device.status === 'online') {
+      acc[floor].online++
+      acc[floor].totalFlow += device.flow
+      acc[floor].avgPressure += (device.pressure || 0)
+      acc[floor].avgTemp += (device.temperature || 0)
+    }
+    return acc
+  }, {} as Record<number, { devices: typeof deviceData; online: number; totalFlow: number; avgPressure: number; avgTemp: number }>)
+  
+  const floors = Object.entries(floorGroups)
+    .map(([floor, data]) => ({
+      floor: parseInt(floor),
+      ...data,
+      avgFlow: data.online > 0 ? data.totalFlow / data.online : 0,
+      avgPressure: data.online > 0 ? data.avgPressure / data.online : 0,
+      avgTemp: data.online > 0 ? data.avgTemp / data.online : 0
+    }))
+    .sort((a, b) => b.floor - a.floor)
+  
   return (
     <div className="min-h-screen bg-gray-50 flex">
       {/* Sidebar */}
@@ -375,32 +400,65 @@ export default function Monitoring() {
                     <RefreshCw className="w-8 h-8 text-gray-400 animate-spin" />
                   </div>
                 ) : (
-                  <div className="grid grid-cols-2 md:grid-cols-5 gap-3">
-                    {deviceData.map((device) => (
-                      <div
-                        key={device.deviceId}
-                        className={`p-4 rounded-xl border-2 transition-all hover:shadow-md ${
-                          device.status === 'online' 
-                            ? 'bg-white border-gray-100 hover:border-blue-200 hover:-translate-y-1' 
-                            : 'bg-gray-50 border-gray-100 opacity-75'
-                        }`}
-                      >
-                        <div className="text-center">
-                          <p className="text-sm font-semibold text-gray-800">
-                            {parseDeviceCode(device.deviceId)?.unitNo}
-                          </p>
-                          <p className="text-xs text-gray-400 mb-2">单元</p>
-                          {device.status === 'online' ? (
-                            <>
-                              <p className="text-2xl font-bold text-blue-600">{device.flow.toFixed(1)}</p>
-                              <p className="text-xs text-gray-400">L/s</p>
-                            </>
-                          ) : (
-                            <div className="flex items-center justify-center gap-1 text-red-500">
-                              <XCircle className="w-4 h-4" />
-                              <span className="text-xs">离线</span>
+                  <div className="space-y-6">
+                    {floors.map((floor) => (
+                      <div key={floor.floor} className="border border-gray-200 rounded-xl overflow-hidden">
+                        {/* 楼层标题 */}
+                        <div className="bg-gradient-to-r from-gray-50 to-gray-100 px-4 py-3 flex items-center justify-between">
+                          <div className="flex items-center gap-3">
+                            <span className="w-8 h-8 bg-primary-100 text-primary-700 rounded-lg flex items-center justify-center font-bold">
+                              {floor.floor}F
+                            </span>
+                            <span className="text-sm text-gray-600">
+                              {floor.online}/{floor.devices.length} 在线
+                            </span>
+                          </div>
+                          <div className="flex items-center gap-6 text-sm">
+                            <span className="text-blue-600">
+                              <span className="font-semibold">{floor.avgFlow.toFixed(1)}</span> L/s
+                            </span>
+                            <span className="text-cyan-600">
+                              <span className="font-semibold">{floor.avgPressure.toFixed(2)}</span> MPa
+                            </span>
+                            <span className="text-orange-600">
+                              <span className="font-semibold">{floor.avgTemp.toFixed(1)}</span> °C
+                            </span>
+                          </div>
+                        </div>
+                        {/* 楼层内设备 */}
+                        <div className="grid grid-cols-2 md:grid-cols-5 gap-2 p-3">
+                          {floor.devices.map((device) => (
+                            <div
+                              key={device.deviceId}
+                              className={`p-3 rounded-lg border transition-all ${
+                                device.status === 'online' 
+                                  ? 'bg-white border-gray-100 hover:border-blue-200' 
+                                  : 'bg-gray-50 border-gray-100 opacity-60'
+                              }`}
+                            >
+                              <div className="text-center">
+                                <p className="text-xs font-semibold text-gray-700">
+                                  {parseDeviceCode(device.deviceId)?.unitNo}
+                                </p>
+                                <p className="text-[10px] text-gray-400 mb-1">单元</p>
+                                {device.status === 'online' ? (
+                                  <>
+                                    <p className="text-lg font-bold text-blue-600">{device.flow.toFixed(1)}</p>
+                                    <p className="text-[10px] text-gray-400">L/s</p>
+                                    <div className="mt-1 flex justify-center gap-1 text-[10px]">
+                                      <span className="text-cyan-500">{device.pressure?.toFixed(1) || '--'} MPa</span>
+                                      <span className="text-orange-500">{device.temperature?.toFixed(0) || '--'}°C</span>
+                                    </div>
+                                  </>
+                                ) : (
+                                  <div className="flex items-center justify-center gap-1 text-red-400 text-xs py-2">
+                                    <XCircle className="w-3 h-3" />
+                                    <span>离线</span>
+                                  </div>
+                                )}
+                              </div>
                             </div>
-                          )}
+                          ))}
                         </div>
                       </div>
                     ))}

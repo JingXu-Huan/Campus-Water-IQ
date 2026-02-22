@@ -94,9 +94,10 @@ export interface DeviceCodeInfo {
 }
 
 // 解析设备编码
+// 严格校验: ^[1-2][1-3](0[1-9]|[1-9][0-9])(0[1-9]|[1-9][0-9])(00[1-9]|0[1-9][0-9]|[1-9][0-9]{2})$
 export const parseDeviceCode = (code: string): DeviceCodeInfo | null => {
   if (!code || code.length !== 9) return null
-  const match = code.match(/^(\d)(\d)(\d{2})(\d{2})(\d{3})$/)
+  const match = code.match(/^([1-2])([1-3])(0[1-9]|[1-9][0-9])(0[1-9]|[1-9][0-9])(00[1-9]|0[1-9][0-9]|[1-9][0-9]{2})$/)
   if (!match) return null
   return {
     deviceType: parseInt(match[1]),
@@ -107,16 +108,31 @@ export const parseDeviceCode = (code: string): DeviceCodeInfo | null => {
   }
 }
 
+// 校验设备ID格式是否合法
+export const isValidDeviceCode = (code: string): boolean => {
+  return parseDeviceCode(code) !== null
+}
+
 // 生成设备ID (水表 = deviceType 1)
 // 格式: deviceType(1) + campus(1) + building(2) + floor(2) + unit(3) = 9位
+// 校验: buildingNo 1-99, floorNo 1-99, unitNo 1-999
 export const generateDeviceId = (campusNo: number, buildingNo: number, floorNo: number, unitNo: number): string => {
-  // campusNo 不需要补零 (1-3)
+  // 校验参数范围
+  if (campusNo < 1 || campusNo > 3) throw new Error('campusNo must be 1-3')
+  if (buildingNo < 1 || buildingNo > 99) throw new Error('buildingNo must be 1-99')
+  if (floorNo < 1 || floorNo > 99) throw new Error('floorNo must be 1-99')
+  if (unitNo < 1 || unitNo > 999) throw new Error('unitNo must be 1-999')
   return `1${campusNo}${String(buildingNo).padStart(2, '0')}${String(floorNo).padStart(2, '0')}${String(unitNo).padStart(3, '0')}`
 }
 
 // 生成水质传感器设备ID (deviceType = 2)
 // 格式: deviceType(2) + campus(1) + building(2) + floor(2) + 001 = 9位
+// 校验: buildingNo 1-99, floorNo 1-99
 export const generateWaterQualitySensorId = (campusNo: number, buildingNo: number, floorNo: number): string => {
+  // 校验参数范围
+  if (campusNo < 1 || campusNo > 3) throw new Error('campusNo must be 1-3')
+  if (buildingNo < 1 || buildingNo > 99) throw new Error('buildingNo must be 1-99')
+  if (floorNo < 1 || floorNo > 99) throw new Error('floorNo must be 1-99')
   return `2${campusNo}${String(buildingNo).padStart(2, '0')}${String(floorNo).padStart(2, '0')}001`
 }
 

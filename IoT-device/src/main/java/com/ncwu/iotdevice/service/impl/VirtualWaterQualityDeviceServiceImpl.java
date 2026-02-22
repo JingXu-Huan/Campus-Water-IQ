@@ -321,8 +321,11 @@ public class VirtualWaterQualityDeviceServiceImpl extends ServiceImpl<DeviceMapp
         String s = redisTemplate.opsForValue().get("device:OffLine:" + deviceId);
         String status = "online";
         if (s != null) {
-            status = this.lambdaQuery().eq(VirtualDevice::getDeviceCode, deviceId)
-                    .one().getStatus();
+            VirtualDevice device = this.lambdaQuery().eq(VirtualDevice::getDeviceCode, deviceId)
+                    .one();
+            if (device != null) {
+                status = device.getStatus();
+            }
         }
         return status.startsWith("online");
     }

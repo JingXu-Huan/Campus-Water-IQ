@@ -2,7 +2,7 @@ import { useState, useEffect, useCallback } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useAuthStore } from '@/store/authStore'
 import { iotApi, generateDeviceId, generateWaterQualitySensorId, parseDeviceCode, BuildingInfo, BuildingType, DeviceFlowData, WaterQualityData, getBuildingConfig, getBuildingType } from '@/api/iot'
-import { Droplets, User, Menu, X, Activity, Building2, Building, Home, RefreshCw, CheckCircle, XCircle, LayoutDashboard, Waves, FlaskConical, Gauge } from 'lucide-react'
+import { Droplets, User, Menu, X, Activity, Building2, Building, Home, RefreshCw, XCircle, LayoutDashboard, Waves, FlaskConical, Gauge } from 'lucide-react'
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, PieChart, Pie, Cell } from 'recharts'
 
 // 校区映射
@@ -131,19 +131,17 @@ export default function Monitoring() {
         buildingConfig.rooms
       )
       
-      // 生成水质传感器ID列表 (每楼层一个)
-      const waterQualitySensorIds: string[] = []
-      for (let floor = 1; floor <= buildingConfig.floors; floor++) {
-        waterQualitySensorIds.push(generateWaterQualitySensorId(selectedCampus, selectedBuilding.buildingNo, floor))
-      }
-      
-      const [flowData, waterQuality] = await Promise.all([
-        iotApi.getBatchFlow(deviceIds),
-        iotApi.getBatchWaterQuality(waterQualitySensorIds)
-      ])
-      
+      // 先获取流量设备数据
+      const flowData = await iotApi.getBatchFlow(deviceIds)
       setDeviceData(flowData)
-      setWaterQualityData(waterQuality)
+      
+      // 从流量设备数据中提取实际存在的楼层
+      const actualFloors = [...new Set(flowData.map(d => parseDeviceCode(d.deviceId)?.floorNo).filter(Boolean))]
+      const waterQualitySensorIds = actualFloors.map(floorNo => 
+        generateWaterQualitySensorId(selectedCampus, selectedBuilding.buildingNo, parseInt(floorNo!))
+      )
+      const waterQualityData = await iotApi.getBatchWaterQuality(waterQualitySensorIds)
+      setWaterQualityData(waterQualityData)
       setLastUpdate(new Date())
     } catch (error) {
       console.error('获取设备数据失败:', error)
@@ -164,10 +162,8 @@ export default function Monitoring() {
   // 计算统计数据
   const onlineCount = deviceData.filter(d => d.status === 'online').length
   const offlineCount = deviceData.filter(d => d.status === 'offline').length
-  const avgFlow = onlineCount > 0 
-    ? deviceData.filter(d => d.status === 'online').reduce((sum, d) => sum + d.flow, 0) / onlineCount 
-    : 0
   const totalFlow = deviceData.reduce((sum, d) => sum + d.flow, 0)
+  const avgFlow = onlineCount > 0 ? deviceData.filter(d => d.status === 'online').reduce((sum, d) => sum + d.flow, 0) / onlineCount : 0
   const avgPressure = onlineCount > 0 ? deviceData.filter(d => d.status === 'online').reduce((s, d) => s + (d.pressure || 0), 0) / onlineCount : 0
   const avgTemperature = onlineCount > 0 ? deviceData.filter(d => d.status === 'online').reduce((s, d) => s + (d.temperature || 0), 0) / onlineCount : 0
   
@@ -354,82 +350,75 @@ export default function Monitoring() {
             </div>
           ) : (
             <div className="space-y-6">
-              {/* 统计卡片 */}
-              <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+              {/* 四个监测卡片 */}
+              <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-4">
+                {/* 总流量 */}
                 <div className="bg-white rounded-xl p-5 shadow-sm hover:shadow-md transition-shadow">
-                  <div className="flex items-center gap-3 mb-2">
+                  <div className="flex items-center gap-3 mb-3">
                     <div className="p-2.5 bg-blue-100 rounded-xl">
                       <Droplets className="w-5 h-5 text-blue-600" />
                     </div>
+                    <span className="text-sm font-medium text-gray-700">总流量</span>
                   </div>
-                  <p className="text-sm text-gray-500">总流量</p>
                   <p className="text-2xl font-bold text-gray-900">{totalFlow.toFixed(2)} <span className="text-sm font-normal text-gray-400">L/s</span></p>
+                  <div className="mt-2">
+                    <GaugeMeter value={totalFlow} max={maxFlowRange} size={60} color="#3b82f6" />
+                  </div>
                 </div>
+
+                {/* 平均流量 */}
                 <div className="bg-white rounded-xl p-5 shadow-sm hover:shadow-md transition-shadow">
-                  <div className="flex items-center gap-3 mb-2">
+                  <div className="flex items-center gap-3 mb-3">
                     <div className="p-2.5 bg-purple-100 rounded-xl">
                       <Activity className="w-5 h-5 text-purple-600" />
                     </div>
+                    <span className="text-sm font-medium text-gray-700">平均流量</span>
                   </div>
-                  <p className="text-sm text-gray-500">平均流量</p>
                   <p className="text-2xl font-bold text-gray-900">{avgFlow.toFixed(2)} <span className="text-sm font-normal text-gray-400">L/s</span></p>
-                </div>
-                <div className="bg-white rounded-xl p-5 shadow-sm hover:shadow-md transition-shadow">
-                  <div className="flex items-center gap-3 mb-2">
-                    <div className="p-2.5 bg-green-100 rounded-xl">
-                      <CheckCircle className="w-5 h-5 text-green-600" />
-                    </div>
+                  <div className="mt-2">
+                    <GaugeMeter value={avgFlow} max={0.5} size={60} color="#8b5cf6" />
                   </div>
-                  <p className="text-sm text-gray-500">在线设备</p>
-                  <p className="text-2xl font-bold text-green-600">{onlineCount}</p>
                 </div>
-                <div className="bg-white rounded-xl p-5 shadow-sm hover:shadow-md transition-shadow">
-                  <div className="flex items-center gap-3 mb-2">
-                    <div className="p-2.5 bg-red-100 rounded-xl">
-                      <XCircle className="w-5 h-5 text-red-600" />
-                    </div>
-                  </div>
-                  <p className="text-sm text-gray-500">离线设备</p>
-                  <p className="text-2xl font-bold text-red-600">{offlineCount}</p>
-                </div>
-              </div>
 
-              {/* 三个监测仪表盘 */}
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
-                <div className="bg-gradient-to-br from-blue-50 to-indigo-50 rounded-xl p-4 shadow-sm">
-                  <div className="flex items-center justify-between mb-2">
-                    <span className="text-sm font-medium text-gray-700">总流量监测</span>
-                    <GaugeMeter value={totalFlow} max={maxFlowRange} size={80} color="#3b82f6" />
+                {/* 平均水压 */}
+                <div className="bg-white rounded-xl p-5 shadow-sm hover:shadow-md transition-shadow">
+                  <div className="flex items-center gap-3 mb-3">
+                    <div className="p-2.5 bg-cyan-100 rounded-xl">
+                      <Gauge className="w-5 h-5 text-cyan-600" />
+                    </div>
+                    <span className="text-sm font-medium text-gray-700">平均水压</span>
                   </div>
-                  <p className="text-xl font-bold text-blue-600">{totalFlow.toFixed(2)} L/s</p>
-                  <p className="text-xs text-gray-400 mt-1">范围: 0 - {maxFlowRange.toFixed(1)} L/s</p>
+                  <p className="text-2xl font-bold text-gray-900">{avgPressure.toFixed(2)} <span className="text-sm font-normal text-gray-400">MPa</span></p>
+                  <div className="mt-2">
+                    <GaugeMeter value={avgPressure} max={Math.max(avgPressure * 1.5, 1)} size={60} color="#06b6d4" />
+                  </div>
                 </div>
-                <div className="bg-gradient-to-br from-cyan-50 to-teal-50 rounded-xl p-4 shadow-sm">
-                  <div className="flex items-center justify-between mb-2">
-                    <span className="text-sm font-medium text-gray-700">平均水压监测</span>
-                    <GaugeMeter value={avgPressure} max={Math.max(avgPressure * 1.5, 1)} size={80} color="#06b6d4" />
+
+                {/* 平均水温 */}
+                <div className="bg-white rounded-xl p-5 shadow-sm hover:shadow-md transition-shadow">
+                  <div className="flex items-center gap-3 mb-3">
+                    <div className="p-2.5 bg-orange-100 rounded-xl">
+                      <Activity className="w-5 h-5 text-orange-600" />
+                    </div>
+                    <span className="text-sm font-medium text-gray-700">平均水温</span>
                   </div>
-                  <p className="text-xl font-bold text-cyan-600">{avgPressure.toFixed(2)} MPa</p>
-                </div>
-                <div className="bg-gradient-to-br from-orange-50 to-red-50 rounded-xl p-4 shadow-sm">
-                  <div className="flex items-center justify-between mb-2">
-                    <span className="text-sm font-medium text-gray-700">平均水温监测</span>
-                    <GaugeMeter value={avgTemperature} max={Math.max(avgTemperature * 1.5, 30)} size={80} color="#f97316" />
+                  <p className="text-2xl font-bold text-gray-900">{avgTemperature.toFixed(2)} <span className="text-sm font-normal text-gray-400">°C</span></p>
+                  <div className="mt-2">
+                    <GaugeMeter value={avgTemperature} max={Math.max(avgTemperature * 1.5, 30)} size={60} color="#f97316" />
                   </div>
-                  <p className="text-xl font-bold text-orange-600">{avgTemperature.toFixed(2)} °C</p>
                 </div>
               </div>
 
               {/* 图表区域 */}
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
                 {/* 各楼层流量对比图 */}
-                <div className="bg-white rounded-xl p-6 shadow-sm">
-                  <h3 className="text-lg font-semibold text-gray-900 mb-4">各楼层流量对比</h3>
-                  <ResponsiveContainer width="100%" height={250}>
+                <div className="bg-white rounded-xl p-4 shadow-sm">
+                  <h3 className="text-lg font-semibold text-gray-900 mb-3">各楼层流量对比</h3>
+                  <ResponsiveContainer width="100%" height={180}>
                     <BarChart data={floors.map(f => ({ name: `${f.floor}F`, flow: f.totalFlow }))}>
                       <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" />
-                      <XAxis dataKey="name" tick={{ fontSize: 12 }} />
-                      <YAxis tick={{ fontSize: 12 }} unit="L/s" />
+                      <XAxis dataKey="name" tick={{ fontSize: 11 }} />
+                      <YAxis tick={{ fontSize: 10 }} unit="L/s" />
                       <Tooltip 
                         formatter={(value: number | undefined) => value !== undefined ? [`${value.toFixed(2)} L/s`, '流量'] : ['无数据', '流量']}
                         contentStyle={{ borderRadius: '8px', border: 'none', boxShadow: '0 2px 8px rgba(0,0,0,0.1)' }}
@@ -440,9 +429,9 @@ export default function Monitoring() {
                 </div>
 
                 {/* 设备在线状态分布 */}
-                <div className="bg-white rounded-xl p-6 shadow-sm">
-                  <h3 className="text-lg font-semibold text-gray-900 mb-4">设备在线状态</h3>
-                  <ResponsiveContainer width="100%" height={250}>
+                <div className="bg-white rounded-xl p-4 shadow-sm">
+                  <h3 className="text-lg font-semibold text-gray-900 mb-3">设备在线状态</h3>
+                  <ResponsiveContainer width="100%" height={180}>
                     <PieChart>
                       <Pie
                         data={[
@@ -451,8 +440,8 @@ export default function Monitoring() {
                         ]}
                         cx="50%"
                         cy="50%"
-                        innerRadius={60}
-                        outerRadius={90}
+                        innerRadius={40}
+                        outerRadius={65}
                         paddingAngle={5}
                         dataKey="value"
                         label={({ name, value }) => `${name}: ${value}`}

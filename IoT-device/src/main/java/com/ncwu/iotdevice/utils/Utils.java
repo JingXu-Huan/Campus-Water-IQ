@@ -62,8 +62,8 @@ public class Utils {
         List<String> waterQualityDeviceIds = new ArrayList<>();
         for (int i = 1; i <= 3; i++) {
             for (int b = 1; b <= buildings; b++) {
-                waterQualityDeviceIds.add(String.format("2%d%02d%02d001", i, b, floors));
                 for (int f = 1; f <= floors; f++) {
+                    waterQualityDeviceIds.add(String.format("2%d%02d%02d001", i, b, f));
                     for (int r = 1; r <= rooms; r++) {
                         meterDeviceIds.add(String.format("1%d%02d%02d%03d", i, b, f, r));
                     }

@@ -19,14 +19,6 @@ public class RedisBloomFilterConfig {
         RBloomFilter<String> emailBloomFilter = redissonClient.getBloomFilter("Email:bloomfilter");
         RBloomFilter<String> phoneBloomFilter = redissonClient.getBloomFilter("Phone:bloomfilter");
         RBloomFilter<String> uidBloomFilter = redissonClient.getBloomFilter("Uid:bloomfilter");
-        
-        // 初始化布隆过滤器（仅首次需要）
-        if (!uidBloomFilter.isExists() || !phoneBloomFilter.isExists() || !emailBloomFilter.isExists()) {
-            uidBloomFilter.tryInit(100000L, 0.01);
-            phoneBloomFilter.tryInit(100000L, 0.01);
-            emailBloomFilter.tryInit(100000L, 0.01);
-        }
-        
         return List.of(emailBloomFilter, phoneBloomFilter, uidBloomFilter);
     }
 }

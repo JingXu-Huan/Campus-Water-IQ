@@ -314,7 +314,7 @@ export default function Dashboard() {
   const menuItems = [
     { id: 'dashboard', label: '仪表盘', icon: LayoutDashboard, path: '/dashboard' },
     { id: 'monitoring', label: '实时监测', icon: Activity, path: '/monitoring' },
-    { id: 'map', label: '数字孪生', icon: Map, path: '' },
+    { id: 'digital-twin', label: '数字孪生', icon: Map, path: '/digital-twin' },
     { id: 'reports', label: '数据报表', icon: FileText, path: '' },
     { id: 'settings', label: '系统设置', icon: Settings, path: '' },
     { id: 'help', label: '帮助中心', icon: HelpCircle, path: '' },

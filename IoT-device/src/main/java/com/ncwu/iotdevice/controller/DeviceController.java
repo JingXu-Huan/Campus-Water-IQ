@@ -149,6 +149,39 @@ public class DeviceController {
     }
 
     /**
+     * 检查设备是否已初始化
+     */
+    @GetMapping("/isInit")
+    public Result<Boolean> isInit() {
+        String isInit = stringRedisTemplate.opsForValue().get("isInit");
+        return Result.ok("1".equals(isInit));
+    }
+
+    /**
+     * 检查设备任务是否正在运行
+     * 用于判断是否可以重置设备
+     */
+    @GetMapping("/taskStatus")
+    public Result<TaskStatusVO> getTaskStatus() {
+        String meterChecked = stringRedisTemplate.opsForValue().get("MeterChecked");
+        String waterQualityChecked = stringRedisTemplate.opsForValue().get("WaterQualityChecked");
+        
+        TaskStatusVO status = new TaskStatusVO();
+        status.setMeterRunning("1".equals(meterChecked));
+        status.setSensorRunning("1".equals(waterQualityChecked));
+        return Result.ok(status);
+    }
+
+    /**
+     * 任务状态 VO
+     */
+    @Data
+    public static class TaskStatusVO {
+        private Boolean meterRunning;
+        private Boolean sensorRunning;
+    }
+
+    /**
      * 获取楼宇配置信息
      * 从 Redis 中读取教学楼、实验楼的终止编号，计算宿舍楼终止编号
      */
@@ -167,10 +200,6 @@ public class DeviceController {
             int experimentEnd = expEndStr != null ? Integer.parseInt(expEndStr) : 3;
             int floors = floorsStr != null ? Integer.parseInt(floorsStr) : 6;
             int rooms = roomsStr != null ? Integer.parseInt(roomsStr) : 10;
-
-            // 从配置或数据库获取总楼栋数，这里从 Redis 获取 allDeviceNums 估算
-            String totalDevicesStr = stringRedisTemplate.opsForValue().get("allDeviceNums");
-            int totalDevices = totalDevicesStr != null ? Integer.parseInt(totalDevicesStr) : 6;
 
             // 计算宿舍楼起始编号 = Total - (experimentEnd + educationEnd) - 1
             assert totalBuildings != null;
@@ -198,7 +227,6 @@ public class DeviceController {
             return Result.ok(config);
         }
     }
-
     /**
      * 楼宇配置 VO
      */

@@ -56,6 +56,16 @@ iotDataApi.interceptors.response.use(
   }
 )
 
+// IoT-device 响应拦截器
+iotDeviceApi.interceptors.response.use(
+  (response: any) => response.data,
+  (error: any) => {
+    console.error('API Error:', error)
+    const message = error.response?.data?.message || error.response?.data?.msg || '请求失败，请稍后重试'
+    return Promise.reject(new Error(message))
+  }
+)
+
 export interface WaterUsageData {
   value: number
   timestamp?: string
@@ -511,6 +521,343 @@ export const iotApi = {
     } catch (error) {
       console.error('获取健康评分失败:', error)
       return 0
+    }
+  },
+
+  // ==================== 数字孪生相关API (IoT-device) ====================
+  
+  // 初始化设备
+  initDevices: async (params: {
+    dormitoryBuildings?: number
+    educationBuildings?: number
+    experimentBuildings?: number
+    floors?: number
+    rooms?: number
+  } = {}): Promise<{ success: boolean; message: string }> => {
+    try {
+      const res = await iotDeviceApi.get('/device/init', { params }) as any
+      return { 
+        success: res?.code === '00000' || res?.code === '0' || res?.code === 'DEV_1002', 
+        message: res?.message || res?.msg || '初始化成功' 
+      }
+    } catch (error: any) {
+      console.error('初始化设备失败:', error)
+      return { 
+        success: false, 
+        message: error?.message || '初始化失败' 
+      }
+    }
+  },
+
+  // 重置所有设备
+  resetDevices: async (): Promise<{ success: boolean; message: string }> => {
+    try {
+      const res = await iotDeviceApi.get('/device/destroyAll') as any
+      return { 
+        success: res?.code === '00000' || res?.code === '0' || res?.code === 'DEV_1002', 
+        message: res?.message || res?.msg || '重置成功' 
+      }
+    } catch (error: any) {
+      console.error('重置设备失败:', error)
+      return { 
+        success: false, 
+        message: error?.message || '重置失败' 
+      }
+    }
+  },
+
+  // 获取已开启设备数量
+  getDeviceNums: async (): Promise<number> => {
+    try {
+      const res = await iotDeviceApi.get('/device/getDevicesNum') as any
+      console.log('getDeviceNums response:', res)
+      return res?.data ?? res ?? 0
+    } catch (error) {
+      console.error('获取设备数量失败:', error)
+      return 0
+    }
+  },
+
+  // 检查设备是否已初始化
+  checkIsInitialized: async (): Promise<boolean> => {
+    try {
+      const res = await iotDeviceApi.get('/device/isInit') as any
+      console.log('isInit response:', res, 'type:', typeof res)
+      // 处理直接返回 true 或 { data: true } 两种格式
+      if (typeof res === 'boolean') return res
+      return res?.data === true || res?.data === 'true'
+    } catch (error) {
+      console.error('检查初始化状态失败:', error)
+      return false
+    }
+  },
+
+  // 获取任务运行状态
+  getTaskStatus: async (): Promise<{ meterRunning: boolean; sensorRunning: boolean }> => {
+    try {
+      const res = await iotDeviceApi.get('/device/taskStatus') as any
+      return {
+        meterRunning: res?.data?.meterRunning ?? false,
+        sensorRunning: res?.data?.sensorRunning ?? false
+      }
+    } catch (error) {
+      console.error('获取任务状态失败:', error)
+      return { meterRunning: false, sensorRunning: false }
+    }
+  },
+
+  // 开启所有水表
+  startAllMeters: async (): Promise<{ success: boolean; message: string }> => {
+    try {
+      const res = await iotDeviceApi.get('/simulator/meter/startAll') as any
+      return { 
+        success: res?.code === '00000' || res?.code === '0' || res?.code === 'DEV_1002', 
+        message: res?.message || res?.msg || '水表开启成功' 
+      }
+    } catch (error: any) {
+      console.error('开启水表失败:', error)
+      return { 
+        success: false, 
+        message: error?.message || '开启水表失败' 
+      }
+    }
+  },
+
+  // 停止所有水表上报
+  stopAllMeters: async (): Promise<{ success: boolean; message: string }> => {
+    try {
+      const res = await iotDeviceApi.get('/simulator/meter/endAll') as any
+      return { 
+        success: res?.code === '00000' || res?.code === '0' || res?.code === 'DEV_1002', 
+        message: res?.message || res?.msg || '水表停止成功' 
+      }
+    } catch (error: any) {
+      console.error('停止水表失败:', error)
+      return { 
+        success: false, 
+        message: error?.message || '停止水表失败' 
+      }
+    }
+  },
+
+  // 开启所有水质传感器
+  startAllSensors: async (): Promise<{ success: boolean; message: string }> => {
+    try {
+      const res = await iotDeviceApi.get('/simulator/quality/startAll') as any
+      return { 
+        success: res?.code === '00000' || res?.code === '0' || res?.code === 'DEV_1002', 
+        message: res?.message || res?.msg || '传感器开启成功' 
+      }
+    } catch (error: any) {
+      console.error('开启传感器失败:', error)
+      return { 
+        success: false, 
+        message: error?.message || '开启传感器失败' 
+      }
+    }
+  },
+
+  // 停止所有水质传感器
+  stopAllSensors: async (): Promise<{ success: boolean; message: string }> => {
+    try {
+      const res = await iotDeviceApi.get('/simulator/quality/stopAll') as any
+      return { 
+        success: res?.code === '00000' || res?.code === '0' || res?.code === 'DEV_1002', 
+        message: res?.message || res?.msg || '传感器停止成功' 
+      }
+    } catch (error: any) {
+      console.error('停止传感器失败:', error)
+      return { 
+        success: false, 
+        message: error?.message || '停止传感器失败' 
+      }
+    }
+  },
+
+  // 水表下线
+  offlineMeters: async (deviceIds: string[] = []): Promise<{ success: boolean; message: string }> => {
+    try {
+      const res = await iotDeviceApi.post('/simulator/meter/offLine', { ids: deviceIds }) as any
+      return { 
+        success: res?.code === '00000' || res?.code === '0' || res?.code === 'DEV_1002', 
+        message: res?.message || res?.msg || '水表下线成功' 
+      }
+    } catch (error: any) {
+      console.error('水表下线失败:', error)
+      return { 
+        success: false, 
+        message: error?.message || '水表下线失败' 
+      }
+    }
+  },
+
+  // 传感器下线
+  offlineSensors: async (deviceIds: string[] = []): Promise<{ success: boolean; message: string }> => {
+    try {
+      // 传感器下线用 POST /simulator/quality/stopAll
+      const res = await iotDeviceApi.post('/simulator/quality/stopAll', { ids: deviceIds }) as any
+      return { 
+        success: res?.code === '00000' || res?.code === '0' || res?.code === 'DEV_1002', 
+        message: res?.message || res?.msg || '传感器下线成功' 
+      }
+    } catch (error: any) {
+      console.error('传感器下线失败:', error)
+      return { 
+        success: false, 
+        message: error?.message || '传感器下线失败' 
+      }
+    }
+  },
+
+  // 批量开启水表
+  startMeters: async (deviceIds: string[]): Promise<{ success: boolean; message: string }> => {
+    try {
+      const res = await iotDeviceApi.post('/simulator/meter/startList', { ids: deviceIds }) as any
+      return { 
+        success: res?.code === '00000' || res?.code === '0' || res?.code === 'DEV_1002', 
+        message: res?.message || res?.msg || '水表开启成功' 
+      }
+    } catch (error: any) {
+      console.error('开启水表失败:', error)
+      return { 
+        success: false, 
+        message: error?.message || '开启水表失败' 
+      }
+    }
+  },
+
+  // 批量停止水表
+  stopMeters: async (deviceIds: string[]): Promise<{ success: boolean; message: string }> => {
+    try {
+      const res = await iotDeviceApi.post('/simulator/meter/endList', { ids: deviceIds }) as any
+      return { 
+        success: res?.code === '00000' || res?.code === '0' || res?.code === 'DEV_1002', 
+        message: res?.message || res?.msg || '水表停止成功' 
+      }
+    } catch (error: any) {
+      console.error('停止水表失败:', error)
+      return { 
+        success: false, 
+        message: error?.message || '停止水表失败' 
+      }
+    }
+  },
+
+  // 批量开启传感器
+  startSensors: async (deviceIds: string[]): Promise<{ success: boolean; message: string }> => {
+    try {
+      const res = await iotDeviceApi.post('/simulator/quality/startList', { ids: deviceIds }) as any
+      return { 
+        success: res?.code === '00000' || res?.code === '0' || res?.code === 'DEV_1002', 
+        message: res?.message || res?.msg || '传感器开启成功' 
+      }
+    } catch (error: any) {
+      console.error('开启传感器失败:', error)
+      return { 
+        success: false, 
+        message: error?.message || '开启传感器失败' 
+      }
+    }
+  },
+
+  // 批量停止传感器
+  stopSensors: async (deviceIds: string[]): Promise<{ success: boolean; message: string }> => {
+    try {
+      const res = await iotDeviceApi.post('/simulator/quality/stopList', { ids: deviceIds }) as any
+      return { 
+        success: res?.code === '00000' || res?.code === '0' || res?.code === 'DEV_1002', 
+        message: res?.message || res?.msg || '传感器停止成功' 
+      }
+    } catch (error: any) {
+      console.error('停止传感器失败:', error)
+      return { 
+        success: false, 
+        message: error?.message || '停止传感器失败' 
+      }
+    }
+  },
+
+  // 开启所有阀门
+  openAllValves: async (): Promise<{ success: boolean; message: string }> => {
+    try {
+      const res = await iotDeviceApi.get('/simulator/meter/openAllValues') as any
+      return { 
+        success: res?.code === '00000' || res?.code === '0' || res?.code === 'DEV_1002', 
+        message: res?.message || res?.msg || '阀门开启成功' 
+      }
+    } catch (error: any) {
+      console.error('开启阀门失败:', error)
+      return { 
+        success: false, 
+        message: error?.message || '开启阀门失败' 
+      }
+    }
+  },
+
+  // 关闭所有阀门
+  closeAllValves: async (): Promise<{ success: boolean; message: string }> => {
+    try {
+      const res = await iotDeviceApi.get('/simulator/meter/closeAllValues') as any
+      return { 
+        success: res?.code === '00000' || res?.code === '0' || res?.code === 'DEV_1002', 
+        message: res?.message || res?.msg || '阀门关闭成功' 
+      }
+    } catch (error: any) {
+      console.error('关闭阀门失败:', error)
+      return { 
+        success: false, 
+        message: error?.message || '关闭阀门失败' 
+      }
+    }
+  },
+
+  // 改变模拟模式
+  changeSimulatorMode: async (mode: 'normal' | 'leaking' | 'burstPipe' | 'shows'): Promise<{ success: boolean; message: string }> => {
+    try {
+      const res = await iotDeviceApi.get('/device/changeModel', { params: { mode } }) as any
+      return { 
+        success: res?.code === '00000' || res?.code === '0' || res?.code === 'DEV_1002', 
+        message: res?.message || res?.msg || '模式切换成功' 
+      }
+    } catch (error: any) {
+      console.error('切换模式失败:', error)
+      return { 
+        success: false, 
+        message: error?.message || '切换模式失败' 
+      }
+    }
+  },
+
+  // 获取楼宇配置
+  getBuildingConfig: async (): Promise<{
+    educationStart: number
+    experimentStart: number
+    dormitoryStart: number
+    totalBuildings: number
+    floors: number
+    rooms: number
+  }> => {
+    try {
+      const res = await iotDeviceApi.get('/device/buildingConfig')
+      const data = res?.data || res
+      return {
+        educationStart: data?.educationStart || 1,
+        experimentStart: data?.experimentStart || 3,
+        dormitoryStart: data?.dormitoryStart || 4,
+        totalBuildings: data?.totalBuildings || 6,
+        floors: data?.floors || 6,
+        rooms: data?.rooms || 10
+      }
+    } catch (error) {
+      console.error('获取楼宇配置失败:', error)
+      return {
+        educationStart: 1,
+        experimentStart: 3,
+        dormitoryStart: 4,
+        totalBuildings: 6,
+        floors: 6,
+        rooms: 10
+      }
     }
   }
 }

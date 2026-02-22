@@ -4,6 +4,7 @@ import Login from './pages/Login'
 import Register from './pages/Register'
 import Dashboard from './pages/Dashboard'
 import Monitoring from './pages/Monitoring'
+import DigitalTwin from './pages/DigitalTwin'
 
 function ProtectedRoute({ children }: { children: React.ReactNode }) {
   const { token } = useAuthStore()
@@ -32,6 +33,14 @@ function App() {
           element={
             <ProtectedRoute>
               <Monitoring />
+            </ProtectedRoute>
+          } 
+        />
+        <Route 
+          path="/digital-twin" 
+          element={
+            <ProtectedRoute>
+              <DigitalTwin />
             </ProtectedRoute>
           } 
         />

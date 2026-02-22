@@ -510,15 +510,15 @@ export default function Monitoring() {
                               <>
                                 <span className="text-emerald-600" title="浊度 NTU">
                                   <Waves className="inline w-3.5 h-3.5 mr-0.5" />
-                                  <span className="font-semibold">{floor.waterQuality.turbidity.toFixed(2)}</span> NTU
+                                  <span className="font-semibold">{typeof floor.waterQuality.turbidity === 'number' ? floor.waterQuality.turbidity.toFixed(2) : '0.00'}</span> NTU
                                 </span>
                                 <span className="text-purple-600" title="pH值">
                                   <FlaskConical className="inline w-3.5 h-3.5 mr-0.5" />
-                                  <span className="font-semibold">{floor.waterQuality.ph.toFixed(2)}</span> pH
+                                  <span className="font-semibold">{typeof floor.waterQuality.ph === 'number' ? floor.waterQuality.ph.toFixed(2) : '0.00'}</span> pH
                                 </span>
                                 <span className="text-teal-600" title="含氯量 mg/L">
                                   <FlaskConical className="inline w-3.5 h-3.5 mr-0.5" />
-                                  <span className="font-semibold">{floor.waterQuality.chlorine.toFixed(2)}</span> mg/L
+                                  <span className="font-semibold">{typeof floor.waterQuality.chlorine === 'number' ? floor.waterQuality.chlorine.toFixed(2) : '0.00'}</span> mg/L
                                 </span>
                               </>
                             )}
@@ -568,20 +568,20 @@ export default function Monitoring() {
                               <span className="text-sm font-medium text-gray-700">水质传感器</span>
                               <span className={`w-2 h-2 rounded-full ${floor.waterQuality.status === 'online' ? 'bg-green-500' : 'bg-red-500'}`}></span>
                             </div>
-                            {floor.waterQuality.status === 'online' ? (
+                            {floor.waterQuality && floor.waterQuality.status === 'online' ? (
                               <div className="grid grid-cols-3 gap-2 text-center text-sm">
                                 <div className="bg-white rounded-lg p-2 shadow-sm">
                                   <p className="text-[10px] text-gray-400">浊度</p>
-                                  <p className="font-semibold text-emerald-600">{floor.waterQuality.turbidity.toFixed(2)}</p>
+                                  <p className="font-semibold text-emerald-600">{typeof floor.waterQuality.turbidity === 'number' ? floor.waterQuality.turbidity.toFixed(2) : '0.00'}</p>
                                   <p className="text-[9px] text-gray-400">NTU</p>
                                 </div>
                                 <div className="bg-white rounded-lg p-2 shadow-sm">
                                   <p className="text-[10px] text-gray-400">pH值</p>
-                                  <p className="font-semibold text-purple-600">{floor.waterQuality.ph.toFixed(2)}</p>
+                                  <p className="font-semibold text-purple-600">{typeof floor.waterQuality.ph === 'number' ? floor.waterQuality.ph.toFixed(2) : '0.00'}</p>
                                 </div>
                                 <div className="bg-white rounded-lg p-2 shadow-sm">
                                   <p className="text-[10px] text-gray-400">含氯量</p>
-                                  <p className="font-semibold text-teal-600">{floor.waterQuality.chlorine.toFixed(2)}</p>
+                                  <p className="font-semibold text-teal-600">{typeof floor.waterQuality.chlorine === 'number' ? floor.waterQuality.chlorine.toFixed(2) : '0.00'}</p>
                                   <p className="text-[9px] text-gray-400">mg/L</p>
                                 </div>
                               </div>

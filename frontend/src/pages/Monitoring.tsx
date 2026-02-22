@@ -2,7 +2,8 @@ import { useState, useEffect, useCallback } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useAuthStore } from '@/store/authStore'
 import { iotApi, generateDeviceId, generateWaterQualitySensorId, parseDeviceCode, BuildingInfo, BuildingType, DeviceFlowData, WaterQualityData, getBuildingConfig, getBuildingType } from '@/api/iot'
-import { Droplets, User, Menu, X, Activity, Building2, Building, Home, RefreshCw, CheckCircle, XCircle, LayoutDashboard, Waves, FlaskConical } from 'lucide-react'
+import { Droplets, User, Menu, X, Activity, Building2, Building, Home, RefreshCw, CheckCircle, XCircle, LayoutDashboard, Waves, FlaskConical, Gauge } from 'lucide-react'
+import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, PieChart, Pie, Cell } from 'recharts'
 
 // 校区映射
 const CAMPUS_MAP: Record<number, { name: string; code: string }> = {
@@ -419,6 +420,56 @@ export default function Monitoring() {
                 </div>
               </div>
 
+              {/* 图表区域 */}
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
+                {/* 各楼层流量对比图 */}
+                <div className="bg-white rounded-xl p-6 shadow-sm">
+                  <h3 className="text-lg font-semibold text-gray-900 mb-4">各楼层流量对比</h3>
+                  <ResponsiveContainer width="100%" height={250}>
+                    <BarChart data={floors.map(f => ({ name: `${f.floor}F`, flow: f.totalFlow }))}>
+                      <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" />
+                      <XAxis dataKey="name" tick={{ fontSize: 12 }} />
+                      <YAxis tick={{ fontSize: 12 }} unit="L/s" />
+                      <Tooltip 
+                        formatter={(value: number | undefined) => value !== undefined ? [`${value.toFixed(2)} L/s`, '流量'] : ['无数据', '流量']}
+                        contentStyle={{ borderRadius: '8px', border: 'none', boxShadow: '0 2px 8px rgba(0,0,0,0.1)' }}
+                      />
+                      <Bar dataKey="flow" fill="#3b82f6" radius={[4, 4, 0, 0]} />
+                    </BarChart>
+                  </ResponsiveContainer>
+                </div>
+
+                {/* 设备在线状态分布 */}
+                <div className="bg-white rounded-xl p-6 shadow-sm">
+                  <h3 className="text-lg font-semibold text-gray-900 mb-4">设备在线状态</h3>
+                  <ResponsiveContainer width="100%" height={250}>
+                    <PieChart>
+                      <Pie
+                        data={[
+                          { name: '在线', value: onlineCount, color: '#22c55e' },
+                          { name: '离线', value: offlineCount, color: '#ef4444' }
+                        ]}
+                        cx="50%"
+                        cy="50%"
+                        innerRadius={60}
+                        outerRadius={90}
+                        paddingAngle={5}
+                        dataKey="value"
+                        label={({ name, value }) => `${name}: ${value}`}
+                      >
+                        {[
+                          { name: '在线', value: onlineCount, color: '#22c55e' },
+                          { name: '离线', value: offlineCount, color: '#ef4444' }
+                        ].map((entry, index) => (
+                          <Cell key={`cell-${index}`} fill={entry.color} />
+                        ))}
+                      </Pie>
+                      <Tooltip />
+                    </PieChart>
+                  </ResponsiveContainer>
+                </div>
+              </div>
+
               {/* 房间设备列表 */}
               <div className="bg-white rounded-xl p-6 shadow-sm">
                 <div className="flex items-center justify-between mb-4">
@@ -453,13 +504,16 @@ export default function Monitoring() {
                             </span>
                           </div>
                           <div className="flex items-center gap-6 text-sm flex-wrap">
-                            <span className="text-blue-600">
+                            <span className="text-blue-600 flex items-center gap-1" title="流量">
+                              <Droplets className="w-3.5 h-3.5" />
                               <span className="font-semibold">{floor.avgFlow.toFixed(2)}</span> L/s
                             </span>
-                            <span className="text-cyan-600">
+                            <span className="text-cyan-600 flex items-center gap-1" title="水压">
+                              <Gauge className="w-3.5 h-3.5" />
                               <span className="font-semibold">{floor.avgPressure.toFixed(2)}</span> MPa
                             </span>
-                            <span className="text-orange-600">
+                            <span className="text-orange-600 flex items-center gap-1" title="水温">
+                              <Activity className="w-3.5 h-3.5" />
                               <span className="font-semibold">{floor.avgTemp.toFixed(2)}</span> °C
                             </span>
                             {/* 水质传感器数据 */}
@@ -474,6 +528,7 @@ export default function Monitoring() {
                                   <span className="font-semibold">{floor.waterQuality.ph.toFixed(2)}</span> pH
                                 </span>
                                 <span className="text-teal-600" title="含氯量 mg/L">
+                                  <FlaskConical className="inline w-3.5 h-3.5 mr-0.5" />
                                   <span className="font-semibold">{floor.waterQuality.chlorine.toFixed(2)}</span> mg/L
                                 </span>
                               </>
@@ -581,7 +636,7 @@ export default function Monitoring() {
               <div className="grid grid-cols-3 gap-6 mb-6">
                 {/* 流量环 */}
                 <div className="flex flex-col items-center">
-                  <GaugeMeter value={selectedDevice.flow} max={maxFlowRange} size={100} color="#3b82f6" />
+                  <GaugeMeter value={selectedDevice.flow} max={0.5} size={100} color="#3b82f6" />
                   <p className="mt-2 text-sm font-medium text-blue-600">{selectedDevice.flow.toFixed(2)} L/s</p>
                   <p className="text-xs text-gray-400">流量</p>
                 </div>

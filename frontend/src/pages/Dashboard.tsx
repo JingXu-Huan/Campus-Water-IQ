@@ -4,6 +4,7 @@ import { Droplets, LogOut, User, BarChart3, AlertTriangle, Settings, LayoutDashb
 import { useState, useEffect } from 'react'
 import { iotApi, generateDeviceId } from '@/api/iot'
 import { authApi } from '@/api/auth'
+import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, LineChart, Line } from 'recharts'
 
 export default function Dashboard() {
   const navigate = useNavigate()
@@ -39,6 +40,23 @@ export default function Dashboard() {
   const [offlineDevices, setOfflineDevices] = useState<string[]>([])
   const [healthyScore, setHealthyScore] = useState<number>(0)
   const [loading, setLoading] = useState<boolean>(true)
+  
+  // 图表数据 - 模拟近7天用水趋势
+  const [weeklyUsageData] = useState([
+    { day: '周一', usage: 120 },
+    { day: '周二', usage: 135 },
+    { day: '周三', usage: 128 },
+    { day: '周四', usage: 142 },
+    { day: '周五', usage: 156 },
+    { day: '周六', usage: 98 },
+    { day: '周日', usage: 105 }
+  ])
+  
+  // 各校区用水量对比
+  const campusUsageData = campuses.map(c => ({
+    name: c.name.replace('校区', ''),
+    usage: Math.random() * 500 + 200
+  }))
   const [loadingToday, setLoadingToday] = useState<boolean>(true)
   const [loadingMonth, setLoadingMonth] = useState<boolean>(true)
   const [loadingOffline, setLoadingOffline] = useState<boolean>(true)
@@ -681,6 +699,43 @@ export default function Dashboard() {
             </div>
           </div>
         )}
+
+        {/* 图表区域 */}
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mt-6">
+          {/* 用水趋势图 */}
+          <div className="bg-white rounded-xl p-6 shadow-sm">
+            <h2 className="text-lg font-semibold text-gray-900 mb-4">本周用水趋势</h2>
+            <ResponsiveContainer width="100%" height={280}>
+              <LineChart data={weeklyUsageData}>
+                <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" />
+                <XAxis dataKey="day" tick={{ fontSize: 12 }} />
+                <YAxis tick={{ fontSize: 12 }} unit="m³" />
+                <Tooltip 
+                  formatter={(value: number | undefined) => value !== undefined ? [`${value} m³`, '用水量'] : ['无数据', '用水量']}
+                  contentStyle={{ borderRadius: '8px', border: 'none', boxShadow: '0 2px 8px rgba(0,0,0,0.1)' }}
+                />
+                <Line type="monotone" dataKey="usage" stroke="#3b82f6" strokeWidth={2} dot={{ fill: '#3b82f6', r: 4 }} />
+              </LineChart>
+            </ResponsiveContainer>
+          </div>
+
+          {/* 各校区用水量对比 */}
+          <div className="bg-white rounded-xl p-6 shadow-sm">
+            <h2 className="text-lg font-semibold text-gray-900 mb-4">各校区用水量对比</h2>
+            <ResponsiveContainer width="100%" height={280}>
+              <BarChart data={campusUsageData} layout="vertical">
+                <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" />
+                <XAxis type="number" tick={{ fontSize: 12 }} unit="m³" />
+                <YAxis dataKey="name" type="category" tick={{ fontSize: 12 }} width={60} />
+                <Tooltip 
+                  formatter={(value: number | undefined) => value !== undefined ? [`${value.toFixed(1)} m³`, '用水量'] : ['无数据', '用水量']}
+                  contentStyle={{ borderRadius: '8px', border: 'none', boxShadow: '0 2px 8px rgba(0,0,0,0.1)' }}
+                />
+                <Bar dataKey="usage" fill="#22c55e" radius={[0, 4, 4, 0]} />
+              </BarChart>
+            </ResponsiveContainer>
+          </div>
+        </div>
       </main>
 
       {/* Profile Modal */}

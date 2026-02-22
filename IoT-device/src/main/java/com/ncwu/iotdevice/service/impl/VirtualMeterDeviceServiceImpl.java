@@ -569,7 +569,7 @@ public class VirtualMeterDeviceServiceImpl extends ServiceImpl<DeviceMapper, Vir
             Long reportTime = this.reportTime.get(deviceId);
 
             // 检查设备是否还在运行，如果不在运行则停止心跳
-            if (reportTime == null || !runningDevices.contains(deviceId)) {
+            if (reportTime == null || !isDeviceOnline(deviceId)) {
                 return;
             }
 
@@ -1163,6 +1163,23 @@ public class VirtualMeterDeviceServiceImpl extends ServiceImpl<DeviceMapper, Vir
         // 3. 加入心跳监控
         redisTemplate.opsForHash()
                 .put("OnLineMap", deviceCode, String.valueOf(timestamp));
+    }
+
+    /**
+     * 判断设备是否在线
+     */
+    private boolean isDeviceOnline(String deviceId) {
+        //先查询缓存
+        String s = redisTemplate.opsForValue().get("device:OffLine:" + deviceId);
+        String status = "online";
+        if (s != null) {
+            VirtualDevice device = this.lambdaQuery().eq(VirtualDevice::getDeviceCode, deviceId)
+                    .one();
+            if (device != null) {
+                status = device.getStatus();
+            }
+        }
+        return status.startsWith("online");
     }
 
     public void madeSomeLocalCacheInvalidated(List<String> ids) {

@@ -297,10 +297,9 @@ public class VirtualWaterQualityDeviceServiceImpl extends ServiceImpl<DeviceMapp
         int time = Integer.parseInt(serverConfig.getWaterQualityReportFrequency()) / 1000;
         int offset = Integer.parseInt(serverConfig.getWaterQualityReportTimeOffset()) / 1000;
         scheduler.scheduleAtFixedRate(() -> {
-            Long reportTime = this.reportTime.get(deviceId);
-            if (reportTime == null) {
-                return;
-            }
+            long now = System.currentTimeMillis();
+            Long last = this.reportTime.get(deviceId);
+            long reportTime = (now - last) / 1000 > time  ? now : last;
             try {
                 //只有不在线的设备，我们才停止心跳的上报
                 if (!isDeviceOnline(deviceId)) {

@@ -39,7 +39,18 @@ iotDataApi.interceptors.request.use((config: any) => {
 
 // 响应拦截器
 iotDeviceApi.interceptors.response.use(
-  (response: any) => response.data,
+  (response: any) => {
+    const data = response.data
+    // 如果返回的是字符串（非JSON），包装成对象
+    if (typeof data === 'string') {
+      return { code: '200', message: 'success', data: data }
+    }
+    // 如果返回的是 null 或空，也包装成成功对象
+    if (data === null || data === undefined || data === '') {
+      return { code: '200', message: 'success', data: data }
+    }
+    return data
+  },
   (error: any) => {
     console.error('API Error:', error)
     const message = error.response?.data?.message || '请求失败，请稍后重试'
@@ -48,20 +59,19 @@ iotDeviceApi.interceptors.response.use(
 )
 
 iotDataApi.interceptors.response.use(
-  (response: any) => response.data,
+  (response: any) => {
+    const data = response.data
+    if (typeof data === 'string') {
+      return { code: '200', message: 'success', data: data }
+    }
+    if (data === null || data === undefined || data === '') {
+      return { code: '200', message: 'success', data: data }
+    }
+    return data
+  },
   (error: any) => {
     console.error('API Error:', error)
     const message = error.response?.data?.message || '请求失败，请稍后重试'
-    return Promise.reject(new Error(message))
-  }
-)
-
-// IoT-device 响应拦截器
-iotDeviceApi.interceptors.response.use(
-  (response: any) => response.data,
-  (error: any) => {
-    console.error('API Error:', error)
-    const message = error.response?.data?.message || error.response?.data?.msg || '请求失败，请稍后重试'
     return Promise.reject(new Error(message))
   }
 )
@@ -537,7 +547,7 @@ export const iotApi = {
     try {
       const res = await iotDeviceApi.get('/device/init', { params }) as any
       return { 
-        success: res?.code === '00000' || res?.code === '0' || res?.code === 'DEV_1002', 
+        success: res?.code === '00000' || res?.code === '0' || res?.code === 'DEV_1002' || res?.code === '200' || res?.code === 'DEV_1001' || res?.code === 'MTR_4001', 
         message: res?.message || res?.msg || '初始化成功' 
       }
     } catch (error: any) {
@@ -554,7 +564,7 @@ export const iotApi = {
     try {
       const res = await iotDeviceApi.get('/device/destroyAll') as any
       return { 
-        success: res?.code === '00000' || res?.code === '0' || res?.code === 'DEV_1002', 
+        success: res?.code === '00000' || res?.code === '0' || res?.code === 'DEV_1002' || res?.code === '200' || res?.code === 'DEV_1001' || res?.code === 'MTR_4001', 
         message: res?.message || res?.msg || '重置成功' 
       }
     } catch (error: any) {
@@ -596,10 +606,23 @@ export const iotApi = {
   getTaskStatus: async (): Promise<{ meterRunning: boolean; sensorRunning: boolean }> => {
     try {
       const res = await iotDeviceApi.get('/device/taskStatus') as any
-      return {
-        meterRunning: res?.data?.meterRunning ?? false,
-        sensorRunning: res?.data?.sensorRunning ?? false
+      console.log('========== taskStatus response:', JSON.stringify(res))
+      
+      // 兼容各种返回格式
+      let data = res
+      if (res?.data) data = res.data
+      if (typeof data === 'string') {
+        data = JSON.parse(data)
       }
+      
+      console.log('========== taskStatus data:', JSON.stringify(data))
+      
+      const meterRunning = data?.meterRunning === true || data?.meterRunning === 'true' || data?.meterRunning === 1
+      const sensorRunning = data?.sensorRunning === true || data?.sensorRunning === 'true' || data?.sensorRunning === 1
+      
+      console.log('========== parsed:', { meterRunning, sensorRunning })
+      
+      return { meterRunning, sensorRunning }
     } catch (error) {
       console.error('获取任务状态失败:', error)
       return { meterRunning: false, sensorRunning: false }
@@ -610,8 +633,11 @@ export const iotApi = {
   startAllMeters: async (): Promise<{ success: boolean; message: string }> => {
     try {
       const res = await iotDeviceApi.get('/simulator/meter/startAll') as any
+      console.log('========== startAllMeters response:', JSON.stringify(res))
+      const isSuccess = res?.code === '00000' || res?.code === '0' || res?.code === 'DEV_1002' || res?.code === '200' || res?.code === 'DEV_1001' || res?.code === 'MTR_4001'
+      console.log('========== startAllMeters isSuccess:', isSuccess, 'code:', res?.code)
       return { 
-        success: res?.code === '00000' || res?.code === '0' || res?.code === 'DEV_1002', 
+        success: isSuccess, 
         message: res?.message || res?.msg || '水表开启成功' 
       }
     } catch (error: any) {
@@ -627,9 +653,12 @@ export const iotApi = {
   stopAllMeters: async (): Promise<{ success: boolean; message: string }> => {
     try {
       const res = await iotDeviceApi.get('/simulator/meter/endAll') as any
+      console.log('========== stopAllMeters response:', JSON.stringify(res))
+      const isSuccess = res?.code === '00000' || res?.code === '0' || res?.code === 'DEV_1002' || res?.code === '200' || res?.code === 'DEV_1001' || res?.code === 'MTR_4001'
+      console.log('========== stopAllMeters isSuccess:', isSuccess, 'code:', res?.code)
       return { 
-        success: res?.code === '00000' || res?.code === '0' || res?.code === 'DEV_1002', 
-        message: res?.message || res?.msg || '水表停止成功' 
+        success: isSuccess, 
+        message: res?.message || res?.msg || res?.data || '水表停止成功' 
       }
     } catch (error: any) {
       console.error('停止水表失败:', error)
@@ -644,8 +673,11 @@ export const iotApi = {
   startAllSensors: async (): Promise<{ success: boolean; message: string }> => {
     try {
       const res = await iotDeviceApi.get('/simulator/quality/startAll') as any
+      console.log('========== startAllSensors response:', JSON.stringify(res))
+      const isSuccess = res?.code === '00000' || res?.code === '0' || res?.code === 'DEV_1002' || res?.code === '200' || res?.code === 'DEV_1001' || res?.code === 'MTR_4001'
+      console.log('========== startAllSensors isSuccess:', isSuccess, 'code:', res?.code)
       return { 
-        success: res?.code === '00000' || res?.code === '0' || res?.code === 'DEV_1002', 
+        success: isSuccess, 
         message: res?.message || res?.msg || '传感器开启成功' 
       }
     } catch (error: any) {
@@ -661,9 +693,12 @@ export const iotApi = {
   stopAllSensors: async (): Promise<{ success: boolean; message: string }> => {
     try {
       const res = await iotDeviceApi.get('/simulator/quality/stopAll') as any
+      console.log('========== stopAllSensors response:', JSON.stringify(res))
+      const isSuccess = res?.code === '00000' || res?.code === '0' || res?.code === 'DEV_1002' || res?.code === '200' || res?.code === 'DEV_1001' || res?.code === 'MTR_4001'
+      console.log('========== stopAllSensors isSuccess:', isSuccess, 'code:', res?.code)
       return { 
-        success: res?.code === '00000' || res?.code === '0' || res?.code === 'DEV_1002', 
-        message: res?.message || res?.msg || '传感器停止成功' 
+        success: isSuccess, 
+        message: res?.message || res?.msg || res?.data || '传感器停止成功' 
       }
     } catch (error: any) {
       console.error('停止传感器失败:', error)
@@ -679,7 +714,7 @@ export const iotApi = {
     try {
       const res = await iotDeviceApi.post('/simulator/meter/offLine', { ids: deviceIds }) as any
       return { 
-        success: res?.code === '00000' || res?.code === '0' || res?.code === 'DEV_1002', 
+        success: res?.code === '00000' || res?.code === '0' || res?.code === 'DEV_1002' || res?.code === '200' || res?.code === 'DEV_1001' || res?.code === 'MTR_4001', 
         message: res?.message || res?.msg || '水表下线成功' 
       }
     } catch (error: any) {
@@ -697,7 +732,7 @@ export const iotApi = {
       // 传感器下线用 POST /simulator/quality/stopAll
       const res = await iotDeviceApi.post('/simulator/quality/stopAll', { ids: deviceIds }) as any
       return { 
-        success: res?.code === '00000' || res?.code === '0' || res?.code === 'DEV_1002', 
+        success: res?.code === '00000' || res?.code === '0' || res?.code === 'DEV_1002' || res?.code === '200' || res?.code === 'DEV_1001' || res?.code === 'MTR_4001', 
         message: res?.message || res?.msg || '传感器下线成功' 
       }
     } catch (error: any) {
@@ -713,8 +748,11 @@ export const iotApi = {
   startMeters: async (deviceIds: string[]): Promise<{ success: boolean; message: string }> => {
     try {
       const res = await iotDeviceApi.post('/simulator/meter/startList', { ids: deviceIds }) as any
+      console.log('========== startMeters response:', JSON.stringify(res))
+      const isSuccess = res?.code === '00000' || res?.code === '0' || res?.code === 'DEV_1002' || res?.code === '200' || res?.code === 'DEV_1001' || res?.code === 'MTR_4001'
+      console.log('========== startMeters isSuccess:', isSuccess, 'code:', res?.code)
       return { 
-        success: res?.code === '00000' || res?.code === '0' || res?.code === 'DEV_1002', 
+        success: isSuccess, 
         message: res?.message || res?.msg || '水表开启成功' 
       }
     } catch (error: any) {
@@ -731,7 +769,7 @@ export const iotApi = {
     try {
       const res = await iotDeviceApi.post('/simulator/meter/endList', { ids: deviceIds }) as any
       return { 
-        success: res?.code === '00000' || res?.code === '0' || res?.code === 'DEV_1002', 
+        success: res?.code === '00000' || res?.code === '0' || res?.code === 'DEV_1002' || res?.code === '200' || res?.code === 'DEV_1001' || res?.code === 'MTR_4001', 
         message: res?.message || res?.msg || '水表停止成功' 
       }
     } catch (error: any) {
@@ -748,7 +786,7 @@ export const iotApi = {
     try {
       const res = await iotDeviceApi.post('/simulator/quality/startList', { ids: deviceIds }) as any
       return { 
-        success: res?.code === '00000' || res?.code === '0' || res?.code === 'DEV_1002', 
+        success: res?.code === '00000' || res?.code === '0' || res?.code === 'DEV_1002' || res?.code === '200' || res?.code === 'DEV_1001' || res?.code === 'MTR_4001', 
         message: res?.message || res?.msg || '传感器开启成功' 
       }
     } catch (error: any) {
@@ -765,7 +803,7 @@ export const iotApi = {
     try {
       const res = await iotDeviceApi.post('/simulator/quality/stopList', { ids: deviceIds }) as any
       return { 
-        success: res?.code === '00000' || res?.code === '0' || res?.code === 'DEV_1002', 
+        success: res?.code === '00000' || res?.code === '0' || res?.code === 'DEV_1002' || res?.code === '200' || res?.code === 'DEV_1001' || res?.code === 'MTR_4001', 
         message: res?.message || res?.msg || '传感器停止成功' 
       }
     } catch (error: any) {
@@ -782,7 +820,7 @@ export const iotApi = {
     try {
       const res = await iotDeviceApi.get('/simulator/meter/openAllValues') as any
       return { 
-        success: res?.code === '00000' || res?.code === '0' || res?.code === 'DEV_1002', 
+        success: res?.code === '00000' || res?.code === '0' || res?.code === 'DEV_1002' || res?.code === '200' || res?.code === 'DEV_1001' || res?.code === 'MTR_4001', 
         message: res?.message || res?.msg || '阀门开启成功' 
       }
     } catch (error: any) {
@@ -799,7 +837,7 @@ export const iotApi = {
     try {
       const res = await iotDeviceApi.get('/simulator/meter/closeAllValues') as any
       return { 
-        success: res?.code === '00000' || res?.code === '0' || res?.code === 'DEV_1002', 
+        success: res?.code === '00000' || res?.code === '0' || res?.code === 'DEV_1002' || res?.code === '200' || res?.code === 'DEV_1001' || res?.code === 'MTR_4001', 
         message: res?.message || res?.msg || '阀门关闭成功' 
       }
     } catch (error: any) {
@@ -811,13 +849,29 @@ export const iotApi = {
     }
   },
 
+  // 获取当前模拟模式
+  getSimulatorMode: async (): Promise<string> => {
+    try {
+      const res = await iotDeviceApi.get('/device/getMode') as any
+      console.log('========== getSimulatorMode response:', JSON.stringify(res))
+      // 返回 mode 字段，可能是 'normal', 'leaking', 'burstPipe', 'shows'
+      return res?.data || res?.mode || 'normal'
+    } catch (error) {
+      console.error('获取模式失败:', error)
+      return 'normal'
+    }
+  },
+
   // 改变模拟模式
   changeSimulatorMode: async (mode: 'normal' | 'leaking' | 'burstPipe' | 'shows'): Promise<{ success: boolean; message: string }> => {
     try {
       const res = await iotDeviceApi.get('/device/changeModel', { params: { mode } }) as any
+      console.log('========== changeSimulatorMode response:', JSON.stringify(res))
+      const isSuccess = res?.code === '00000' || res?.code === '0' || res?.code === 'DEV_1002' || res?.code === '200' || res?.code === 'DEV_1001' || res?.code === 'MTR_4001'
+      console.log('========== changeSimulatorMode isSuccess:', isSuccess, 'code:', res?.code)
       return { 
-        success: res?.code === '00000' || res?.code === '0' || res?.code === 'DEV_1002', 
-        message: res?.message || res?.msg || '模式切换成功' 
+        success: isSuccess, 
+        message: res?.message || res?.msg || res?.data || '模式切换成功' 
       }
     } catch (error: any) {
       console.error('切换模式失败:', error)

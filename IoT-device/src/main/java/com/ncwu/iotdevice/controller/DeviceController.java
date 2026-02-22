@@ -165,7 +165,7 @@ public class DeviceController {
     public Result<TaskStatusVO> getTaskStatus() {
         String meterChecked = stringRedisTemplate.opsForValue().get("MeterChecked");
         String waterQualityChecked = stringRedisTemplate.opsForValue().get("WaterQualityChecked");
-        
+
         TaskStatusVO status = new TaskStatusVO();
         status.setMeterRunning("1".equals(meterChecked));
         status.setSensorRunning("1".equals(waterQualityChecked));
@@ -227,6 +227,15 @@ public class DeviceController {
             return Result.ok(config);
         }
     }
+
+    /**
+     * 得到当前的演示模式
+     */
+    @GetMapping("/getMode")
+    public Result<String> getMode() {
+        return Result.ok(stringRedisTemplate.opsForValue().get("mode"));
+    }
+
     /**
      * 楼宇配置 VO
      */

@@ -4,8 +4,8 @@ import { useAuthStore } from '@/store/authStore'
 import { iotApi, generateDeviceId, generateWaterQualitySensorId } from '@/api/iot'
 import { 
   Droplets, User, Menu, X, Activity, LayoutDashboard, 
-  Play, Square, RotateCcw, Power, PowerOff, AlertCircle, CheckCircle,
-  Gauge, RefreshCw, Cpu
+  Play, RotateCcw, Power, PowerOff, AlertCircle, CheckCircle,
+  Gauge, RefreshCw, Cpu, ChevronDown
 } from 'lucide-react'
 
 type SimMode = 'normal' | 'leaking' | 'burstPipe' | 'shows'
@@ -32,6 +32,13 @@ export default function DigitalTwin() {
   
   // 任务运行状态（用于判断是否能重置）
   const [isAnyTaskRunning, setIsAnyTaskRunning] = useState(false)
+  
+  // 展开/收起状态
+  const [meterExpanded, setMeterExpanded] = useState(false)
+  const [sensorExpanded, setSensorExpanded] = useState(false)
+  
+  // 弹窗状态
+  const [modal, setModal] = useState<{ show: boolean; type: 'success' | 'error' | 'info'; title: string; message: string } | null>(null)
   
   // 楼宇配置
   const [buildingConfig, setBuildingConfig] = useState({
@@ -106,23 +113,48 @@ export default function DigitalTwin() {
     }
   }
 
+  // 获取模拟模式
+  const fetchSimulatorMode = async () => {
+    try {
+      const mode = await iotApi.getSimulatorMode()
+      console.log('========== fetchSimulatorMode:', mode)
+      if (mode) {
+        setSimMode(mode as SimMode)
+      }
+    } catch (error) {
+      console.error('获取模拟模式失败:', error)
+    }
+  }
+
   useEffect(() => {
     fetchDeviceStatus()
     fetchBuildingConfig()
+    fetchSimulatorMode()
+    
+    // 每5秒自动刷新设备状态
+    const interval = setInterval(() => {
+      fetchDeviceStatus()
+    }, 5000)
+    
+    return () => clearInterval(interval)
   }, [])
 
   // 显示消息
   const showMessage = (type: 'success' | 'error', text: string) => {
     setMessage({ type, text })
-    setTimeout(() => setMessage(null), 3000)
+  }
+
+  // 显示弹窗
+  const showModal = (type: 'success' | 'error' | 'info', title: string, message: string) => {
+    setModal({ show: true, type, title, message })
   }
 
   // 显示操作结果消息
   const showResultMessage = (result: { success: boolean; message: string }, successText?: string) => {
     if (result.success) {
-      showMessage('success', successText || result.message || '操作成功')
+      showModal('success', '操作成功', successText || result.message || '操作成功')
     } else {
-      showMessage('error', result.message || '操作失败')
+      showModal('error', '操作失败', result.message || '操作失败')
     }
   }
 
@@ -271,15 +303,16 @@ export default function DigitalTwin() {
   const handleChangeMode = async (mode: SimMode) => {
     setLoading(true)
     try {
+      // 先更新本地状态，让 UI 立即响应
+      setSimMode(mode)
+      
       const result = await iotApi.changeSimulatorMode(mode)
+      showResultMessage(result, `已切换至${mode === 'normal' ? '正常' : mode === 'shows' ? '演示' : mode === 'leaking' ? '漏水' : '爆管'}模式`)
       if (result.success) {
-        showMessage('success', `已切换至${mode === 'normal' ? '正常' : mode === 'leaking' ? '漏水' : '爆管'}模式`)
-        setSimMode(mode)
-      } else {
-        showMessage('error', result.message)
+        fetchSimulatorMode()
       }
     } catch (error) {
-      showMessage('error', '切换模式失败')
+      showModal('error', '切换失败', '切换模式失败')
     } finally {
       setLoading(false)
     }
@@ -385,11 +418,49 @@ export default function DigitalTwin() {
         <main className="flex-1 p-6 overflow-y-auto">
           {/* 消息提示 */}
           {message && (
-            <div className={`mb-4 p-4 rounded-lg flex items-center gap-2 ${
-              message.type === 'success' ? 'bg-green-50 text-green-700' : 'bg-red-50 text-red-700'
+            <div className={`mb-4 p-4 rounded-lg flex items-center gap-3 text-base font-medium border-2 ${
+              message.type === 'success' ? 'bg-green-50 text-green-700 border-green-300' : 'bg-red-50 text-red-700 border-red-300'
             }`}>
-              {message.type === 'success' ? <CheckCircle className="w-5 h-5" /> : <AlertCircle className="w-5 h-5" />}
-              {message.text}
+              {message.type === 'success' ? <CheckCircle className="w-6 h-6" /> : <AlertCircle className="w-6 h-6" />}
+              <span className="flex-1">{message.text}</span>
+              <button onClick={() => setMessage(null)} className="text-gray-400 hover:text-gray-600">
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+          )}
+
+          {/* 弹窗 */}
+          {modal && (
+            <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 animate-fade-in">
+              <div className={`bg-white rounded-xl shadow-2xl p-6 max-w-sm w-full mx-4 transform transition-all animate-scale-in ${
+                modal.type === 'success' ? 'border-t-4 border-green-500' : 
+                modal.type === 'error' ? 'border-t-4 border-red-500' : 'border-t-4 border-blue-500'
+              }`}>
+                <div className="flex items-center gap-3 mb-4">
+                  {modal.type === 'success' && <CheckCircle className="w-8 h-8 text-green-500 animate-bounce" />}
+                  {modal.type === 'error' && <AlertCircle className="w-8 h-8 text-red-500 animate-bounce" />}
+                  {modal.type === 'info' && <Activity className="w-8 h-8 text-blue-500 animate-bounce" />}
+                  <h3 className={`text-lg font-bold ${
+                    modal.type === 'success' ? 'text-green-700' : 
+                    modal.type === 'error' ? 'text-red-700' : 'text-blue-700'
+                  }`}>
+                    {modal.title}
+                  </h3>
+                </div>
+                <p className="text-gray-600 mb-6">{modal.message}</p>
+                <button
+                  onClick={() => {
+                    setModal(null)
+                    fetchDeviceStatus()
+                  }}
+                  className={`w-full py-2.5 rounded-lg font-medium text-white transition-all transform hover:scale-105 active:scale-95 ${
+                    modal.type === 'success' ? 'bg-green-500 hover:bg-green-600' : 
+                    modal.type === 'error' ? 'bg-red-500 hover:bg-red-600' : 'bg-blue-500 hover:bg-blue-600'
+                  }`}
+                >
+                  确定
+                </button>
+              </div>
             </div>
           )}
 
@@ -548,81 +619,25 @@ export default function DigitalTwin() {
             </div>
           </div>
 
-          {/* 水表控制卡片 */}
-          <div className="bg-white rounded-xl p-6 shadow-sm mb-6">
-            <div className="flex items-center gap-3 mb-4">
+          {/* 水表控制卡片 - 可展开 */}
+          <div className="bg-white rounded-xl shadow-sm mb-4">
+            <div 
+              className="flex items-center gap-3 p-4 cursor-pointer hover:bg-gray-50"
+              onClick={() => setMeterExpanded(!meterExpanded)}
+            >
               <div className="p-2 bg-blue-100 rounded-lg">
                 <Droplets className="w-5 h-5 text-blue-600" />
               </div>
               <h3 className="text-lg font-semibold text-gray-900">水表控制</h3>
-              <span className={`ml-auto px-3 py-1 rounded-full text-sm font-medium ${
+              <span className={`px-2 py-0.5 rounded-full text-xs font-medium ${
                 isMetersRunning ? 'bg-green-100 text-green-700' : 'bg-gray-100 text-gray-500'
               }`}>
                 {isMetersRunning ? '运行中' : '已停止'}
               </span>
-            </div>
-            
-            {/* 下线位置选择 */}
-            <div className="mb-4 p-4 bg-gray-50 rounded-lg">
-              <p className="text-sm font-medium text-gray-700 mb-3">下线位置选择</p>
-              <div className="grid grid-cols-4 gap-3">
-                <div>
-                  <label className="block text-xs text-gray-500 mb-1">校区</label>
-                  <select
-                    value={meterOfflineSelect.campus}
-                    onChange={(e) => setMeterOfflineSelect({ ...meterOfflineSelect, campus: parseInt(e.target.value), building: 1, floor: 1, unit: 1 })}
-                    className="w-full px-2 py-2 border border-gray-300 rounded-lg text-sm"
-                  >
-                    {CAMPUS_OPTIONS.map(c => (
-                      <option key={c.value} value={c.value}>{c.label}</option>
-                    ))}
-                  </select>
-                </div>
-                <div>
-                  <label className="block text-xs text-gray-500 mb-1">楼栋</label>
-                  <select
-                    value={meterOfflineSelect.building}
-                    onChange={(e) => setMeterOfflineSelect({ ...meterOfflineSelect, building: parseInt(e.target.value), floor: 1, unit: 1 })}
-                    className="w-full px-2 py-2 border border-gray-300 rounded-lg text-sm"
-                  >
-                    {Array.from({ length: buildingConfig.educationBuildings + buildingConfig.experimentBuildings + buildingConfig.dormitoryBuildings }, (_, i) => i + 1).map(b => (
-                      <option key={b} value={b}>{b}号楼</option>
-                    ))}
-                  </select>
-                </div>
-                <div>
-                  <label className="block text-xs text-gray-500 mb-1">楼层</label>
-                  <select
-                    value={meterOfflineSelect.floor}
-                    onChange={(e) => setMeterOfflineSelect({ ...meterOfflineSelect, floor: parseInt(e.target.value), unit: 1 })}
-                    className="w-full px-2 py-2 border border-gray-300 rounded-lg text-sm"
-                  >
-                    {Array.from({ length: buildingConfig.floors }, (_, i) => i + 1).map(f => (
-                      <option key={f} value={f}>{f}层</option>
-                    ))}
-                  </select>
-                </div>
-                <div>
-                  <label className="block text-xs text-gray-500 mb-1">单元</label>
-                  <select
-                    value={meterOfflineSelect.unit}
-                    onChange={(e) => setMeterOfflineSelect({ ...meterOfflineSelect, unit: parseInt(e.target.value) })}
-                    className="w-full px-2 py-2 border border-gray-300 rounded-lg text-sm"
-                  >
-                    {Array.from({ length: buildingConfig.rooms }, (_, i) => i + 1).map(u => (
-                      <option key={u} value={u}>{u}室</option>
-                    ))}
-                  </select>
-                </div>
-              </div>
-            </div>
-            
-            {/* 全部操作 */}
-            <div className="mb-4">
-              <p className="text-sm font-medium text-gray-700 mb-3">全部操作</p>
-              <div className="grid grid-cols-3 gap-4">
+              <div className="ml-auto flex items-center gap-2">
                 <button
-                  onClick={() => {
+                  onClick={(e) => {
+                    e.stopPropagation()
                     if (!isInitialized) { showMessage('error', '请先初始化设备'); return; }
                     iotApi.startAllMeters().then(result => {
                       showResultMessage(result, '水表已开启')
@@ -630,151 +645,130 @@ export default function DigitalTwin() {
                     })
                   }}
                   disabled={loading || !isInitialized || isMetersRunning}
-                  className="flex flex-col items-center gap-2 p-4 bg-green-50 hover:bg-green-100 rounded-xl transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                  className="px-3 py-1 text-xs bg-green-100 text-green-700 rounded-lg hover:bg-green-200 disabled:opacity-50 disabled:cursor-not-allowed"
                 >
-                  <Play className="w-8 h-8 text-green-600" />
-                  <span className="font-medium text-green-700">开启全部</span>
-                  <span className="text-xs text-green-500">启动数据上报</span>
+                  开启
                 </button>
-
                 <button
-                  onClick={handleStopMeters}
-                  disabled={loading || !isMetersRunning}
-                  className="flex flex-col items-center gap-2 p-4 bg-yellow-50 hover:bg-yellow-100 rounded-xl transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                  onClick={(e) => {
+                    e.stopPropagation()
+                    handleStopMeters()
+                  }}
+                  disabled={!isMetersRunning}
+                  className="px-3 py-1 text-xs bg-yellow-100 text-yellow-700 rounded-lg hover:bg-yellow-200 disabled:opacity-50 disabled:cursor-not-allowed"
                 >
-                  <Square className="w-8 h-8 text-yellow-600" />
-                  <span className="font-medium text-yellow-700">停止全部</span>
-                  <span className="text-xs text-yellow-500">停止数据上报</span>
+                  停止
                 </button>
-
                 <button
-                  onClick={handleOfflineMeters}
+                  onClick={(e) => {
+                    e.stopPropagation()
+                    if (!isInitialized) { showMessage('error', '请先初始化设备'); return; }
+                    if (!confirm('确认水表全部下线？')) return
+                    iotApi.offlineMeters([]).then(result => {
+                      showResultMessage(result, '水表已全部下线')
+                      if (result.success) fetchDeviceStatus()
+                    })
+                  }}
                   disabled={loading || !isInitialized}
-                  className="flex flex-col items-center gap-2 p-4 bg-gray-50 hover:bg-gray-100 rounded-xl transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                  className="px-3 py-1 text-xs bg-red-100 text-red-700 rounded-lg hover:bg-red-200 disabled:opacity-50 disabled:cursor-not-allowed"
                 >
-                  <PowerOff className="w-8 h-8 text-gray-600" />
-                  <span className="font-medium text-gray-700">下线全部</span>
-                  <span className="text-xs text-gray-500">停止并下线</span>
+                  下线
                 </button>
+                <ChevronDown className={`w-5 h-5 text-gray-400 transition-transform ${meterExpanded ? 'rotate-180' : ''}`} />
               </div>
             </div>
             
-            {/* 批量操作 */}
-            <div>
-              <p className="text-sm font-medium text-gray-700 mb-3">批量操作</p>
-              <div className="p-4 bg-gray-50 rounded-lg">
-                <div className="grid grid-cols-4 gap-3 mb-4">
-                  <div>
-                    <label className="block text-xs text-gray-500 mb-1">校区</label>
+            {/* 展开内容 */}
+            {meterExpanded && (
+              <div className="px-4 pb-4 border-t border-gray-100">
+                <div className="pt-3">
+                  <p className="text-sm font-medium text-gray-700 mb-2">批量操作</p>
+                  <div className="grid grid-cols-4 gap-2 mb-3">
                     <select
                       value={meterOfflineSelect.campus}
                       onChange={(e) => setMeterOfflineSelect({ ...meterOfflineSelect, campus: parseInt(e.target.value), building: 1, floor: 1, unit: 1 })}
-                      className="w-full px-2 py-2 border border-gray-300 rounded-lg text-sm"
+                      className="px-2 py-1.5 border border-gray-300 rounded-lg text-sm"
                     >
-                      {CAMPUS_OPTIONS.map(c => (
-                        <option key={c.value} value={c.value}>{c.label}</option>
-                      ))}
+                      {CAMPUS_OPTIONS.map(c => (<option key={c.value} value={c.value}>{c.label}</option>))}
                     </select>
-                  </div>
-                  <div>
-                    <label className="block text-xs text-gray-500 mb-1">楼栋</label>
                     <select
                       value={meterOfflineSelect.building}
                       onChange={(e) => setMeterOfflineSelect({ ...meterOfflineSelect, building: parseInt(e.target.value), floor: 1, unit: 1 })}
-                      className="w-full px-2 py-2 border border-gray-300 rounded-lg text-sm"
+                      className="px-2 py-1.5 border border-gray-300 rounded-lg text-sm"
                     >
-                      {Array.from({ length: buildingConfig.educationBuildings + buildingConfig.experimentBuildings + buildingConfig.dormitoryBuildings }, (_, i) => i + 1).map(b => (
-                        <option key={b} value={b}>{b}号楼</option>
-                      ))}
+                      {Array.from({ length: buildingConfig.educationBuildings + buildingConfig.experimentBuildings + buildingConfig.dormitoryBuildings }, (_, i) => i + 1).map(b => (<option key={b} value={b}>{b}号楼</option>))}
                     </select>
-                  </div>
-                  <div>
-                    <label className="block text-xs text-gray-500 mb-1">楼层</label>
                     <select
                       value={meterOfflineSelect.floor}
                       onChange={(e) => setMeterOfflineSelect({ ...meterOfflineSelect, floor: parseInt(e.target.value), unit: 1 })}
-                      className="w-full px-2 py-2 border border-gray-300 rounded-lg text-sm"
+                      className="px-2 py-1.5 border border-gray-300 rounded-lg text-sm"
                     >
-                      {Array.from({ length: buildingConfig.floors }, (_, i) => i + 1).map(f => (
-                        <option key={f} value={f}>{f}层</option>
-                      ))}
+                      {Array.from({ length: buildingConfig.floors }, (_, i) => i + 1).map(f => (<option key={f} value={f}>{f}层</option>))}
                     </select>
-                  </div>
-                  <div>
-                    <label className="block text-xs text-gray-500 mb-1">单元</label>
                     <select
                       value={meterOfflineSelect.unit}
                       onChange={(e) => setMeterOfflineSelect({ ...meterOfflineSelect, unit: parseInt(e.target.value) })}
-                      className="w-full px-2 py-2 border border-gray-300 rounded-lg text-sm"
+                      className="px-2 py-1.5 border border-gray-300 rounded-lg text-sm"
                     >
-                      {Array.from({ length: buildingConfig.rooms }, (_, i) => i + 1).map(u => (
-                        <option key={u} value={u}>{u}室</option>
-                      ))}
+                      {Array.from({ length: buildingConfig.rooms }, (_, i) => i + 1).map(u => (<option key={u} value={u}>{u}室</option>))}
                     </select>
                   </div>
-                </div>
-                <div className="grid grid-cols-3 gap-3">
-                  <button
-                    onClick={() => {
-                      if (!isInitialized) { showMessage('error', '请先初始化设备'); return; }
-                      const deviceId = generateDeviceId(meterOfflineSelect.campus, meterOfflineSelect.building, meterOfflineSelect.floor, meterOfflineSelect.unit)
-                      const locationLabel = `${CAMPUS_OPTIONS.find(c => c.value === meterOfflineSelect.campus)?.label} ${meterOfflineSelect.building}号楼 ${meterOfflineSelect.floor}层 ${meterOfflineSelect.unit}室`
-                      iotApi.startMeters([deviceId]).then(result => {
-                        showResultMessage(result, `水表 ${locationLabel} 已开启`)
-                        if (result.success) fetchDeviceStatus()
-                      })
-                    }}
-                    disabled={loading || !isInitialized}
-                    className="flex items-center justify-center gap-2 px-4 py-2 bg-green-50 hover:bg-green-100 rounded-lg text-green-700 disabled:opacity-50 disabled:cursor-not-allowed"
-                  >
-                    <Play className="w-4 h-4" /> 开启
-                  </button>
-                  <button
-                    onClick={() => {
-                      const deviceId = generateDeviceId(meterOfflineSelect.campus, meterOfflineSelect.building, meterOfflineSelect.floor, meterOfflineSelect.unit)
-                      const locationLabel = `${CAMPUS_OPTIONS.find(c => c.value === meterOfflineSelect.campus)?.label} ${meterOfflineSelect.building}号楼 ${meterOfflineSelect.floor}层 ${meterOfflineSelect.unit}室`
-                      iotApi.stopMeters([deviceId]).then(result => {
-                        showResultMessage(result, `水表 ${locationLabel} 已停止`)
-                        if (result.success) fetchDeviceStatus()
-                      })
-                    }}
-                    disabled={loading}
-                    className="flex items-center justify-center gap-2 px-4 py-2 bg-yellow-50 hover:bg-yellow-100 rounded-lg text-yellow-700 disabled:opacity-50 disabled:cursor-not-allowed"
-                  >
-                    <Square className="w-4 h-4" /> 停止
-                  </button>
-                  <button
-                    onClick={handleOfflineMeters}
-                    disabled={loading || !isInitialized}
-                    className="flex items-center justify-center gap-2 px-4 py-2 bg-gray-50 hover:bg-gray-100 rounded-lg text-gray-700 disabled:opacity-50 disabled:cursor-not-allowed"
-                  >
-                    <PowerOff className="w-4 h-4" /> 下线
-                  </button>
+                  <div className="flex gap-2">
+                    <button
+                      onClick={() => {
+                        if (!isInitialized) { showMessage('error', '请先初始化设备'); return; }
+                        const deviceId = generateDeviceId(meterOfflineSelect.campus, meterOfflineSelect.building, meterOfflineSelect.floor, meterOfflineSelect.unit)
+                        const locationLabel = `${CAMPUS_OPTIONS.find(c => c.value === meterOfflineSelect.campus)?.label} ${meterOfflineSelect.building}号楼 ${meterOfflineSelect.floor}层 ${meterOfflineSelect.unit}室`
+                        iotApi.startMeters([deviceId]).then(result => { showResultMessage(result, `水表 ${locationLabel} 已开启`); if (result.success) fetchDeviceStatus() })
+                      }}
+                      disabled={loading || !isInitialized}
+                      className="flex-1 px-3 py-1.5 text-sm bg-green-50 text-green-700 rounded-lg hover:bg-green-100 disabled:opacity-50"
+                    >
+                      开启
+                    </button>
+                    <button
+                      onClick={() => {
+                        const deviceId = generateDeviceId(meterOfflineSelect.campus, meterOfflineSelect.building, meterOfflineSelect.floor, meterOfflineSelect.unit)
+                        const locationLabel = `${CAMPUS_OPTIONS.find(c => c.value === meterOfflineSelect.campus)?.label} ${meterOfflineSelect.building}号楼 ${meterOfflineSelect.floor}层 ${meterOfflineSelect.unit}室`
+                        iotApi.stopMeters([deviceId]).then(result => { showResultMessage(result, `水表 ${locationLabel} 已停止`); if (result.success) fetchDeviceStatus() })
+                      }}
+                      disabled={loading}
+                      className="flex-1 px-3 py-1.5 text-sm bg-yellow-50 text-yellow-700 rounded-lg hover:bg-yellow-100 disabled:opacity-50"
+                    >
+                      停止
+                    </button>
+                    <button
+                      onClick={handleOfflineMeters}
+                      disabled={loading || !isInitialized}
+                      className="flex-1 px-3 py-1.5 text-sm bg-gray-50 text-gray-700 rounded-lg hover:bg-gray-100 disabled:opacity-50"
+                    >
+                      下线
+                    </button>
+                  </div>
                 </div>
               </div>
-            </div>
+            )}
           </div>
 
-          {/* 传感器控制卡片 */}
-          <div className="bg-white rounded-xl p-6 shadow-sm mb-6">
-            <div className="flex items-center gap-3 mb-4">
+          {/* 传感器控制卡片 - 可展开 */}
+          <div className="bg-white rounded-xl shadow-sm mb-4">
+            <div 
+              className="flex items-center gap-3 p-4 cursor-pointer hover:bg-gray-50"
+              onClick={() => setSensorExpanded(!sensorExpanded)}
+            >
               <div className="p-2 bg-purple-100 rounded-lg">
                 <Activity className="w-5 h-5 text-purple-600" />
               </div>
               <h3 className="text-lg font-semibold text-gray-900">传感器控制</h3>
-              <span className={`ml-auto px-3 py-1 rounded-full text-sm font-medium ${
+              <span className={`px-2 py-0.5 rounded-full text-xs font-medium ${
                 isSensorsRunning ? 'bg-green-100 text-green-700' : 'bg-gray-100 text-gray-500'
               }`}>
                 {isSensorsRunning ? '运行中' : '已停止'}
               </span>
-            </div>
-            
-            {/* 全部操作 */}
-            <div className="mb-4">
-              <p className="text-sm font-medium text-gray-700 mb-3">全部操作</p>
-              <div className="grid grid-cols-3 gap-4">
+              <div className="ml-auto flex items-center gap-2">
                 <button
-                  onClick={() => {
+                  onClick={(e) => {
+                    e.stopPropagation()
                     if (!isInitialized) { showMessage('error', '请先初始化设备'); return; }
                     iotApi.startAllSensors().then(result => {
                       showResultMessage(result, '传感器已开启')
@@ -782,117 +776,102 @@ export default function DigitalTwin() {
                     })
                   }}
                   disabled={loading || !isInitialized || isSensorsRunning}
-                  className="flex flex-col items-center gap-2 p-4 bg-green-50 hover:bg-green-100 rounded-xl transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                  className="px-3 py-1 text-xs bg-green-100 text-green-700 rounded-lg hover:bg-green-200 disabled:opacity-50 disabled:cursor-not-allowed"
                 >
-                  <Play className="w-8 h-8 text-green-600" />
-                  <span className="font-medium text-green-700">开启全部</span>
-                  <span className="text-xs text-green-500">启动数据上报</span>
+                  开启
                 </button>
-
                 <button
-                  onClick={handleStopSensors}
-                  disabled={loading || !isSensorsRunning}
-                  className="flex flex-col items-center gap-2 p-4 bg-yellow-50 hover:bg-yellow-100 rounded-xl transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                  onClick={(e) => {
+                    e.stopPropagation()
+                    handleStopSensors()
+                  }}
+                  disabled={!isSensorsRunning}
+                  className="px-3 py-1 text-xs bg-yellow-100 text-yellow-700 rounded-lg hover:bg-yellow-200 disabled:opacity-50 disabled:cursor-not-allowed"
                 >
-                  <Square className="w-8 h-8 text-yellow-600" />
-                  <span className="font-medium text-yellow-700">停止全部</span>
-                  <span className="text-xs text-yellow-500">停止数据上报</span>
+                  停止
                 </button>
-
                 <button
-                  onClick={handleOfflineSensors}
+                  onClick={(e) => {
+                    e.stopPropagation()
+                    if (!isInitialized) { showMessage('error', '请先初始化设备'); return; }
+                    if (!confirm('确认传感器全部下线？')) return
+                    iotApi.offlineSensors([]).then(result => {
+                      showResultMessage(result, '传感器已全部下线')
+                      if (result.success) fetchDeviceStatus()
+                    })
+                  }}
                   disabled={loading || !isInitialized}
-                  className="flex flex-col items-center gap-2 p-4 bg-gray-50 hover:bg-gray-100 rounded-xl transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                  className="px-3 py-1 text-xs bg-red-100 text-red-700 rounded-lg hover:bg-red-200 disabled:opacity-50 disabled:cursor-not-allowed"
                 >
-                  <PowerOff className="w-8 h-8 text-gray-600" />
-                  <span className="font-medium text-gray-700">下线全部</span>
-                  <span className="text-xs text-gray-500">停止并下线</span>
+                  下线
                 </button>
+                <ChevronDown className={`w-5 h-5 text-gray-400 transition-transform ${sensorExpanded ? 'rotate-180' : ''}`} />
               </div>
             </div>
             
-            {/* 批量操作 */}
-            <div>
-              <p className="text-sm font-medium text-gray-700 mb-3">批量操作</p>
-              <div className="p-4 bg-gray-50 rounded-lg">
-                <div className="grid grid-cols-3 gap-3 mb-4">
-                  <div>
-                    <label className="block text-xs text-gray-500 mb-1">校区</label>
+            {/* 展开内容 */}
+            {sensorExpanded && (
+              <div className="px-4 pb-4 border-t border-gray-100">
+                <div className="pt-3">
+                  <p className="text-sm font-medium text-gray-700 mb-2">批量操作</p>
+                  <div className="grid grid-cols-3 gap-2 mb-3">
                     <select
                       value={sensorOfflineSelect.campus}
                       onChange={(e) => setSensorOfflineSelect({ ...sensorOfflineSelect, campus: parseInt(e.target.value), building: 1, floor: 1 })}
-                      className="w-full px-2 py-2 border border-gray-300 rounded-lg text-sm"
+                      className="px-2 py-1.5 border border-gray-300 rounded-lg text-sm"
                     >
-                      {CAMPUS_OPTIONS.map(c => (
-                        <option key={c.value} value={c.value}>{c.label}</option>
-                      ))}
+                      {CAMPUS_OPTIONS.map(c => (<option key={c.value} value={c.value}>{c.label}</option>))}
                     </select>
-                  </div>
-                  <div>
-                    <label className="block text-xs text-gray-500 mb-1">楼栋</label>
                     <select
                       value={sensorOfflineSelect.building}
                       onChange={(e) => setSensorOfflineSelect({ ...sensorOfflineSelect, building: parseInt(e.target.value), floor: 1 })}
-                      className="w-full px-2 py-2 border border-gray-300 rounded-lg text-sm"
+                      className="px-2 py-1.5 border border-gray-300 rounded-lg text-sm"
                     >
-                      {Array.from({ length: buildingConfig.educationBuildings + buildingConfig.experimentBuildings + buildingConfig.dormitoryBuildings }, (_, i) => i + 1).map(b => (
-                        <option key={b} value={b}>{b}号楼</option>
-                      ))}
+                      {Array.from({ length: buildingConfig.educationBuildings + buildingConfig.experimentBuildings + buildingConfig.dormitoryBuildings }, (_, i) => i + 1).map(b => (<option key={b} value={b}>{b}号楼</option>))}
                     </select>
-                  </div>
-                  <div>
-                    <label className="block text-xs text-gray-500 mb-1">楼层</label>
                     <select
                       value={sensorOfflineSelect.floor}
                       onChange={(e) => setSensorOfflineSelect({ ...sensorOfflineSelect, floor: parseInt(e.target.value) })}
-                      className="w-full px-2 py-2 border border-gray-300 rounded-lg text-sm"
+                      className="px-2 py-1.5 border border-gray-300 rounded-lg text-sm"
                     >
-                      {Array.from({ length: buildingConfig.floors }, (_, i) => i + 1).map(f => (
-                        <option key={f} value={f}>{f}层</option>
-                      ))}
+                      {Array.from({ length: buildingConfig.floors }, (_, i) => i + 1).map(f => (<option key={f} value={f}>{f}层</option>))}
                     </select>
                   </div>
-                </div>
-                <div className="grid grid-cols-3 gap-3">
-                  <button
-                    onClick={() => {
-                      if (!isInitialized) { showMessage('error', '请先初始化设备'); return; }
-                      const deviceId = generateWaterQualitySensorId(sensorOfflineSelect.campus, sensorOfflineSelect.building, sensorOfflineSelect.floor)
-                      const locationLabel = `${CAMPUS_OPTIONS.find(c => c.value === sensorOfflineSelect.campus)?.label} ${sensorOfflineSelect.building}号楼 ${sensorOfflineSelect.floor}层`
-                      iotApi.startSensors([deviceId]).then(result => {
-                        showResultMessage(result, `传感器 ${locationLabel} 已开启`)
-                        if (result.success) fetchDeviceStatus()
-                      })
-                    }}
-                    disabled={loading || !isInitialized}
-                    className="flex items-center justify-center gap-2 px-4 py-2 bg-green-50 hover:bg-green-100 rounded-lg text-green-700 disabled:opacity-50 disabled:cursor-not-allowed"
-                  >
-                    <Play className="w-4 h-4" /> 开启
-                  </button>
-                  <button
-                    onClick={() => {
-                      const deviceId = generateWaterQualitySensorId(sensorOfflineSelect.campus, sensorOfflineSelect.building, sensorOfflineSelect.floor)
-                      const locationLabel = `${CAMPUS_OPTIONS.find(c => c.value === sensorOfflineSelect.campus)?.label} ${sensorOfflineSelect.building}号楼 ${sensorOfflineSelect.floor}层`
-                      iotApi.stopSensors([deviceId]).then(result => {
-                        showResultMessage(result, `传感器 ${locationLabel} 已停止`)
-                        if (result.success) fetchDeviceStatus()
-                      })
-                    }}
-                    disabled={loading}
-                    className="flex items-center justify-center gap-2 px-4 py-2 bg-yellow-50 hover:bg-yellow-100 rounded-lg text-yellow-700 disabled:opacity-50 disabled:cursor-not-allowed"
-                  >
-                    <Square className="w-4 h-4" /> 停止
-                  </button>
-                  <button
-                    onClick={handleOfflineSensors}
-                    disabled={loading || !isInitialized}
-                    className="flex items-center justify-center gap-2 px-4 py-2 bg-gray-50 hover:bg-gray-100 rounded-lg text-gray-700 disabled:opacity-50 disabled:cursor-not-allowed"
-                  >
-                    <PowerOff className="w-4 h-4" /> 下线
-                  </button>
+                  <div className="flex gap-2">
+                    <button
+                      onClick={() => {
+                        if (!isInitialized) { showMessage('error', '请先初始化设备'); return; }
+                        const deviceId = generateWaterQualitySensorId(sensorOfflineSelect.campus, sensorOfflineSelect.building, sensorOfflineSelect.floor)
+                        const locationLabel = `${CAMPUS_OPTIONS.find(c => c.value === sensorOfflineSelect.campus)?.label} ${sensorOfflineSelect.building}号楼 ${sensorOfflineSelect.floor}层`
+                        iotApi.startSensors([deviceId]).then(result => { showResultMessage(result, `传感器 ${locationLabel} 已开启`); if (result.success) fetchDeviceStatus() })
+                      }}
+                      disabled={loading || !isInitialized}
+                      className="flex-1 px-3 py-1.5 text-sm bg-green-50 text-green-700 rounded-lg hover:bg-green-100 disabled:opacity-50"
+                    >
+                      开启
+                    </button>
+                    <button
+                      onClick={() => {
+                        const deviceId = generateWaterQualitySensorId(sensorOfflineSelect.campus, sensorOfflineSelect.building, sensorOfflineSelect.floor)
+                        const locationLabel = `${CAMPUS_OPTIONS.find(c => c.value === sensorOfflineSelect.campus)?.label} ${sensorOfflineSelect.building}号楼 ${sensorOfflineSelect.floor}层`
+                        iotApi.stopSensors([deviceId]).then(result => { showResultMessage(result, `传感器 ${locationLabel} 已停止`); if (result.success) fetchDeviceStatus() })
+                      }}
+                      disabled={loading}
+                      className="flex-1 px-3 py-1.5 text-sm bg-yellow-50 text-yellow-700 rounded-lg hover:bg-yellow-100 disabled:opacity-50"
+                    >
+                      停止
+                    </button>
+                    <button
+                      onClick={handleOfflineSensors}
+                      disabled={loading || !isInitialized}
+                      className="flex-1 px-3 py-1.5 text-sm bg-gray-50 text-gray-700 rounded-lg hover:bg-gray-100 disabled:opacity-50"
+                    >
+                      下线
+                    </button>
+                  </div>
                 </div>
               </div>
-            </div>
+            )}
           </div>
 
           {/* 阀门控制 */}

@@ -2,7 +2,7 @@ import { useNavigate } from 'react-router-dom'
 import { useAuthStore } from '@/store/authStore'
 import { Droplets, LogOut, User, BarChart3, AlertTriangle, Settings, LayoutDashboard, Activity, Map, FileText, HelpCircle, Menu, X, RefreshCw, TrendingUp, TrendingDown, WifiOff, Camera, Eye, EyeOff, Check } from 'lucide-react'
 import { useState, useEffect } from 'react'
-import { iotApi } from '@/api/iot'
+import { iotApi, generateDeviceId } from '@/api/iot'
 import { authApi } from '@/api/auth'
 
 export default function Dashboard() {
@@ -32,9 +32,12 @@ export default function Dashboard() {
   const [yesterdayUsage, setYesterdayUsage] = useState<number>(0)
   const [monthUsage, setMonthUsage] = useState<number>(0)
   const [lastMonthSameDay, setLastMonthSameDay] = useState<number>(0)
+  const [buildingStats, setBuildingStats] = useState<{name: string; flow: number; pressure: number; status: string; onlineCount: number; totalCount: number}[]>([])
+  const [loadingBuildings, setLoadingBuildings] = useState(false)
   const [alertCount, setAlertCount] = useState<number>(0)
   const [deviceCount, setDeviceCount] = useState<number>(0)
   const [offlineDevices, setOfflineDevices] = useState<string[]>([])
+  const [healthyScore, setHealthyScore] = useState<number>(0)
   const [loading, setLoading] = useState<boolean>(true)
   const [loadingToday, setLoadingToday] = useState<boolean>(true)
   const [loadingMonth, setLoadingMonth] = useState<boolean>(true)
@@ -100,6 +103,15 @@ export default function Dashboard() {
       } catch (err) {
         console.error('获取在线设备数量失败:', err)
         setDeviceCount(0)
+      }
+
+      // 获取设备健康评分
+      try {
+        const score = await iotApi.getHealthyScore()
+        setHealthyScore(score)
+      } catch (err) {
+        console.error('获取健康评分失败:', err)
+        setHealthyScore(0)
       }
     }
 
@@ -203,8 +215,82 @@ export default function Dashboard() {
     reader.readAsDataURL(file)
   }
 
+  // 获取楼宇实时数据
+  const fetchBuildingStats = async () => {
+    if (!currentCampus) return
+    setLoadingBuildings(true)
+    try {
+      const buildingTypes = [
+        { name: '宿舍楼', type: 1, buildings: 3 },
+        { name: '教学楼', type: 2, buildings: 2 },
+        { name: '实验楼', type: 3, buildings: 1 }
+      ]
+      
+      const stats: typeof buildingStats = []
+      
+      for (const building of buildingTypes) {
+        try {
+          let totalFlow = 0
+          let totalPressure = 0
+          let totalOnline = 0
+          let totalDevices = 0
+          let validBuildings = 0
+          
+          for (let b = 1; b <= building.buildings; b++) {
+            const deviceIds = [
+              generateDeviceId(currentCampus.schoolId, b, 1, 1),
+              generateDeviceId(currentCampus.schoolId, b, 2, 1),
+              generateDeviceId(currentCampus.schoolId, b, 3, 1),
+            ]
+            
+            const status = await iotApi.getDeviceStatus(deviceIds)
+            const onlineIds = Object.entries(status).filter(([, v]) => v).map(([k]) => k)
+            
+            if (onlineIds.length > 0) {
+              const data = await iotApi.getBatchFlow(onlineIds)
+              const onlineData = data.filter(d => d.status === 'online')
+              if (onlineData.length > 0) {
+                // 流量是总和，水压是平均
+                const buildingFlow = onlineData.reduce((s, d) => s + d.flow, 0)
+                const buildingPressure = onlineData.reduce((s, d) => s + (d.pressure || 0), 0) / onlineData.length
+                totalFlow += buildingFlow
+                totalPressure += buildingPressure
+                validBuildings++
+              }
+              totalOnline += onlineData.length
+            }
+            totalDevices += deviceIds.length
+          }
+          
+          if (validBuildings > 0) {
+            stats.push({
+              name: building.name,
+              flow: totalFlow / building.buildings,
+              pressure: totalPressure / building.buildings,
+              status: '正常',
+              onlineCount: totalOnline,
+              totalCount: totalDevices
+            })
+          } else {
+            stats.push({ name: building.name, flow: 0, pressure: 0, status: '离线', onlineCount: 0, totalCount: totalDevices })
+          }
+        } catch (e) {
+          console.error(`获取${building.name}数据失败:`, e)
+          stats.push({ name: building.name, flow: 0, pressure: 0, status: '离线', onlineCount: 0, totalCount: 9 })
+        }
+      }
+      
+      setBuildingStats(stats)
+    } catch (err) {
+      console.error('获取楼宇数据失败:', err)
+    } finally {
+      setLoadingBuildings(false)
+    }
+  }
+
   useEffect(() => {
     fetchWaterUsageData()
+    fetchBuildingStats()
   }, [selectedCampus])
 
   const menuItems = [
@@ -406,7 +492,7 @@ export default function Dashboard() {
             </button>
           </div>
           
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-6 mb-8">
           {/* 今日用水量 */}
           <div className="bg-white rounded-xl p-6 shadow-sm">
             <div className="flex items-center justify-between mb-4">
@@ -499,6 +585,20 @@ export default function Dashboard() {
               <p className="text-xs text-green-500 mt-1">设备全部在线</p>
             )}
           </div>
+
+          {/* 健康评分 */}
+          <div className="bg-white rounded-xl p-6 shadow-sm">
+            <div className="flex items-center justify-between mb-4">
+              <div className="p-3 bg-emerald-100 rounded-lg">
+                <Activity className="w-6 h-6 text-emerald-600" />
+              </div>
+            </div>
+            <p className="text-sm text-gray-500">设备健康评分</p>
+            <p className="text-2xl font-bold text-gray-900">
+              {loading ? '加载中...' : `${healthyScore.toFixed(1)}`}
+            </p>
+            <p className="text-xs text-gray-400 mt-1">满分: 100</p>
+          </div>
         </div>
 
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
@@ -510,27 +610,31 @@ export default function Dashboard() {
               </button>
             </div>
             <div className="space-y-4">
-              <div className="flex items-center justify-between p-4 bg-gray-50 rounded-lg">
-                <div>
-                  <p className="font-medium text-gray-900">宿舍楼 A 区</p>
-                  <p className="text-sm text-gray-500">水压正常 • 流速 2.5 L/s</p>
+              {loadingBuildings ? (
+                <div className="flex items-center justify-center py-8">
+                  <RefreshCw className="w-6 h-6 text-gray-400 animate-spin" />
                 </div>
-                <span className="px-3 py-1 bg-green-100 text-green-700 text-sm rounded-full">正常</span>
-              </div>
-              <div className="flex items-center justify-between p-4 bg-gray-50 rounded-lg">
-                <div>
-                  <p className="font-medium text-gray-900">教学楼 B 区</p>
-                  <p className="text-sm text-gray-500">水压偏低 • 流速 0.8 L/s</p>
-                </div>
-                <span className="px-3 py-1 bg-yellow-100 text-yellow-700 text-sm rounded-full">预警</span>
-              </div>
-              <div className="flex items-center justify-between p-4 bg-gray-50 rounded-lg">
-                <div>
-                  <p className="font-medium text-gray-900">食堂一楼</p>
-                  <p className="text-sm text-gray-500">水压正常 • 流速 3.2 L/s</p>
-                </div>
-                <span className="px-3 py-1 bg-green-100 text-green-700 text-sm rounded-full">正常</span>
-              </div>
+              ) : buildingStats.length > 0 ? (
+                buildingStats.map((building, idx) => (
+                  <div key={idx} className="flex items-center justify-between p-4 bg-gray-50 rounded-lg">
+                    <div>
+                      <p className="font-medium text-gray-900">{building.name}</p>
+                      <p className="text-sm text-gray-500">
+                        水压 {building.pressure.toFixed(2)} MPa • 流量 {building.flow.toFixed(2)} L/s
+                      </p>
+                    </div>
+                    <span className={`px-3 py-1 text-sm rounded-full ${
+                      building.status === '正常' 
+                        ? 'bg-green-100 text-green-700' 
+                        : 'bg-red-100 text-red-700'
+                    }`}>
+                      {building.status}
+                    </span>
+                  </div>
+                ))
+              ) : (
+                <div className="text-center py-8 text-gray-400">暂无数据</div>
+              )}
             </div>
           </div>
 

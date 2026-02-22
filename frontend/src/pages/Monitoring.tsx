@@ -1,8 +1,8 @@
 import { useState, useEffect, useCallback } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useAuthStore } from '@/store/authStore'
-import { iotApi, generateDeviceId, parseDeviceCode, BuildingInfo, BuildingType, DeviceFlowData, getBuildingConfig, getBuildingType } from '@/api/iot'
-import { Droplets, User, Menu, X, Activity, Building2, Building, Home, RefreshCw, CheckCircle, XCircle, LayoutDashboard } from 'lucide-react'
+import { iotApi, generateDeviceId, generateWaterQualitySensorId, parseDeviceCode, BuildingInfo, BuildingType, DeviceFlowData, WaterQualityData, getBuildingConfig, getBuildingType } from '@/api/iot'
+import { Droplets, User, Menu, X, Activity, Building2, Building, Home, RefreshCw, CheckCircle, XCircle, LayoutDashboard, Waves, FlaskConical } from 'lucide-react'
 
 // 校区映射
 const CAMPUS_MAP: Record<number, { name: string; code: string }> = {
@@ -51,16 +51,26 @@ const generateBuildingDeviceIds = (campusNo: number, buildingNo: number, floorCo
   return deviceIds
 }
 
-// 圆形进度条
-function GaugeMeter({ value, max = 100, size = 180, color = '#22c55e' }: { value: number; max?: number; size?: number; color?: string }) {
+// 圆形进度条 - 流量最大0.6L/s
+// 颜色: 绿色(0-50%) 黄色(50-80%) 红色(80-100%)
+function GaugeMeter({ value, max = 0.6, size = 180, color = '#22c55e' }: { value: number; max?: number; size?: number; color?: string }) {
   const percentage = Math.min(Math.max(value / max, 0), 1)
+  
+  // 根据百分比动态变色
+  let progressColor = color
+  if (color === '#3b82f6' || color === '#22c55e') { // 流量用蓝绿渐变色
+    if (percentage > 0.8) progressColor = '#ef4444'      // 红色-超负荷
+    else if (percentage > 0.5) progressColor = '#f59e0b'  // 黄色-预警
+    else progressColor = '#22c55e'                       // 绿色-正常
+  }
+  
   const radius = (size - 24) / 2
   const circumference = 2 * Math.PI * radius
   return (
     <div className="relative" style={{ width: size, height: size }}>
       <svg width={size} height={size} viewBox={`0 0 ${size} ${size}`}>
         <circle cx={size/2} cy={size/2} r={radius} fill="none" stroke="#e5e7eb" strokeWidth="12" />
-        <circle cx={size/2} cy={size/2} r={radius} fill="none" stroke={color} strokeWidth="12"
+        <circle cx={size/2} cy={size/2} r={radius} fill="none" stroke={progressColor} strokeWidth="12"
           strokeLinecap="round" strokeDasharray={circumference} strokeDashoffset={circumference * (1 - percentage)}
           transform={`rotate(-90 ${size/2} ${size/2})`} className="transition-all duration-500" />
       </svg>
@@ -75,8 +85,10 @@ export default function Monitoring() {
   const [selectedCampus, setSelectedCampus] = useState(2) // 默认龙子湖
   const [selectedBuilding, setSelectedBuilding] = useState<BuildingInfo | null>(null)
   const [deviceData, setDeviceData] = useState<DeviceFlowData[]>([])
+  const [waterQualityData, setWaterQualityData] = useState<WaterQualityData[]>([])
   const [loading, setLoading] = useState(false)
   const [lastUpdate, setLastUpdate] = useState<Date>(new Date())
+  const [selectedDevice, setSelectedDevice] = useState<DeviceFlowData | null>(null)
   
   const campuses = [
     { id: 1, name: '花园校区', code: 'HY' },
@@ -117,8 +129,20 @@ export default function Monitoring() {
         buildingConfig.floors,
         buildingConfig.rooms
       )
-      const data = await iotApi.getBatchFlow(deviceIds)
-      setDeviceData(data)
+      
+      // 生成水质传感器ID列表 (每楼层一个)
+      const waterQualitySensorIds: string[] = []
+      for (let floor = 1; floor <= buildingConfig.floors; floor++) {
+        waterQualitySensorIds.push(generateWaterQualitySensorId(selectedCampus, selectedBuilding.buildingNo, floor))
+      }
+      
+      const [flowData, waterQuality] = await Promise.all([
+        iotApi.getBatchFlow(deviceIds),
+        iotApi.getBatchWaterQuality(waterQualitySensorIds)
+      ])
+      
+      setDeviceData(flowData)
+      setWaterQualityData(waterQuality)
       setLastUpdate(new Date())
     } catch (error) {
       console.error('获取设备数据失败:', error)
@@ -146,11 +170,14 @@ export default function Monitoring() {
   const avgPressure = onlineCount > 0 ? deviceData.filter(d => d.status === 'online').reduce((s, d) => s + (d.pressure || 0), 0) / onlineCount : 0
   const avgTemperature = onlineCount > 0 ? deviceData.filter(d => d.status === 'online').reduce((s, d) => s + (d.temperature || 0), 0) / onlineCount : 0
   
+  // 计算最大流量范围: [0, 所有用水单元 * 0.5]
+  const maxFlowRange = buildingConfig.floors * buildingConfig.rooms * 0.5
+  
   // 按楼层分组统计
   const floorGroups = deviceData.reduce((acc, device) => {
     const info = parseDeviceCode(device.deviceId)
     const floor = info?.floorNo ? parseInt(info.floorNo) : 1
-    if (!acc[floor]) acc[floor] = { devices: [], online: 0, totalFlow: 0, avgPressure: 0, avgTemp: 0 }
+    if (!acc[floor]) acc[floor] = { devices: [], online: 0, totalFlow: 0, avgPressure: 0, avgTemp: 0, waterQuality: null as WaterQualityData | null }
     acc[floor].devices.push(device)
     if (device.status === 'online') {
       acc[floor].online++
@@ -159,7 +186,18 @@ export default function Monitoring() {
       acc[floor].avgTemp += (device.temperature || 0)
     }
     return acc
-  }, {} as Record<number, { devices: typeof deviceData; online: number; totalFlow: number; avgPressure: number; avgTemp: number }>)
+  }, {} as Record<number, { devices: typeof deviceData; online: number; totalFlow: number; avgPressure: number; avgTemp: number; waterQuality: WaterQualityData | null }>)
+  
+  // 将水质数据合并到楼层数据中
+  waterQualityData.forEach(wq => {
+    const info = parseDeviceCode(wq.deviceId)
+    if (info?.floorNo) {
+      const floor = parseInt(info.floorNo)
+      if (floorGroups[floor]) {
+        floorGroups[floor].waterQuality = wq
+      }
+    }
+  })
   
   const floors = Object.entries(floorGroups)
     .map(([floor, data]) => ({
@@ -324,7 +362,7 @@ export default function Monitoring() {
                     </div>
                   </div>
                   <p className="text-sm text-gray-500">总流量</p>
-                  <p className="text-2xl font-bold text-gray-900">{totalFlow.toFixed(1)} <span className="text-sm font-normal text-gray-400">L/s</span></p>
+                  <p className="text-2xl font-bold text-gray-900">{totalFlow.toFixed(2)} <span className="text-sm font-normal text-gray-400">L/s</span></p>
                 </div>
                 <div className="bg-white rounded-xl p-5 shadow-sm hover:shadow-md transition-shadow">
                   <div className="flex items-center gap-3 mb-2">
@@ -360,9 +398,10 @@ export default function Monitoring() {
                 <div className="bg-gradient-to-br from-blue-50 to-indigo-50 rounded-xl p-4 shadow-sm">
                   <div className="flex items-center justify-between mb-2">
                     <span className="text-sm font-medium text-gray-700">总流量监测</span>
-                    <GaugeMeter value={totalFlow} max={Math.max(totalFlow * 1.5, 50)} size={80} color="#3b82f6" />
+                    <GaugeMeter value={totalFlow} max={maxFlowRange} size={80} color="#3b82f6" />
                   </div>
-                  <p className="text-xl font-bold text-blue-600">{totalFlow.toFixed(1)} L/s</p>
+                  <p className="text-xl font-bold text-blue-600">{totalFlow.toFixed(2)} L/s</p>
+                  <p className="text-xs text-gray-400 mt-1">范围: 0 - {maxFlowRange.toFixed(1)} L/s</p>
                 </div>
                 <div className="bg-gradient-to-br from-cyan-50 to-teal-50 rounded-xl p-4 shadow-sm">
                   <div className="flex items-center justify-between mb-2">
@@ -376,7 +415,7 @@ export default function Monitoring() {
                     <span className="text-sm font-medium text-gray-700">平均水温监测</span>
                     <GaugeMeter value={avgTemperature} max={Math.max(avgTemperature * 1.5, 30)} size={80} color="#f97316" />
                   </div>
-                  <p className="text-xl font-bold text-orange-600">{avgTemperature.toFixed(1)} °C</p>
+                  <p className="text-xl font-bold text-orange-600">{avgTemperature.toFixed(2)} °C</p>
                 </div>
               </div>
 
@@ -404,7 +443,7 @@ export default function Monitoring() {
                     {floors.map((floor) => (
                       <div key={floor.floor} className="border border-gray-200 rounded-xl overflow-hidden">
                         {/* 楼层标题 */}
-                        <div className="bg-gradient-to-r from-gray-50 to-gray-100 px-4 py-3 flex items-center justify-between">
+                        <div className="bg-gradient-to-r from-gray-50 to-gray-100 px-4 py-3 flex items-center justify-between flex-wrap gap-2">
                           <div className="flex items-center gap-3">
                             <span className="w-8 h-8 bg-primary-100 text-primary-700 rounded-lg flex items-center justify-center font-bold">
                               {floor.floor}F
@@ -413,16 +452,32 @@ export default function Monitoring() {
                               {floor.online}/{floor.devices.length} 在线
                             </span>
                           </div>
-                          <div className="flex items-center gap-6 text-sm">
+                          <div className="flex items-center gap-6 text-sm flex-wrap">
                             <span className="text-blue-600">
-                              <span className="font-semibold">{floor.avgFlow.toFixed(1)}</span> L/s
+                              <span className="font-semibold">{floor.avgFlow.toFixed(2)}</span> L/s
                             </span>
                             <span className="text-cyan-600">
                               <span className="font-semibold">{floor.avgPressure.toFixed(2)}</span> MPa
                             </span>
                             <span className="text-orange-600">
-                              <span className="font-semibold">{floor.avgTemp.toFixed(1)}</span> °C
+                              <span className="font-semibold">{floor.avgTemp.toFixed(2)}</span> °C
                             </span>
+                            {/* 水质传感器数据 */}
+                            {floor.waterQuality && floor.waterQuality.status === 'online' && (
+                              <>
+                                <span className="text-emerald-600" title="浊度 NTU">
+                                  <Waves className="inline w-3.5 h-3.5 mr-0.5" />
+                                  <span className="font-semibold">{floor.waterQuality.turbidity.toFixed(2)}</span> NTU
+                                </span>
+                                <span className="text-purple-600" title="pH值">
+                                  <FlaskConical className="inline w-3.5 h-3.5 mr-0.5" />
+                                  <span className="font-semibold">{floor.waterQuality.ph.toFixed(2)}</span> pH
+                                </span>
+                                <span className="text-teal-600" title="含氯量 mg/L">
+                                  <span className="font-semibold">{floor.waterQuality.chlorine.toFixed(2)}</span> mg/L
+                                </span>
+                              </>
+                            )}
                           </div>
                         </div>
                         {/* 楼层内设备 */}
@@ -430,10 +485,11 @@ export default function Monitoring() {
                           {floor.devices.map((device) => (
                             <div
                               key={device.deviceId}
-                              className={`p-3 rounded-lg border transition-all ${
+                              onClick={() => device.status === 'online' && setSelectedDevice(device)}
+                              className={`p-3 rounded-lg border transition-all cursor-pointer ${
                                 device.status === 'online' 
-                                  ? 'bg-white border-gray-100 hover:border-blue-200' 
-                                  : 'bg-gray-50 border-gray-100 opacity-60'
+                                  ? 'bg-white border-gray-100 hover:border-blue-300 hover:shadow-md' 
+                                  : 'bg-gray-50 border-gray-100 opacity-60 cursor-default'
                               }`}
                             >
                               <div className="text-center">
@@ -443,11 +499,11 @@ export default function Monitoring() {
                                 <p className="text-[10px] text-gray-400 mb-1">单元</p>
                                 {device.status === 'online' ? (
                                   <>
-                                    <p className="text-lg font-bold text-blue-600">{device.flow.toFixed(1)}</p>
+                                    <p className="text-lg font-bold text-blue-600">{device.flow.toFixed(2)}</p>
                                     <p className="text-[10px] text-gray-400">L/s</p>
                                     <div className="mt-1 flex justify-center gap-1 text-[10px]">
-                                      <span className="text-cyan-500">{device.pressure?.toFixed(1) || '--'} MPa</span>
-                                      <span className="text-orange-500">{device.temperature?.toFixed(0) || '--'}°C</span>
+                                      <span className="text-cyan-500">{device.pressure?.toFixed(2) || '--'} MPa</span>
+                                      <span className="text-orange-500">{device.temperature?.toFixed(2) || '--'}°C</span>
                                     </div>
                                   </>
                                 ) : (
@@ -460,6 +516,39 @@ export default function Monitoring() {
                             </div>
                           ))}
                         </div>
+                        {/* 水质传感器详情 */}
+                        {floor.waterQuality && (
+                          <div className="border-t border-gray-100 p-3 bg-gradient-to-r from-emerald-50 to-cyan-50">
+                            <div className="flex items-center gap-2 mb-2">
+                              <Waves className="w-4 h-4 text-emerald-600" />
+                              <span className="text-sm font-medium text-gray-700">水质传感器</span>
+                              <span className={`w-2 h-2 rounded-full ${floor.waterQuality.status === 'online' ? 'bg-green-500' : 'bg-red-500'}`}></span>
+                            </div>
+                            {floor.waterQuality.status === 'online' ? (
+                              <div className="grid grid-cols-3 gap-2 text-center text-sm">
+                                <div className="bg-white rounded-lg p-2 shadow-sm">
+                                  <p className="text-[10px] text-gray-400">浊度</p>
+                                  <p className="font-semibold text-emerald-600">{floor.waterQuality.turbidity.toFixed(2)}</p>
+                                  <p className="text-[9px] text-gray-400">NTU</p>
+                                </div>
+                                <div className="bg-white rounded-lg p-2 shadow-sm">
+                                  <p className="text-[10px] text-gray-400">pH值</p>
+                                  <p className="font-semibold text-purple-600">{floor.waterQuality.ph.toFixed(2)}</p>
+                                </div>
+                                <div className="bg-white rounded-lg p-2 shadow-sm">
+                                  <p className="text-[10px] text-gray-400">含氯量</p>
+                                  <p className="font-semibold text-teal-600">{floor.waterQuality.chlorine.toFixed(2)}</p>
+                                  <p className="text-[9px] text-gray-400">mg/L</p>
+                                </div>
+                              </div>
+                            ) : (
+                              <div className="flex items-center justify-center gap-2 text-red-400 text-sm py-2">
+                                <XCircle className="w-4 h-4" />
+                                <span>水质传感器离线</span>
+                              </div>
+                            )}
+                          </div>
+                        )}
                       </div>
                     ))}
                   </div>
@@ -468,6 +557,55 @@ export default function Monitoring() {
             </div>
           )}
         </main>
+
+        {/* 设备详情弹窗 */}
+        {selectedDevice && (
+          <div 
+            className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 animate-fade-in" 
+            onClick={() => setSelectedDevice(null)}
+          >
+            <div 
+              className="bg-white rounded-2xl p-8 w-[400px] max-w-[90vw] shadow-2xl animate-scale-in" 
+              onClick={e => e.stopPropagation()}
+            >
+              <div className="flex items-center justify-between mb-6">
+                <h3 className="text-xl font-bold text-gray-900">
+                  {selectedBuilding?.name} - {parseDeviceCode(selectedDevice.deviceId)?.unitNo}单元
+                </h3>
+                <button onClick={() => setSelectedDevice(null)} className="p-1 hover:bg-gray-100 rounded-lg">
+                  <X className="w-6 h-6 text-gray-500" />
+                </button>
+              </div>
+              
+              {/* 三个环形仪表盘 */}
+              <div className="grid grid-cols-3 gap-6 mb-6">
+                {/* 流量环 */}
+                <div className="flex flex-col items-center">
+                  <GaugeMeter value={selectedDevice.flow} max={maxFlowRange} size={100} color="#3b82f6" />
+                  <p className="mt-2 text-sm font-medium text-blue-600">{selectedDevice.flow.toFixed(2)} L/s</p>
+                  <p className="text-xs text-gray-400">流量</p>
+                </div>
+                {/* 水压环 */}
+                <div className="flex flex-col items-center">
+                  <GaugeMeter value={selectedDevice.pressure || 0} max={Math.max((selectedDevice.pressure || 0) * 1.5, 1)} size={100} color="#06b6d4" />
+                  <p className="mt-2 text-sm font-medium text-cyan-600">{selectedDevice.pressure?.toFixed(2) || '--'} MPa</p>
+                  <p className="text-xs text-gray-400">水压</p>
+                </div>
+                {/* 水温环 */}
+                <div className="flex flex-col items-center">
+                  <GaugeMeter value={selectedDevice.temperature || 0} max={Math.max((selectedDevice.temperature || 0) * 1.5, 30)} size={100} color="#f97316" />
+                  <p className="mt-2 text-sm font-medium text-orange-600">{selectedDevice.temperature?.toFixed(2) || '--'} °C</p>
+                  <p className="text-xs text-gray-400">水温</p>
+                </div>
+              </div>
+
+              <div className="flex items-center justify-center gap-2">
+                <span className={`w-2 h-2 rounded-full ${selectedDevice.status === 'online' ? 'bg-green-500' : 'bg-red-500'}`}></span>
+                <span className="text-sm text-gray-600">{selectedDevice.status === 'online' ? '在线' : '离线'}</span>
+              </div>
+            </div>
+          </div>
+        )}
       </div>
     </div>
   )

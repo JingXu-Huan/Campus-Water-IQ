@@ -22,7 +22,6 @@ import org.springframework.beans.factory.ObjectProvider;
 import com.ncwu.iotdevice.service.VirtualMeterDeviceService;
 import jakarta.annotation.PostConstruct;
 import jakarta.annotation.PreDestroy;
-import lombok.Getter;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.dubbo.config.annotation.DubboService;
@@ -190,27 +189,24 @@ public class VirtualMeterDeviceServiceImpl extends ServiceImpl<DeviceMapper, Vir
         }
 
         // 从Redis获取所有水表设备ID
-        Set<String> ids = redisTemplate.opsForSet().members("device:meter");
+        Set<String> readiedIds = redisTemplate.opsForSet().members("device:meter");
 
         // 检查模拟器状态：如果所有设备都已运行，返回错误
-        if (ids != null && runningDevices.size() == ids.size()) {
+        if (readiedIds != null && runningDevices.size() == readiedIds.size()) {
             log.info("所有模拟设备已全部在运行中");
             return Result.fail(ErrorCode.DEVICE_DEVICE_RUNNING_NOW_ERROR.code(),
                     ErrorCode.DEVICE_DEVICE_RUNNING_NOW_ERROR.message());
         }
-
+        int alreadyRunning = runningDevices.size();
         // 将设备ID添加到运行集合
-        if (ids != null) {
-            runningDevices.addAll(ids);
+        if (readiedIds != null) {
+            runningDevices.addAll(readiedIds);
         }
 
-        if (ids != null && !ids.isEmpty()) {
+        if (readiedIds != null && !readiedIds.isEmpty()) {
             // 异步更新数据库：将未运行的设备状态设置为运行中
-
-            this.lambdaUpdate().in(VirtualDevice::getDeviceCode, ids)
+            this.lambdaUpdate().in(VirtualDevice::getDeviceCode, readiedIds)
                     .set(VirtualDevice::getIsRunning, true).update();
-
-
             // 使用Lua脚本批量更新Redis在线设备映射，提高性能
             String hashKey = "OnLineMap";
             redisTemplate.execute(Lua_script, List.of(hashKey), "-1");
@@ -218,7 +214,7 @@ public class VirtualMeterDeviceServiceImpl extends ServiceImpl<DeviceMapper, Vir
             // 为每个设备启动独立的数据上报和心跳任务
             runningDevices.forEach(this::scheduleNextReport);
             runningDevices.forEach(this::startHeartbeat);
-            log.info("成功开启 {} 台设备的模拟数据流", ids.size());
+            log.info("成功开启 {} 台设备的模拟数据流", readiedIds.size());
 
             // 设置设备可检查状态标志
             redisTemplate.opsForValue().set("MeterChecked", "1");
@@ -227,7 +223,7 @@ public class VirtualMeterDeviceServiceImpl extends ServiceImpl<DeviceMapper, Vir
             cache.invalidateAll();  // 清空本地缓存
             redisScanDel(deviceStatusPrefix + "*", 100, redisTemplate);  // 删除Redis设备状态缓存
 
-            return Result.ok("成功开启" + ids.size() + "台设备");
+            return Result.ok("成功开启" + (readiedIds.size() - alreadyRunning) + "台设备");
         }
 
         return Result.fail(UNKNOWN_START_ALL_DEVICE, ErrorCode.UNKNOWN.code(), ErrorCode.UNKNOWN.message());
@@ -521,7 +517,7 @@ public class VirtualMeterDeviceServiceImpl extends ServiceImpl<DeviceMapper, Vir
     @Override
     public Result<String> changeMode(String mode) {
         // 验证模式参数的有效性
-        if (mode.equals("burstPipe") || mode.equals("leaking") || mode.equals("normal")||mode.equals("shows")) {
+        if (mode.equals("burstPipe") || mode.equals("leaking") || mode.equals("normal") || mode.equals("shows")) {
             // 将模式存储到Redis中，供所有设备使用
             redisTemplate.opsForValue().set("mode", mode);
             return Result.ok(SuccessCode.METER_MODE_CHANGE_SUCCESS.getCode(),
@@ -1107,11 +1103,6 @@ public class VirtualMeterDeviceServiceImpl extends ServiceImpl<DeviceMapper, Vir
         //异步写入数据库
         pool.submit(() -> proxy.saveBatch(meterList, 2000));
         pool.submit(() -> proxy.saveBatch(waterList, 2000));
-//        pool.shutdown();
-//        boolean terminated = pool.awaitTermination(1, TimeUnit.MINUTES);
-//        if (!terminated) {
-//            log.warn("线程池未在指定时间内完成关闭，可能存在未完成的任务");
-//        }
         this.isInit = true;
         waterQualityDeviceService.setInit(true);
         log.info("设备注册完成：校区 3 楼宇 {} 层数 {} 房间 {}", buildings, floors, rooms);
@@ -1146,6 +1137,7 @@ public class VirtualMeterDeviceServiceImpl extends ServiceImpl<DeviceMapper, Vir
             virtualDeviceList.add(virtualDevice);
         });
     }
+
     /**
      * 设备上线后置处理器
      */
@@ -1172,6 +1164,7 @@ public class VirtualMeterDeviceServiceImpl extends ServiceImpl<DeviceMapper, Vir
         redisTemplate.opsForHash()
                 .put("OnLineMap", deviceCode, String.valueOf(timestamp));
     }
+
     public void madeSomeLocalCacheInvalidated(List<String> ids) {
         ids.forEach(cache::invalidate);
     }

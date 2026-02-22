@@ -114,6 +114,12 @@ export const generateDeviceId = (campusNo: number, buildingNo: number, floorNo: 
   return `1${campusNo}${String(buildingNo).padStart(2, '0')}${String(floorNo).padStart(2, '0')}${String(unitNo).padStart(3, '0')}`
 }
 
+// 生成水质传感器设备ID (deviceType = 2)
+// 格式: deviceType(2) + campus(1) + building(2) + floor(2) + 001 = 9位
+export const generateWaterQualitySensorId = (campusNo: number, buildingNo: number, floorNo: number): string => {
+  return `2${campusNo}${String(buildingNo).padStart(2, '0')}${String(floorNo).padStart(2, '0')}001`
+}
+
 // 楼宇类型
 export type BuildingType = 'education' | 'experiment' | 'dormitory'
 
@@ -133,6 +139,16 @@ export interface DeviceFlowData {
   pressure?: number
   temperature?: number
   timestamp?: string
+  status: 'online' | 'offline'
+}
+
+// 水质传感器数据
+export interface WaterQualityData {
+  deviceId: string
+  turbidity: number      // 浊度 NTU
+  ph: number           // pH值
+  chlorine: number     // 含氯量 mg/L
+  temperature: number  // 温度 °C
   status: 'online' | 'offline'
 }
 
@@ -378,6 +394,71 @@ export const iotApi = {
     }
   },
 
+  // 批量获取水质传感器数据
+  getBatchWaterQuality: async (sensorIds: string[]): Promise<WaterQualityData[]> => {
+    try {
+      // 获取设备状态
+      const statusMap = await iotApi.getDeviceStatus(sensorIds)
+      
+      const results = await Promise.allSettled(
+        sensorIds.map(async (deviceId) => {
+          const isOnline = statusMap[deviceId] === true
+          try {
+            const [turbidity, ph, chlorine, temperature] = await Promise.all([
+              iotDataApi.get<number>('/Data/getTurbidity', {
+                params: { deviceId }
+              }).catch(() => ({ data: 0 })),
+              iotDataApi.get<number>('/Data/getPh', {
+                params: { deviceId }
+              }).catch(() => ({ data: 0 })),
+              iotDataApi.get<number>('/Data/getChlorine', {
+                params: { deviceId }
+              }).catch(() => ({ data: 0 })),
+              iotDataApi.get<number>('/Data/getTemNow', {
+                params: { deviceId }
+              }).catch(() => ({ data: 0 }))
+            ])
+            return {
+              deviceId,
+              turbidity: turbidity?.data ?? turbidity ?? 0,
+              ph: ph?.data ?? ph ?? 0,
+              chlorine: chlorine?.data ?? chlorine ?? 0,
+              temperature: temperature?.data ?? temperature ?? 0,
+              status: isOnline ? 'online' as const : 'offline' as const
+            }
+          } catch {
+            return {
+              deviceId,
+              turbidity: 0,
+              ph: 0,
+              chlorine: 0,
+              temperature: 0,
+              status: 'offline' as const
+            }
+          }
+        })
+      )
+      return results.map((r, i) => r.status === 'fulfilled' ? r.value : { 
+        deviceId: sensorIds[i], 
+        turbidity: 0, 
+        ph: 0, 
+        chlorine: 0, 
+        temperature: 0,
+        status: 'offline' as const 
+      })
+    } catch (error) {
+      console.error('批量获取水质数据失败:', error)
+      return sensorIds.map(id => ({ 
+        deviceId: id, 
+        turbidity: 0, 
+        ph: 0, 
+        chlorine: 0, 
+        temperature: 0,
+        status: 'offline' as const 
+      }))
+    }
+  },
+
   // 获取某设备的环比增长率
   getAnnulus: async (deviceId: string): Promise<number> => {
     try {
@@ -402,7 +483,18 @@ export const iotApi = {
       console.error('获取在线设备数量失败:', error)
       return 0
     }
+  },
+
+  // 获取设备健康评分
+  getHealthyScore: async (): Promise<number> => {
+    try {
+      const res = await iotDataApi.get<number>('/Data/healthyScoreOfDevices')
+      // 处理响应可能是 { data: number } 或直接 number
+      const value = res?.data ?? res ?? 0
+      return typeof value === 'number' ? value : Number(value) || 0
+    } catch (error) {
+      console.error('获取健康评分失败:', error)
+      return 0
+    }
   }
 }
-
-export default iotApi

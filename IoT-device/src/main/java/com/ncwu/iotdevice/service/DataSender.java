@@ -86,7 +86,8 @@ public class DataSender {
                 log.warn("检测到重复数据，跳过上报{}", deviceId);
                 return;
             }
-            double increment = keep3(keep3(dataBo.getFlow() * (deviceCurrentTime - preTime)) / 1000.0);
+            double increment = keep3(dataBo.getFlow() * (deviceCurrentTime - preTime) / 1000.0);
+
             Double currentTotal = redisTemplate.opsForHash().increment("meter:total_usage", deviceId, increment);
             dataBo.setTotalUsage(keep3(currentTotal));
         }

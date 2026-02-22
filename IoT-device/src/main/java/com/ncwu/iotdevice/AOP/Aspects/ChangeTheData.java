@@ -76,7 +76,7 @@ public class ChangeTheData {
      */
     private MeterDataBo preShowsProcessor(ProceedingJoinPoint pjp) {
         MeterDataBo meterDataBo = getMeterDataBo(pjp);
-        meterDataBo.setFlow(keep3(0.17 + ThreadLocalRandom.current().nextDouble(0.7)));
+        meterDataBo.setFlow(keep3(0.15 + ThreadLocalRandom.current().nextDouble(0.07)));
         return meterDataBo;
     }
 

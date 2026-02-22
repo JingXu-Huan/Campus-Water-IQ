@@ -188,7 +188,6 @@ public class IoTDataServiceImpl extends ServiceImpl<IoTDeviceDataMapper, IotDevi
                 """, startTime, endTime, school);
 
         Double usage;
-
         usage = influxDBClient.getQueryApi().query(fluxQuery)
                 .stream()
                 .flatMap(table -> table.getRecords().stream())

@@ -1,6 +1,6 @@
 import { useNavigate } from 'react-router-dom'
 import { useAuthStore } from '@/store/authStore'
-import { Droplets, LogOut, User, BarChart3, AlertTriangle, Settings, LayoutDashboard, Activity, Map, FileText, HelpCircle, Menu, X, RefreshCw, TrendingUp, TrendingDown, WifiOff, Camera, Eye, EyeOff, Check } from 'lucide-react'
+import { Droplets, LogOut, User, BarChart3, AlertTriangle, Settings, LayoutDashboard, Activity, Map, FileText, HelpCircle, Menu, X, RefreshCw, TrendingUp, TrendingDown, WifiOff, Camera, Eye, EyeOff, Check, Wrench } from 'lucide-react'
 import { useState, useEffect } from 'react'
 import { iotApi, generateDeviceId } from '@/api/iot'
 import { authApi } from '@/api/auth'
@@ -217,7 +217,13 @@ export default function Dashboard() {
     setProfileLoading(true)
     setProfileMessage(null)
     try {
-      await authApi.uploadAvatar(file, uid)
+      const uidStr = uid || ''
+      await authApi.uploadAvatar(file, uidStr)
+      // 获取新头像地址
+      const res = await authApi.getAvatar(uidStr) as any
+      if (res?.data) {
+        updateProfile(undefined, res.data)
+      }
       setProfileMessage({ type: 'success', text: '头像更新成功' })
     } catch (error: any) {
       setProfileMessage({ type: 'error', text: error.message || '更新失败' })
@@ -308,6 +314,7 @@ export default function Dashboard() {
     { id: 'dashboard', label: '仪表盘', icon: LayoutDashboard, path: '/dashboard' },
     { id: 'monitoring', label: '实时监测', icon: Activity, path: '/monitoring' },
     { id: 'digital-twin', label: '数字孪生', icon: Map, path: '/digital-twin' },
+    { id: 'repair', label: '报修管理', icon: Wrench, path: '/repair' },
     { id: 'reports', label: '数据报表', icon: FileText, path: '' },
     { id: 'settings', label: '系统设置', icon: Settings, path: '' },
     { id: 'help', label: '帮助中心', icon: HelpCircle, path: '' },

@@ -83,7 +83,7 @@ public class EmailCodeLoginStrategy implements LoginStrategy, CodeSender {
         if (userInfo != null) {
             try {
                 UserInfo info = objectMapper.readValue(userInfo, UserInfo.class);
-                return check(info.getStatus(), email, code, info.getUid(), info.getNickName(), info.getUserType());
+                return check(info.getStatus(), email, code, info.getUid(), info.getNickName(), info.getUserType(), info.getAvatar());
             } catch (JsonProcessingException e) {
                 throw new DeserializationFailedException("反序列化失败");
             }
@@ -92,7 +92,7 @@ public class EmailCodeLoginStrategy implements LoginStrategy, CodeSender {
             User user = userMapper.selectOne(new LambdaQueryWrapper<User>()
                     .eq(User::getEmail, email)
                     .eq(User::getGithubId, null)
-                    .select(User::getUid, User::getNickName, User::getUserType, User::getStatus)
+                    .select(User::getUid, User::getNickName, User::getUserType, User::getStatus, User::getAvatar)
             );
             if (user == null) {
                 return new AuthResult(false);
@@ -102,7 +102,8 @@ public class EmailCodeLoginStrategy implements LoginStrategy, CodeSender {
                     user.getNickName(),
                     user.getUid(),
                     user.getStatus(),
-                    null
+                    null,
+                    user.getAvatar()
             );
             String jsonInfo;
             try {
@@ -118,11 +119,12 @@ public class EmailCodeLoginStrategy implements LoginStrategy, CodeSender {
             String nickName = user.getNickName();
             String uid = user.getUid();
             Integer status = user.getStatus();
-            return check(status, email, code, uid, nickName, userType);
+            String avatar = user.getAvatar();
+            return check(status, email, code, uid, nickName, userType,avatar);
         }
     }
 
-    private AuthResult check(Integer status, String email, String code, String uid, String nickName, Integer userType) {
+    private AuthResult check(Integer status, String email, String code, String uid, String nickName, Integer userType, String avatar) {
         if (status != 1) {
             return new AuthResult(false);
         }
@@ -132,7 +134,7 @@ public class EmailCodeLoginStrategy implements LoginStrategy, CodeSender {
         }
         if (code.equals(validCode)) {
             String token = tokenHelper.genToken(uid, nickName, userType);
-            return new AuthResult(true, uid, token,nickName);
+            return new AuthResult(true, uid, token, nickName,avatar);
         } else {
             return new AuthResult(false);
         }

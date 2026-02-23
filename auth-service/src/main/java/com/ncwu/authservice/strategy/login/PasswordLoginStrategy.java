@@ -58,7 +58,7 @@ public class PasswordLoginStrategy implements LoginStrategy {
             return new AuthResult(false);
         }
         //查询缓存
-        String jsonInfo = redisTemplate.opsForValue().get("UserInfo:" + password);
+        String jsonInfo = redisTemplate.opsForValue().get("UserInfo:" + uid);
         UserInfo userInfo;
         if (jsonInfo != null) {
             try {
@@ -68,17 +68,17 @@ public class PasswordLoginStrategy implements LoginStrategy {
             }
             if (userInfo != null) {
                 return getAuthResult(userInfo.getNickName(), userInfo.getPassword(),
-                        userInfo.getUserType(), userInfo.getStatus(), password, uid);
+                        userInfo.getUserType(), userInfo.getStatus(), password, uid, userInfo.getAvatar());
             }
         } else {
             User user = userMapper.selectOne(new LambdaQueryWrapper<User>()
                     .eq(User::getUid, uid)
-                    .select(User::getPassword, User::getStatus, User::getUserType, User::getNickName));
+                    .select(User::getPassword, User::getStatus, User::getUserType, User::getNickName, User::getAvatar));
             if (user == null) {
                 return new AuthResult(false);
             } else {
                 try {
-                    redisTemplate.opsForValue().set("UserInfo:" + password, objectMapper.writeValueAsString(user)
+                    redisTemplate.opsForValue().set("UserInfo:" + uid, objectMapper.writeValueAsString(user)
                             , 300 + ThreadLocalRandom.current().nextInt(60), TimeUnit.SECONDS);
                 } catch (JsonProcessingException e) {
                     throw new DeserializationFailedException("序列化异常");
@@ -88,13 +88,14 @@ public class PasswordLoginStrategy implements LoginStrategy {
             Integer userType = user.getUserType();
             Integer status = user.getStatus();
             String validPwd = user.getPassword();
-            return getAuthResult(nickName, validPwd, userType, status, password, uid);
+            String avatar = user.getAvatar();
+            return getAuthResult(nickName, validPwd, userType, status, password, uid, avatar);
         }
         return new AuthResult(false);
     }
 
     private @NonNull AuthResult getAuthResult(String nickName, String validPwd,
-                                              Integer userType, Integer status, String password, String uid) {
+                                              Integer userType, Integer status, String password, String uid, String avatar) {
         if (status != 1) {
             //账号不正常
             return new AuthResult(false);
@@ -103,6 +104,6 @@ public class PasswordLoginStrategy implements LoginStrategy {
             return new AuthResult(false);
         }
         String token = tokenHelper.genToken(uid, nickName, userType);
-        return new AuthResult(true, uid, token,nickName);
+        return new AuthResult(true, uid, token, nickName, avatar);
     }
 }

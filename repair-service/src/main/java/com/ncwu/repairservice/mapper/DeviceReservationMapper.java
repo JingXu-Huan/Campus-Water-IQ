@@ -2,6 +2,7 @@ package com.ncwu.repairservice.mapper;
 
 import com.ncwu.repairservice.entity.po.DeviceReservation;
 import com.baomidou.mybatisplus.core.mapper.BaseMapper;
+import org.apache.ibatis.annotations.Select;
 
 /**
  * <p>
@@ -13,4 +14,6 @@ import com.baomidou.mybatisplus.core.mapper.BaseMapper;
  */
 public interface DeviceReservationMapper extends BaseMapper<DeviceReservation> {
 
+    @Select("select count(*) from device_reservation where status != 'DONE' or status != 'CANCELLED'")
+    Long countUnClosed();
 }

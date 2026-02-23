@@ -71,6 +71,7 @@ export interface AuthResult {
   uid?: string
   token?: string
   nickName?: string
+  avatarURL?: string
 }
 
 export interface SignUpResult {
@@ -145,6 +146,9 @@ export const authApi = {
       },
     })
   },
+  
+  // 获取头像地址
+  getAvatar: (uid: string) => api.get<string>('/user/getAvatat', { params: { uid } }),
 }
 
 export default api

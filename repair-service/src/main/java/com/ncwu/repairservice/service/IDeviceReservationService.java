@@ -34,4 +34,6 @@ public interface IDeviceReservationService extends IService<DeviceReservation> {
     Result<Boolean> changeStatus(String status, String deviceReservationId);
 
     Result<List<UserReportVO>> getDeviceReportByUid(String uid, int pageNum, int pageSize);
+
+    Result<Long> getAllUnClosedNums();
 }

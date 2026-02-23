@@ -29,6 +29,10 @@ spring:
           predicates:
           # 按需替换，添加即可
             - Path=/warn/**
+        - id: repair
+          uri: lb://repair-service
+          predicates:
+            - Path=/operations/**
         - id: auth
           uri: lb://Auth-service
           predicates:
@@ -53,6 +57,8 @@ gateway:
       - /signup
       - /signup/send-code
       - /user/avatar
+      - /user/getAvatat
+      - /operations/**
       - /actuator/**
       - /health
       - /favicon.ico

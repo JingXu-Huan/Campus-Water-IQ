@@ -108,7 +108,7 @@ public class WeChatLoginStrategy implements LoginStrategy {
         // 查询数据库
         User user = userMapper.selectOne(new LambdaQueryWrapper<User>()
                 .eq(User::getWechatOpenId, openId)
-                .select(User::getUid, User::getNickName, User::getUserType, User::getStatus));
+                .select(User::getUid, User::getNickName, User::getUserType, User::getStatus, User::getAvatar));
         if (user != null) {
             // 缓存用户信息
             UserInfo info = new UserInfo(
@@ -116,7 +116,8 @@ public class WeChatLoginStrategy implements LoginStrategy {
                     user.getNickName(),
                     user.getUid(),
                     user.getStatus(),
-                    null
+                    null,
+                    user.getAvatar()
             );
             try {
                 String jsonInfo = objectMapper.writeValueAsString(info);
@@ -160,7 +161,7 @@ public class WeChatLoginStrategy implements LoginStrategy {
             String uid = newUser.getUid();
             log.info("WeChat用户 {} 创建成功，UID: {}", nickname, uid);
             String token = tokenHelper.genToken(uid, nickname, newUser.getUserType());
-            return new AuthResult(true, uid, token,nickname);
+            return new AuthResult(true, uid, token,nickname,"");
         } catch (Exception e) {
             log.error("创建WeChat用户时发生异常", e);
             return new AuthResult(false);
@@ -193,6 +194,6 @@ public class WeChatLoginStrategy implements LoginStrategy {
         String nickName = user.getNickName();
         String token = tokenHelper.genToken(uid, nickName, user.getUserType());
         log.info("WeChat用户 {} 登录成功", uid);
-        return new AuthResult(true, uid, token,nickName);
+        return new AuthResult(true, uid, token,nickName,user.getAvatar());
     }
 }

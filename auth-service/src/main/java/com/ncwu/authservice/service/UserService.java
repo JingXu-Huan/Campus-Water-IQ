@@ -22,4 +22,6 @@ public interface UserService extends IService<User> {
     SignUpResult signUp(SignUpRequest request);
 
     Result<Boolean> uploadAvatar(MultipartFile file, String uid);
+
+    Result<String> getAvatar(String uid);
 }

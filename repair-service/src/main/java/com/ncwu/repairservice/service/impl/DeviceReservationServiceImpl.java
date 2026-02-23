@@ -45,6 +45,7 @@ import static com.ncwu.common.utils.Utils.getExecutorPools;
 public class DeviceReservationServiceImpl extends ServiceImpl<DeviceReservationMapper, DeviceReservation> implements IDeviceReservationService {
 
     private final RedissonClient redissonClient;
+    private final DeviceReservationMapper deviceReservationMapper;
     private final StringRedisTemplate redisTemplate;
     private final DeviceUserMapper deviceUserMapper;
     private ExecutorService pool;
@@ -218,6 +219,12 @@ public class DeviceReservationServiceImpl extends ServiceImpl<DeviceReservationM
                 .stream().map(DeviceUser::getDeviceCode).collect(Collectors.toSet());
         //分页查询这些设备的报修记录
         return listByDeviceCode(ids, pageNum, pageSize);
+    }
+
+    @Override
+    public Result<Long> getAllUnClosedNums() {
+        Long res = deviceReservationMapper.countUnClosed();
+        return Result.ok(res);
     }
 
     private UserReportVO toVO(DeviceReservation deviceReservation) {

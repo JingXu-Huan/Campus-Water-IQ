@@ -19,6 +19,7 @@ import com.ncwu.authservice.service.UserService;
 import com.ncwu.common.domain.vo.Result;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
 
@@ -36,6 +37,7 @@ import java.util.UUID;
 @RequiredArgsConstructor
 public class UserServiceImpl extends ServiceImpl<UserMapper, User> implements UserService {
 
+    private final StringRedisTemplate redisTemplate;
     private final LoginStrategyFactory loginStrategyFactory;
     private final SignUpStrategyFactory signUpStrategyFactory;
     private final OSS OSSClient;
@@ -66,6 +68,8 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User> implements Us
                 String url = "https://" + "jingxu" + "." + "oss-cn-beijing.aliyuncs.com" + "/" + fileName;
                 // 保存到数据库
                 boolean update = this.lambdaUpdate().eq(User::getUid, uid).set(User::getAvatar, url).update();
+                //清理缓存
+                redisTemplate.delete("UserInfo:" + uid);
                 if (update) {
                     return Result.ok(true);
                 }
@@ -84,5 +88,11 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User> implements Us
             }
         }
         return Result.fail(false);
+    }
+
+    @Override
+    public Result<String> getAvatar(String uid) {
+        String avatar = this.lambdaQuery().eq(User::getUid, uid).select(User::getAvatar).one().getAvatar();
+        return Result.ok(avatar);
     }
 }

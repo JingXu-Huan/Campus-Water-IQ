@@ -20,6 +20,7 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.stereotype.Component;
+
 import java.util.concurrent.ThreadLocalRandom;
 import java.util.concurrent.TimeUnit;
 
@@ -62,27 +63,27 @@ public class GitHubLoginStrategy implements LoginStrategy {
             // 1. 使用授权码获取访问令牌
             String accessToken = gitHubOAuthService.getAccessToken(code);
             log.debug("Got access token for GitHub login");
-            
+
             // 2. 使用访问令牌获取用户信息
             GitHubOAuthService.GitHubUserInfo gitHubUser = gitHubOAuthService.getUserInfo(accessToken);
             log.debug("Got user info: id={}, login={}, email={}", gitHubUser.getId(), gitHubUser.getLogin(), gitHubUser.getEmail());
-            
-            if (gitHubUser == null || gitHubUser.getId() == null) {
+
+            if (gitHubUser.getId() == null) {
                 log.warn("GitHub登录失败: 无法获取用户信息");
                 return new AuthResult(false);
             }
             String githubId = gitHubUser.getId().toString();
-            
+
             // 3. 查询用户是否已绑定GitHub账号
             log.debug("Looking for user with GitHub ID: {}", githubId);
             User user = findUserByGithubId(githubId);
-            
+
             if (user == null) {
                 log.debug("User not found, creating new user");
                 // 用户未绑定GitHub，创建新用户
                 return handleNewGitHubUser(gitHubUser);
             }
-            
+
             log.debug("Found existing user: {}", user.getUid());
             // 4. 验证用户状态并生成令牌
             return authenticateUser(user);
@@ -124,7 +125,8 @@ public class GitHubLoginStrategy implements LoginStrategy {
                     user.getNickName(),
                     user.getUid(),
                     user.getStatus(),
-                    null
+                    null,
+                    user.getAvatar()
             );
             try {
                 String jsonInfo = objectMapper.writeValueAsString(info);
@@ -167,7 +169,7 @@ public class GitHubLoginStrategy implements LoginStrategy {
             log.info("GitHub用户 {} 创建成功，UID: {}", githubUser.getLogin(), newUser.getUid());
             // 生成登录令牌
             String token = tokenHelper.genToken(newUser.getUid(), newUser.getNickName(), newUser.getUserType());
-            return new AuthResult(true, newUser.getUid(), token,newUser.getNickName());
+            return new AuthResult(true, newUser.getUid(), token, newUser.getNickName(), newUser.getAvatar());
         } catch (Exception e) {
             log.error("创建GitHub用户时发生异常", e);
             return new AuthResult(false);
@@ -201,6 +203,6 @@ public class GitHubLoginStrategy implements LoginStrategy {
         }
         String token = tokenHelper.genToken(uid, nickName, user.getUserType());
         log.info("GitHub用户 {} 登录成功", uid);
-        return new AuthResult(true, uid, token, nickName);
+        return new AuthResult(true, uid, token, nickName, user.getAvatar());
     }
 }

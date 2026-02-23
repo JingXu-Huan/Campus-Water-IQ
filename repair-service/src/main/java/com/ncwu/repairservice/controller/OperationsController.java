@@ -9,6 +9,7 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.web.bind.annotation.*;
+
 import javax.validation.constraints.NotNull;
 import javax.validation.constraints.Pattern;
 import java.util.Collections;
@@ -18,6 +19,7 @@ import static com.ncwu.repairservice.tools.Utils.isUnValidDeviceId;
 
 /**
  * 管理/运维控制层
+ *
  * @author jingxu
  * @version 1.0.0
  * @since 2026/2/6
@@ -65,11 +67,12 @@ public class OperationsController {
      */
     @GetMapping("/getByDeviceCode")
     public Result<List<UserReportVO>> getDeviceReportByDeviceCode(String deviceCode) {
-        if (isUnValidDeviceId(List.of(deviceCode),redisTemplate))
+        if (isUnValidDeviceId(List.of(deviceCode), redisTemplate))
             return Result.fail(Collections.emptyList(), ErrorCode.PARAM_VALIDATION_ERROR.code(),
                     ErrorCode.PARAM_VALIDATION_ERROR.message());
         return deviceReservationService.getDeviceReportByDeviceCode(deviceCode);
     }
+
     /**
      * 批量查询一批设备编号下的所有报修记录
      */
@@ -77,10 +80,19 @@ public class OperationsController {
     public Result<List<UserReportVO>> listByDeviceCode(@RequestParam @NotNull List<String> deviceCode,
                                                        @RequestParam(name = "pageNum", defaultValue = "1") int pageNum,
                                                        @RequestParam(name = "pageSize", defaultValue = "10") int pageSize) {
-        if (isUnValidDeviceId(deviceCode,redisTemplate))
+        if (isUnValidDeviceId(deviceCode, redisTemplate))
             return Result.fail(Collections.emptyList(), ErrorCode.PARAM_VALIDATION_ERROR.code(),
                     ErrorCode.PARAM_VALIDATION_ERROR.message());
         return deviceReservationService.listByDeviceCode(deviceCode, pageNum, pageSize);
     }
+
+    /**
+     * 查询未解决的报修单
+     */
+    @GetMapping("/getAllUnClosedNums")
+    public Result<Long> getAllUnClosedNums() {
+        return deviceReservationService.getAllUnClosedNums();
+    }
+
 
 }

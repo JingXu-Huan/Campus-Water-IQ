@@ -5,6 +5,7 @@ import Register from './pages/Register'
 import Dashboard from './pages/Dashboard'
 import Monitoring from './pages/Monitoring'
 import DigitalTwin from './pages/DigitalTwin'
+import Repair from './pages/Repair'
 
 function ProtectedRoute({ children }: { children: React.ReactNode }) {
   const { token } = useAuthStore()
@@ -41,6 +42,14 @@ function App() {
           element={
             <ProtectedRoute>
               <DigitalTwin />
+            </ProtectedRoute>
+          } 
+        />
+        <Route 
+          path="/repair" 
+          element={
+            <ProtectedRoute>
+              <Repair />
             </ProtectedRoute>
           } 
         />

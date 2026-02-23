@@ -24,4 +24,5 @@ public class UserInfo implements Serializable {
     String uid;
     Integer status;
     String password;
+    String avatar;
 }

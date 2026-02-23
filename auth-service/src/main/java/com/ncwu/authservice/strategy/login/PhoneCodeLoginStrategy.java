@@ -51,7 +51,7 @@ public class PhoneCodeLoginStrategy implements LoginStrategy {
         }
         User user = userMapper.selectOne(new LambdaQueryWrapper<User>()
                 .eq(User::getPhoneNum, phoneNum)
-                .select(User::getUid, User::getNickName, User::getUserType, User::getStatus)
+                .select(User::getUid, User::getNickName, User::getUserType, User::getStatus, User::getAvatar)
         );
         if (user == null) {
             return new AuthResult(false);
@@ -60,6 +60,7 @@ public class PhoneCodeLoginStrategy implements LoginStrategy {
         String nickName = user.getNickName();
         Integer userType = user.getUserType();
         Integer status = user.getStatus();
+        String avatar = user.getAvatar();
         String validCode = redisTemplate.opsForValue().get("Verify:PhoneCode:" + phoneNum);
         if (validCode == null) {
             return new AuthResult(false);
@@ -68,6 +69,6 @@ public class PhoneCodeLoginStrategy implements LoginStrategy {
             return new AuthResult(false);
         }
         String token = tokenHelper.genToken(uid, nickName, userType);
-        return new AuthResult(true, uid, token,nickName);
+        return new AuthResult(true, uid, token,nickName,avatar);
     }
 }

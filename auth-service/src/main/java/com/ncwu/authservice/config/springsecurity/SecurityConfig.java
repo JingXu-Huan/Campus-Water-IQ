@@ -43,9 +43,11 @@ public class SecurityConfig {
                         .requestMatchers("/auth/wechat/authorize").permitAll()
                         .requestMatchers("/auth/wechat/callback").permitAll()
                         .requestMatchers(HttpMethod.OPTIONS, "/**").permitAll()
+                        // 放行头像上传端点
+                        .requestMatchers("/user/avatar").permitAll()
                         // 放行健康检查端点
                         .requestMatchers("/actuator/**").permitAll()
-                        // 其他所有请求都需要认证
+                        // 其他所有请求都需要认证（包括 /user/**）
                         .anyRequest().authenticated()
                 );
         

@@ -26,6 +26,7 @@ public class WebMvcConfig implements WebMvcConfigurer {
                         "/actuator/**",    // 排除健康检查
                         "/signup",
                         "/signup/send-code",
+                        "/user/**",        // 排除用户相关接口
                         "/error"           // 排除错误页面
                 );
     }

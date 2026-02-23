@@ -2,8 +2,8 @@ import { useState, useEffect, useCallback } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useAuthStore } from '@/store/authStore'
 import { iotApi, generateDeviceId, generateWaterQualitySensorId, parseDeviceCode, BuildingInfo, BuildingType, DeviceFlowData, WaterQualityData, getBuildingConfig, getBuildingType } from '@/api/iot'
-import { Droplets, User, Menu, X, Activity, Building2, Building, Home, RefreshCw, XCircle, LayoutDashboard, Waves, FlaskConical, Gauge } from 'lucide-react'
-import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, PieChart, Pie, Cell } from 'recharts'
+import { Droplets, User, Menu, X, Activity, Building2, Building, Home, RefreshCw, XCircle, LayoutDashboard, Waves, FlaskConical, Gauge, Wifi, WifiOff } from 'lucide-react'
+import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts'
 
 // 校区映射
 const CAMPUS_MAP: Record<number, { name: string; code: string }> = {
@@ -100,6 +100,7 @@ export default function Monitoring() {
   const [buildings, setBuildings] = useState<BuildingInfo[]>([])
   const [buildingConfig, setBuildingConfig] = useState({ floors: 6, rooms: 10 })
   const [loadingBuildings, setLoadingBuildings] = useState(true)
+  const [waterQualityScore, setWaterQualityScore] = useState<number>(0)
   
   // 切换校区时加载楼宇配置
   useEffect(() => {
@@ -140,8 +141,28 @@ export default function Monitoring() {
       const waterQualitySensorIds = actualFloors.map(floorNo => 
         generateWaterQualitySensorId(selectedCampus, selectedBuilding.buildingNo, parseInt(floorNo!))
       )
-      const waterQualityData = await iotApi.getBatchWaterQuality(waterQualitySensorIds)
+      
+      // 并行获取水质数据和每个楼层的水质分数
+      const waterQualityResults = await Promise.all([
+        iotApi.getBatchWaterQuality(waterQualitySensorIds),
+        ...waterQualitySensorIds.map(id => iotApi.getWaterQuality(id))
+      ])
+      
+      const waterQualityData = waterQualityResults[0] as WaterQualityData[]
+      const waterQualityScores = waterQualityResults.slice(1) as number[]
+      
+      // 将水质分数附加到水质数据中
+      waterQualityData.forEach((wq, index) => {
+        wq.score = waterQualityScores[index]
+      })
+      
       setWaterQualityData(waterQualityData)
+      
+      // 计算平均水质分数
+      const validScores = waterQualityScores.filter(s => s > 0)
+      const avgScore = validScores.length > 0 ? validScores.reduce((a, b) => a + b, 0) / validScores.length : 0
+      setWaterQualityScore(avgScore)
+      
       setLastUpdate(new Date())
     } catch (error) {
       console.error('获取设备数据失败:', error)
@@ -209,21 +230,22 @@ export default function Monitoring() {
   return (
     <div className="h-screen bg-gray-50 flex overflow-hidden">
       {/* Sidebar */}
-      <aside className={`${sidebarOpen ? 'w-64' : 'w-20'} bg-white shadow-lg transition-all duration-300 flex flex-col h-screen`}>
-        <div className="p-4 border-b border-gray-200 flex-shrink-0">
+      <aside className={`${sidebarOpen ? 'w-64' : 'w-20'} bg-gradient-to-b from-primary-600 to-primary-800 shadow-xl transition-all duration-300 flex flex-col h-screen`}>
+        {/* Logo区域 */}
+        <div className="p-4 border-b border-white/10 flex-shrink-0">
           <div className="flex items-center gap-3">
-            <div className="flex items-center justify-center w-10 h-10 bg-primary-100 rounded-lg">
-              <Droplets className="w-6 h-6 text-primary-600" />
+            <div className="flex items-center justify-center w-10 h-10 bg-white/20 backdrop-blur-sm rounded-xl">
+              <Droplets className="w-6 h-6 text-white" />
             </div>
             {sidebarOpen && (
-              <h1 className="text-lg font-bold text-gray-900">水务平台</h1>
+              <h1 className="text-lg font-bold text-white">水务平台</h1>
             )}
           </div>
         </div>
 
         {/* 返回主界面 */}
-        <div className="p-2 border-b border-gray-200 flex-shrink-0">
-          <button onClick={() => navigate('/dashboard')} className={`flex items-center gap-2 px-3 py-2 rounded-lg bg-primary-50 text-primary-700 hover:bg-primary-100 text-sm ${sidebarOpen ? 'w-full' : 'mx-auto justify-center'}`}>
+        <div className="p-2 border-b border-white/10 flex-shrink-0">
+          <button onClick={() => navigate('/dashboard')} className={`flex items-center gap-2 px-3 py-2.5 rounded-xl text-white/80 hover:bg-white/10 hover:text-white transition-all text-sm ${sidebarOpen ? 'w-full' : 'mx-auto justify-center'}`}>
             <LayoutDashboard className="w-5 h-5" />
             {sidebarOpen && <span>返回主界面</span>}
           </button>
@@ -231,23 +253,23 @@ export default function Monitoring() {
 
         {/* 校区选择 */}
         <nav className="flex-1 p-2 overflow-y-auto">
-          <p className="px-4 mb-2 text-xs font-medium text-gray-400 uppercase">切换校区</p>
+          <p className="px-4 mb-2 text-xs font-medium text-white/40 uppercase">切换校区</p>
           <div className="space-y-1 mb-6">
             {campuses.map((campus) => (
               <button
                 key={campus.id}
                 onClick={() => { setSelectedCampus(campus.id); setSelectedBuilding(null) }}
-                className={`w-full flex items-center gap-3 px-4 py-2.5 rounded-lg transition-all ${
+                className={`w-full flex items-center gap-3 px-4 py-2.5 rounded-xl transition-all ${
                   selectedCampus === campus.id
-                    ? 'bg-primary-50 text-primary-700 border border-primary-200'
-                    : 'text-gray-600 hover:bg-gray-50'
+                    ? 'bg-white/20 text-white border border-white/30'
+                    : 'text-white/70 hover:bg-white/10 hover:text-white border border-transparent'
                 }`}
               >
-                <div className={`w-2 h-2 rounded-full ${selectedCampus === campus.id ? 'bg-primary-600' : 'bg-gray-300'}`} />
+                <div className={`w-2 h-2 rounded-full ${selectedCampus === campus.id ? 'bg-white' : 'bg-white/40'}`} />
                 {sidebarOpen && (
                   <div className="flex-1 text-left">
                     <div className="text-sm font-medium">{campus.name}</div>
-                    <div className="text-xs text-gray-400">{campus.code}</div>
+                    <div className="text-xs text-white/50">{campus.code}</div>
                   </div>
                 )}
               </button>
@@ -255,11 +277,11 @@ export default function Monitoring() {
           </div>
           
           {/* 楼宇列表 */}
-          <p className="px-4 mb-2 text-xs font-medium text-gray-400 uppercase">楼宇列表</p>
+          <p className="px-4 mb-2 text-xs font-medium text-white/40 uppercase">楼宇列表</p>
           {loadingBuildings ? (
             <div className="px-4 py-8 text-center">
-              <RefreshCw className="w-5 h-5 text-gray-400 animate-spin mx-auto" />
-              <p className="text-xs text-gray-500 mt-2">加载中...</p>
+              <RefreshCw className="w-5 h-5 text-white/40 animate-spin mx-auto" />
+              <p className="text-xs text-white/50 mt-2">加载中...</p>
             </div>
           ) : (
             <div className="space-y-1">
@@ -270,13 +292,13 @@ export default function Monitoring() {
                 <button
                   key={building.id}
                   onClick={() => setSelectedBuilding(building)}
-                  className={`w-full flex items-center gap-3 px-4 py-2.5 rounded-lg transition-all ${
+                  className={`w-full flex items-center gap-3 px-4 py-2.5 rounded-xl transition-all ${
                     selectedBuilding?.id === building.id
-                      ? 'bg-primary-50 text-primary-700 border border-primary-200'
-                      : 'text-gray-600 hover:bg-gray-50 border border-transparent'
+                      ? 'bg-white/20 text-white border border-white/30'
+                      : 'text-white/70 hover:bg-white/10 hover:text-white border border-transparent'
                   }`}
                 >
-                  <Icon className={`w-4 h-4 text-${config.color}-600`} />
+                  <Icon className={`w-4 h-4`} />
                   {sidebarOpen && (
                     <span className="text-sm truncate">{building.name}</span>
                   )}
@@ -288,19 +310,19 @@ export default function Monitoring() {
         </nav>
 
         {/* User Footer */}
-        <div className="p-2 border-t border-gray-200 flex-shrink-0">
-          <div className="flex items-center gap-3 px-4 py-3">
+        <div className="p-2 border-t border-white/10 flex-shrink-0">
+          <div className="flex items-center gap-3 px-4 py-3 rounded-xl hover:bg-white/10 transition-all cursor-pointer">
             {avatar ? (
-              <img src={avatar} alt="头像" className="w-8 h-8 rounded-full object-cover" />
+              <img src={avatar} alt="头像" className="w-9 h-9 rounded-full object-cover ring-2 ring-white/30" />
             ) : (
-              <div className="w-8 h-8 bg-gray-200 rounded-full flex items-center justify-center">
-                <User className="w-4 h-4 text-gray-600" />
+              <div className="w-9 h-9 bg-white/20 rounded-full flex items-center justify-center ring-2 ring-white/30">
+                <User className="w-4 h-4 text-white" />
               </div>
             )}
             {sidebarOpen && (
               <div className="flex-1 min-w-0">
-                <p className="text-sm font-medium text-gray-900 truncate">{nickname || '用户'}</p>
-                <p className="text-xs text-gray-500 truncate">UID: {uid || '未知'}</p>
+                <p className="text-sm font-medium text-white truncate">{nickname || '用户'}</p>
+                <p className="text-xs text-white/60 truncate">UID: {uid || '未知'}</p>
               </div>
             )}
           </div>
@@ -308,20 +330,20 @@ export default function Monitoring() {
       </aside>
 
       {/* Main Content */}
-      <div className="flex-1 flex flex-col">
-        <header className="bg-white shadow-sm">
+      <div className="flex-1 flex flex-col bg-gray-50">
+        <header className="bg-gradient-to-r from-primary-600 to-primary-800 shadow-lg">
           <div className="px-6 py-4 flex items-center justify-between">
             <div className="flex items-center gap-4">
               <button
                 onClick={() => setSidebarOpen(!sidebarOpen)}
-                className="p-2 text-gray-600 hover:text-gray-900 hover:bg-gray-100 rounded-lg"
+                className="p-2 text-white/80 hover:text-white hover:bg-white/10 rounded-xl transition-all"
               >
                 {sidebarOpen ? <X className="w-5 h-5" /> : <Menu className="w-5 h-5" />}
               </button>
-              <h2 className="text-xl font-semibold text-gray-900">实时监测</h2>
-              <div className="flex items-center gap-2 px-3 py-1.5 bg-gray-100 rounded-lg">
-                <Activity className="w-4 h-4 text-green-500" />
-                <span className="text-sm text-gray-600">实时</span>
+              <h2 className="text-xl font-bold text-white">实时监测</h2>
+              <div className="flex items-center gap-2 px-3 py-1.5 bg-white/10 backdrop-blur-sm rounded-xl">
+                <Activity className="w-4 h-4 text-white/80" />
+                <span className="text-sm text-white/80">实时</span>
               </div>
             </div>
             <div className="flex items-center gap-4">
@@ -350,8 +372,8 @@ export default function Monitoring() {
             </div>
           ) : (
             <div className="space-y-6">
-              {/* 四个监测卡片 */}
-              <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-4">
+              {/* 六个监测卡片 */}
+              <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4 mb-4">
                 {/* 总流量 */}
                 <div className="bg-white rounded-xl p-5 shadow-sm hover:shadow-md transition-shadow">
                   <div className="flex items-center gap-3 mb-3">
@@ -407,6 +429,61 @@ export default function Monitoring() {
                     <GaugeMeter value={avgTemperature} max={Math.max(avgTemperature * 1.5, 30)} size={60} color="#f97316" />
                   </div>
                 </div>
+
+                {/* 水质分数 */}
+                <div className="bg-white rounded-xl p-5 shadow-sm hover:shadow-md transition-shadow">
+                  <div className="flex items-center gap-3 mb-3">
+                    <div className={`p-2.5 rounded-xl ${
+                      waterQualityScore >= 90 ? 'bg-gradient-to-br from-green-400 to-green-600' :
+                      waterQualityScore >= 70 ? 'bg-gradient-to-br from-yellow-400 to-yellow-600' :
+                      'bg-gradient-to-br from-red-400 to-red-600'
+                    }`}>
+                      <Waves className="w-5 h-5 text-white" />
+                    </div>
+                    <span className="text-sm font-medium text-gray-700">水质分数</span>
+                  </div>
+                  <p className={`text-2xl font-bold ${
+                    waterQualityScore >= 90 ? 'text-green-600' :
+                    waterQualityScore >= 70 ? 'text-yellow-600' :
+                    'text-red-600'
+                  }`}>{waterQualityScore.toFixed(0)} <span className="text-sm font-normal text-gray-400">分</span></p>
+                  <div className="mt-2">
+                    <GaugeMeter value={waterQualityScore} max={100} size={60} color={
+                      waterQualityScore >= 90 ? '#22c55e' :
+                      waterQualityScore >= 70 ? '#eab308' :
+                      '#ef4444'
+                    } />
+                  </div>
+                </div>
+
+                {/* 设备在线状态 */}
+                <div className="bg-white rounded-xl p-5 shadow-sm hover:shadow-md transition-shadow">
+                  <div className="flex items-center gap-3 mb-3">
+                    <div className={`p-2.5 rounded-xl ${
+                      onlineCount > 0 ? 'bg-gradient-to-br from-green-400 to-green-600' : 'bg-gray-100'
+                    }`}>
+                      {onlineCount > 0 ? <Wifi className="w-5 h-5 text-white" /> : <WifiOff className="w-5 h-5 text-gray-400" />}
+                    </div>
+                    <span className="text-sm font-medium text-gray-700">在线设备</span>
+                  </div>
+                  <div className="flex items-baseline gap-2">
+                    <p className="text-2xl font-bold text-green-600">{onlineCount}</p>
+                    <span className="text-gray-400">/</span>
+                    <p className="text-2xl font-bold text-gray-900">{deviceData.length}</p>
+                    <span className="text-sm text-gray-400">台</span>
+                  </div>
+                  <div className="mt-2 flex items-center gap-2">
+                    <div className="flex-1 h-2 bg-gray-100 rounded-full overflow-hidden">
+                      <div 
+                        className="h-full bg-gradient-to-r from-green-400 to-green-600 transition-all duration-500" 
+                        style={{ width: `${deviceData.length > 0 ? (onlineCount / deviceData.length) * 100 : 0}%` }}
+                      />
+                    </div>
+                    <span className="text-xs text-gray-500">
+                      {deviceData.length > 0 ? Math.round((onlineCount / deviceData.length) * 100) : 0}%
+                    </span>
+                  </div>
+                </div>
               </div>
 
               {/* 图表区域 */}
@@ -428,33 +505,23 @@ export default function Monitoring() {
                   </ResponsiveContainer>
                 </div>
 
-                {/* 设备在线状态分布 */}
+                {/* 各楼层水质分数对比图 */}
                 <div className="bg-white rounded-xl p-4 shadow-sm">
-                  <h3 className="text-lg font-semibold text-gray-900 mb-3">设备在线状态</h3>
+                  <h3 className="text-lg font-semibold text-gray-900 mb-3">各楼层水质分数</h3>
                   <ResponsiveContainer width="100%" height={180}>
-                    <PieChart>
-                      <Pie
-                        data={[
-                          { name: '在线', value: onlineCount, color: '#22c55e' },
-                          { name: '离线', value: offlineCount, color: '#ef4444' }
-                        ]}
-                        cx="50%"
-                        cy="50%"
-                        innerRadius={40}
-                        outerRadius={65}
-                        paddingAngle={5}
-                        dataKey="value"
-                        label={({ name, value }) => `${name}: ${value}`}
-                      >
-                        {[
-                          { name: '在线', value: onlineCount, color: '#22c55e' },
-                          { name: '离线', value: offlineCount, color: '#ef4444' }
-                        ].map((entry, index) => (
-                          <Cell key={`cell-${index}`} fill={entry.color} />
-                        ))}
-                      </Pie>
-                      <Tooltip />
-                    </PieChart>
+                    <BarChart data={floors.map(f => ({ 
+                      name: `${f.floor}F`, 
+                      score: f.waterQuality?.score || 0 
+                    }))}>
+                      <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" />
+                      <XAxis dataKey="name" tick={{ fontSize: 11 }} />
+                      <YAxis domain={[0, 100]} tick={{ fontSize: 10 }} />
+                      <Tooltip 
+                        formatter={(value: number | undefined) => value !== undefined && value > 0 ? [`${value.toFixed(0)} 分`, '水质分数'] : ['无数据', '水质分数']}
+                        contentStyle={{ borderRadius: '8px', border: 'none', boxShadow: '0 2px 8px rgba(0,0,0,0.1)' }}
+                      />
+                      <Bar dataKey="score" fill="#10b981" radius={[4, 4, 0, 0]} />
+                    </BarChart>
                   </ResponsiveContainer>
                 </div>
               </div>
@@ -563,10 +630,22 @@ export default function Monitoring() {
                         {/* 水质传感器详情 */}
                         {floor.waterQuality && (
                           <div className="border-t border-gray-100 p-3 bg-gradient-to-r from-emerald-50 to-cyan-50">
-                            <div className="flex items-center gap-2 mb-2">
-                              <Waves className="w-4 h-4 text-emerald-600" />
-                              <span className="text-sm font-medium text-gray-700">水质传感器</span>
-                              <span className={`w-2 h-2 rounded-full ${floor.waterQuality.status === 'online' ? 'bg-green-500' : 'bg-red-500'}`}></span>
+                            <div className="flex items-center justify-between mb-2">
+                              <div className="flex items-center gap-2">
+                                <Waves className="w-4 h-4 text-emerald-600" />
+                                <span className="text-sm font-medium text-gray-700">水质传感器</span>
+                                <span className={`w-2 h-2 rounded-full ${floor.waterQuality.status === 'online' ? 'bg-green-500' : 'bg-red-500'}`}></span>
+                              </div>
+                              {/* 水质分数 */}
+                              {floor.waterQuality.score !== undefined && floor.waterQuality.score > 0 && (
+                                <div className={`px-2 py-0.5 rounded-full text-xs font-bold ${
+                                  floor.waterQuality.score >= 90 ? 'bg-green-100 text-green-700' :
+                                  floor.waterQuality.score >= 70 ? 'bg-yellow-100 text-yellow-700' :
+                                  'bg-red-100 text-red-700'
+                                }`}>
+                                  水质分数: {floor.waterQuality.score.toFixed(0)}
+                                </div>
+                              )}
                             </div>
                             {floor.waterQuality && floor.waterQuality.status === 'online' ? (
                               <div className="grid grid-cols-3 gap-2 text-center text-sm">

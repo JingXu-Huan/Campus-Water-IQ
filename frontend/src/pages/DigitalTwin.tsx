@@ -321,21 +321,22 @@ export default function DigitalTwin() {
   return (
     <div className="h-screen bg-gray-50 flex overflow-hidden">
       {/* Sidebar */}
-      <aside className={`${sidebarOpen ? 'w-64' : 'w-20'} bg-white shadow-lg transition-all duration-300 flex flex-col h-screen`}>
-        <div className="p-4 border-b border-gray-200 flex-shrink-0">
+      <aside className={`${sidebarOpen ? 'w-64' : 'w-20'} bg-gradient-to-b from-primary-600 to-primary-800 shadow-xl transition-all duration-300 flex flex-col h-screen`}>
+        {/* Logo区域 */}
+        <div className="p-4 border-b border-white/10 flex-shrink-0">
           <div className="flex items-center gap-3">
-            <div className="flex items-center justify-center w-10 h-10 bg-primary-100 rounded-lg">
-              <Droplets className="w-6 h-6 text-primary-600" />
+            <div className="flex items-center justify-center w-10 h-10 bg-white/20 backdrop-blur-sm rounded-xl">
+              <Droplets className="w-6 h-6 text-white" />
             </div>
             {sidebarOpen && (
-              <h1 className="text-lg font-bold text-gray-900">水务平台</h1>
+              <h1 className="text-lg font-bold text-white">水务平台</h1>
             )}
           </div>
         </div>
 
         {/* 返回主界面 */}
-        <div className="p-2 border-b border-gray-200 flex-shrink-0">
-          <button onClick={() => navigate('/dashboard')} className={`flex items-center gap-2 px-3 py-2 rounded-lg bg-primary-50 text-primary-700 hover:bg-primary-100 text-sm ${sidebarOpen ? 'w-full' : 'mx-auto justify-center'}`}>
+        <div className="p-2 border-b border-white/10 flex-shrink-0">
+          <button onClick={() => navigate('/dashboard')} className={`flex items-center gap-2 px-3 py-2.5 rounded-xl text-white/80 hover:bg-white/10 hover:text-white transition-all text-sm ${sidebarOpen ? 'w-full' : 'mx-auto justify-center'}`}>
             <LayoutDashboard className="w-5 h-5" />
             {sidebarOpen && <span>返回主界面</span>}
           </button>
@@ -346,21 +347,21 @@ export default function DigitalTwin() {
           <div className="space-y-1">
             <button
               onClick={() => navigate('/dashboard')}
-              className={`w-full flex items-center gap-3 px-4 py-2.5 rounded-lg transition-all text-gray-600 hover:bg-gray-50`}
+              className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl transition-all text-white/70 hover:bg-white/10 hover:text-white`}
             >
               <Activity className="w-5 h-5" />
               {sidebarOpen && <span>数据概览</span>}
             </button>
             <button
               onClick={() => navigate('/monitoring')}
-              className={`w-full flex items-center gap-3 px-4 py-2.5 rounded-lg transition-all text-gray-600 hover:bg-gray-50`}
+              className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl transition-all text-white/70 hover:bg-white/10 hover:text-white`}
             >
               <Gauge className="w-5 h-5" />
               {sidebarOpen && <span>实时监测</span>}
             </button>
             <button
               onClick={() => {}}
-              className={`w-full flex items-center gap-3 px-4 py-2.5 rounded-lg transition-all bg-primary-50 text-primary-700 border border-primary-200`}
+              className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl transition-all bg-white/20 text-white border border-white/30 shadow-lg`}
             >
               <Cpu className="w-5 h-5" />
               {sidebarOpen && <span>数字孪生</span>}
@@ -369,19 +370,19 @@ export default function DigitalTwin() {
         </nav>
 
         {/* User Footer */}
-        <div className="p-2 border-t border-gray-200 flex-shrink-0">
-          <div className="flex items-center gap-3 px-4 py-3">
+        <div className="p-2 border-t border-white/10 flex-shrink-0">
+          <div className="flex items-center gap-3 px-4 py-3 rounded-xl hover:bg-white/10 transition-all cursor-pointer">
             {avatar ? (
-              <img src={avatar} alt="头像" className="w-8 h-8 rounded-full object-cover" />
+              <img src={avatar} alt="头像" className="w-9 h-9 rounded-full object-cover ring-2 ring-white/30" />
             ) : (
-              <div className="w-8 h-8 bg-gray-200 rounded-full flex items-center justify-center">
-                <User className="w-4 h-4 text-gray-600" />
+              <div className="w-9 h-9 bg-white/20 rounded-full flex items-center justify-center ring-2 ring-white/30">
+                <User className="w-4 h-4 text-white" />
               </div>
             )}
             {sidebarOpen && (
               <div className="flex-1 min-w-0">
-                <p className="text-sm font-medium text-gray-900 truncate">{nickname || '用户'}</p>
-                <p className="text-xs text-gray-500 truncate">UID: {uid || '未知'}</p>
+                <p className="text-sm font-medium text-white truncate">{nickname || '用户'}</p>
+                <p className="text-xs text-white/60 truncate">UID: {uid || '未知'}</p>
               </div>
             )}
           </div>
@@ -389,25 +390,25 @@ export default function DigitalTwin() {
       </aside>
 
       {/* Main Content */}
-      <div className="flex-1 flex flex-col">
-        <header className="bg-white shadow-sm">
+      <div className="flex-1 flex flex-col bg-gray-50">
+        <header className="bg-gradient-to-r from-primary-600 to-primary-800 shadow-lg">
           <div className="px-6 py-4 flex items-center justify-between">
             <div className="flex items-center gap-4">
               <button
                 onClick={() => setSidebarOpen(!sidebarOpen)}
-                className="p-2 text-gray-600 hover:text-gray-900 hover:bg-gray-100 rounded-lg"
+                className="p-2 text-white/80 hover:text-white hover:bg-white/10 rounded-xl transition-all"
               >
                 {sidebarOpen ? <X className="w-5 h-5" /> : <Menu className="w-5 h-5" />}
               </button>
-              <h2 className="text-xl font-semibold text-gray-900">数字孪生</h2>
-              <div className="flex items-center gap-2 px-3 py-1.5 bg-gray-100 rounded-lg">
-                <Cpu className="w-4 h-4 text-primary-500" />
-                <span className="text-sm text-gray-600">虚拟设备管理</span>
+              <h2 className="text-xl font-bold text-white">数字孪生</h2>
+              <div className="flex items-center gap-2 px-3 py-1.5 bg-white/10 backdrop-blur-sm rounded-xl">
+                <Cpu className="w-4 h-4 text-white/80" />
+                <span className="text-sm text-white/80">虚拟设备管理</span>
               </div>
             </div>
             <button
               onClick={() => { fetchDeviceStatus(); fetchBuildingConfig(); }}
-              className="flex items-center gap-2 px-4 py-2 text-gray-600 hover:bg-gray-100 rounded-lg"
+              className="flex items-center gap-2 px-4 py-2 text-white/80 hover:text-white hover:bg-white/10 rounded-xl transition-all"
             >
               <RefreshCw className={`w-4 h-4 ${loading ? 'animate-spin' : ''}`} />
               刷新
@@ -466,10 +467,10 @@ export default function DigitalTwin() {
 
           {/* 状态概览 */}
           <div className="grid grid-cols-2 md:grid-cols-5 gap-4 mb-6">
-            <div className="bg-white rounded-xl p-5 shadow-sm">
+            <div className="bg-white rounded-2xl p-5 shadow-lg shadow-gray-100/50 border border-gray-100">
               <div className="flex items-center gap-3 mb-2">
-                <div className={`p-2.5 rounded-xl ${isInitialized ? 'bg-green-100' : 'bg-gray-100'}`}>
-                  <Cpu className={`w-5 h-5 ${isInitialized ? 'text-green-600' : 'text-gray-400'}`} />
+                <div className={`p-3 rounded-xl ${isInitialized ? 'bg-gradient-to-br from-green-400 to-green-600' : 'bg-gray-100'}`}>
+                  <Cpu className={`w-5 h-5 ${isInitialized ? 'text-white' : 'text-gray-400'}`} />
                 </div>
               </div>
               <p className="text-sm text-gray-500">设备状态</p>
@@ -478,20 +479,20 @@ export default function DigitalTwin() {
               </p>
             </div>
 
-            <div className="bg-white rounded-xl p-5 shadow-sm">
+            <div className="bg-white rounded-2xl p-5 shadow-lg shadow-gray-100/50 border border-gray-100">
               <div className="flex items-center gap-3 mb-2">
-                <div className="p-2.5 bg-blue-100 rounded-xl">
-                  <Droplets className="w-5 h-5 text-blue-600" />
+                <div className="p-3 rounded-xl bg-gradient-to-br from-blue-400 to-blue-600">
+                  <Droplets className="w-5 h-5 text-white" />
                 </div>
               </div>
               <p className="text-sm text-gray-500">水表数量</p>
               <p className="text-xl font-bold text-gray-900">{deviceCount}</p>
             </div>
 
-            <div className="bg-white rounded-xl p-5 shadow-sm">
+            <div className="bg-white rounded-2xl p-5 shadow-lg shadow-gray-100/50 border border-gray-100">
               <div className="flex items-center gap-3 mb-2">
-                <div className={`p-2.5 rounded-xl ${isMetersRunning ? 'bg-green-100' : 'bg-gray-100'}`}>
-                  <Play className={`w-5 h-5 ${isMetersRunning ? 'text-green-600' : 'text-gray-400'}`} />
+                <div className={`p-3 rounded-xl ${isMetersRunning ? 'bg-gradient-to-br from-green-400 to-green-600' : 'bg-gray-100'}`}>
+                  <Play className={`w-5 h-5 ${isMetersRunning ? 'text-white' : 'text-gray-400'}`} />
                 </div>
               </div>
               <p className="text-sm text-gray-500">水表运行</p>
@@ -500,20 +501,20 @@ export default function DigitalTwin() {
               </p>
             </div>
 
-            <div className="bg-white rounded-xl p-5 shadow-sm">
+            <div className="bg-white rounded-2xl p-5 shadow-lg shadow-gray-100/50 border border-gray-100">
               <div className="flex items-center gap-3 mb-2">
-                <div className="p-2.5 bg-purple-100 rounded-xl">
-                  <Activity className="w-5 h-5 text-purple-600" />
+                <div className="p-3 rounded-xl bg-gradient-to-br from-purple-400 to-purple-600">
+                  <Activity className="w-5 h-5 text-white" />
                 </div>
               </div>
               <p className="text-sm text-gray-500">传感器数量</p>
               <p className="text-xl font-bold text-gray-900">{(buildingConfig.educationBuildings + buildingConfig.experimentBuildings + buildingConfig.dormitoryBuildings) * buildingConfig.floors}</p>
             </div>
 
-            <div className="bg-white rounded-xl p-5 shadow-sm">
+            <div className="bg-white rounded-2xl p-5 shadow-lg shadow-gray-100/50 border border-gray-100">
               <div className="flex items-center gap-3 mb-2">
-                <div className={`p-2.5 rounded-xl ${isSensorsRunning ? 'bg-green-100' : 'bg-gray-100'}`}>
-                  <Play className={`w-5 h-5 ${isSensorsRunning ? 'text-green-600' : 'text-gray-400'}`} />
+                <div className={`p-3 rounded-xl ${isSensorsRunning ? 'bg-gradient-to-br from-green-400 to-green-600' : 'bg-gray-100'}`}>
+                  <Play className={`w-5 h-5 ${isSensorsRunning ? 'text-white' : 'text-gray-400'}`} />
                 </div>
               </div>
               <p className="text-sm text-gray-500">传感器运行</p>
@@ -524,7 +525,7 @@ export default function DigitalTwin() {
           </div>
 
           {/* 楼宇配置 */}
-          <div className="bg-white rounded-xl p-6 shadow-sm mb-6">
+          <div className="bg-white rounded-2xl p-6 shadow-lg shadow-gray-100/50 border border-gray-100 mb-6">
             <h3 className="text-lg font-semibold text-gray-900 mb-4">楼宇配置</h3>
             <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
               <div>
@@ -594,23 +595,25 @@ export default function DigitalTwin() {
           </div>
 
           {/* 公共控制：初始化/重置 */}
-          <div className="bg-white rounded-xl p-6 shadow-sm mb-6">
+          <div className="bg-white rounded-2xl p-6 shadow-lg shadow-gray-100/50 border border-gray-100 mb-6">
             <h3 className="text-lg font-semibold text-gray-900 mb-4">设备初始化与重置</h3>
             <div className="grid grid-cols-2 gap-4 max-w-2xl">
               <button
                 onClick={handleInit}
                 disabled={loading || isInitialized}
-                className="flex flex-col items-center gap-2 p-4 bg-blue-50 hover:bg-blue-100 rounded-xl transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                className="flex flex-col items-center gap-2 p-5 bg-gradient-to-br from-blue-50 to-blue-100 hover:from-blue-100 hover:to-blue-200 rounded-2xl transition-all disabled:opacity-50 disabled:cursor-not-allowed border border-blue-200"
               >
-                <Cpu className="w-8 h-8 text-blue-600" />
-                <span className="font-medium text-blue-700">初始化设备</span>
+                <div className="p-3 bg-gradient-to-br from-blue-400 to-blue-600 rounded-xl shadow-lg shadow-blue-500/30">
+                  <Cpu className="w-8 h-8 text-white" />
+                </div>
+                <span className="font-semibold text-blue-700">初始化设备</span>
                 <span className="text-xs text-blue-500">创建虚拟设备</span>
               </button>
 
               <button
                 onClick={handleReset}
                 disabled={loading || !isInitialized || isAnyTaskRunning}
-                className="flex flex-col items-center gap-2 p-4 bg-red-50 hover:bg-red-100 rounded-xl transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                className="flex flex-col items-center gap-2 p-5 bg-gradient-to-br from-red-50 to-red-100 hover:from-red-100 hover:to-red-200 rounded-2xl transition-all disabled:opacity-50 disabled:cursor-not-allowed border border-red-200"
               >
                 <RotateCcw className="w-8 h-8 text-red-600" />
                 <span className="font-medium text-red-700">重置设备</span>
@@ -620,13 +623,13 @@ export default function DigitalTwin() {
           </div>
 
           {/* 水表控制卡片 - 可展开 */}
-          <div className="bg-white rounded-xl shadow-sm mb-4">
+          <div className="bg-white rounded-2xl shadow-lg shadow-gray-100/50 border border-gray-100 mb-4">
             <div 
-              className="flex items-center gap-3 p-4 cursor-pointer hover:bg-gray-50"
+              className="flex items-center gap-3 p-4 cursor-pointer hover:bg-gray-50/50 transition-colors"
               onClick={() => setMeterExpanded(!meterExpanded)}
             >
-              <div className="p-2 bg-blue-100 rounded-lg">
-                <Droplets className="w-5 h-5 text-blue-600" />
+              <div className="p-3 bg-gradient-to-br from-blue-400 to-blue-600 rounded-xl">
+                <Droplets className="w-5 h-5 text-white" />
               </div>
               <h3 className="text-lg font-semibold text-gray-900">水表控制</h3>
               <span className={`px-2 py-0.5 rounded-full text-xs font-medium ${
@@ -645,7 +648,7 @@ export default function DigitalTwin() {
                     })
                   }}
                   disabled={loading || !isInitialized || isMetersRunning}
-                  className="px-3 py-1 text-xs bg-green-100 text-green-700 rounded-lg hover:bg-green-200 disabled:opacity-50 disabled:cursor-not-allowed"
+                  className="px-3 py-1.5 text-xs bg-gradient-to-r from-green-500 to-green-600 text-white rounded-lg hover:from-green-600 hover:to-green-700 disabled:opacity-50 disabled:cursor-not-allowed shadow-sm"
                 >
                   开启
                 </button>
@@ -655,7 +658,7 @@ export default function DigitalTwin() {
                     handleStopMeters()
                   }}
                   disabled={!isMetersRunning}
-                  className="px-3 py-1 text-xs bg-yellow-100 text-yellow-700 rounded-lg hover:bg-yellow-200 disabled:opacity-50 disabled:cursor-not-allowed"
+                  className="px-3 py-1.5 text-xs bg-gradient-to-r from-yellow-500 to-yellow-600 text-white rounded-lg hover:from-yellow-600 hover:to-yellow-700 disabled:opacity-50 disabled:cursor-not-allowed shadow-sm"
                 >
                   停止
                 </button>
@@ -670,7 +673,7 @@ export default function DigitalTwin() {
                     })
                   }}
                   disabled={loading || !isInitialized}
-                  className="px-3 py-1 text-xs bg-red-100 text-red-700 rounded-lg hover:bg-red-200 disabled:opacity-50 disabled:cursor-not-allowed"
+                  className="px-3 py-1.5 text-xs bg-gradient-to-r from-red-500 to-red-600 text-white rounded-lg hover:from-red-600 hover:to-red-700 disabled:opacity-50 disabled:cursor-not-allowed shadow-sm"
                 >
                   下线
                 </button>
@@ -751,13 +754,13 @@ export default function DigitalTwin() {
           </div>
 
           {/* 传感器控制卡片 - 可展开 */}
-          <div className="bg-white rounded-xl shadow-sm mb-4">
+          <div className="bg-white rounded-2xl shadow-lg shadow-gray-100/50 border border-gray-100 mb-4">
             <div 
-              className="flex items-center gap-3 p-4 cursor-pointer hover:bg-gray-50"
+              className="flex items-center gap-3 p-4 cursor-pointer hover:bg-gray-50/50 transition-colors"
               onClick={() => setSensorExpanded(!sensorExpanded)}
             >
-              <div className="p-2 bg-purple-100 rounded-lg">
-                <Activity className="w-5 h-5 text-purple-600" />
+              <div className="p-3 bg-gradient-to-br from-purple-400 to-purple-600 rounded-xl">
+                <Activity className="w-5 h-5 text-white" />
               </div>
               <h3 className="text-lg font-semibold text-gray-900">传感器控制</h3>
               <span className={`px-2 py-0.5 rounded-full text-xs font-medium ${
@@ -776,7 +779,7 @@ export default function DigitalTwin() {
                     })
                   }}
                   disabled={loading || !isInitialized || isSensorsRunning}
-                  className="px-3 py-1 text-xs bg-green-100 text-green-700 rounded-lg hover:bg-green-200 disabled:opacity-50 disabled:cursor-not-allowed"
+                  className="px-3 py-1.5 text-xs bg-gradient-to-r from-green-500 to-green-600 text-white rounded-lg hover:from-green-600 hover:to-green-700 disabled:opacity-50 disabled:cursor-not-allowed shadow-sm"
                 >
                   开启
                 </button>
@@ -786,7 +789,7 @@ export default function DigitalTwin() {
                     handleStopSensors()
                   }}
                   disabled={!isSensorsRunning}
-                  className="px-3 py-1 text-xs bg-yellow-100 text-yellow-700 rounded-lg hover:bg-yellow-200 disabled:opacity-50 disabled:cursor-not-allowed"
+                  className="px-3 py-1.5 text-xs bg-gradient-to-r from-yellow-500 to-yellow-600 text-white rounded-lg hover:from-yellow-600 hover:to-yellow-700 disabled:opacity-50 disabled:cursor-not-allowed shadow-sm"
                 >
                   停止
                 </button>
@@ -801,7 +804,7 @@ export default function DigitalTwin() {
                     })
                   }}
                   disabled={loading || !isInitialized}
-                  className="px-3 py-1 text-xs bg-red-100 text-red-700 rounded-lg hover:bg-red-200 disabled:opacity-50 disabled:cursor-not-allowed"
+                  className="px-3 py-1.5 text-xs bg-gradient-to-r from-red-500 to-red-600 text-white rounded-lg hover:from-red-600 hover:to-red-700 disabled:opacity-50 disabled:cursor-not-allowed shadow-sm"
                 >
                   下线
                 </button>
@@ -875,15 +878,15 @@ export default function DigitalTwin() {
           </div>
 
           {/* 阀门控制 */}
-          <div className="bg-white rounded-xl p-6 shadow-sm mb-6">
+          <div className="bg-white rounded-2xl p-6 shadow-lg shadow-gray-100/50 border border-gray-100 mb-6">
             <h3 className="text-lg font-semibold text-gray-900 mb-4">阀门控制</h3>
             <button
               onClick={handleToggleValves}
               disabled={loading || !isInitialized}
-              className={`flex items-center gap-3 px-6 py-3 rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed ${
+              className={`flex items-center gap-3 px-6 py-3 rounded-xl transition-all disabled:opacity-50 disabled:cursor-not-allowed shadow-sm ${
                 isValvesOpen 
-                  ? 'bg-orange-100 hover:bg-orange-200 text-orange-700' 
-                  : 'bg-green-100 hover:bg-green-200 text-green-700'
+                  ? 'bg-gradient-to-r from-orange-400 to-orange-500 hover:from-orange-500 hover:to-orange-600 text-white' 
+                  : 'bg-gradient-to-r from-green-400 to-green-500 hover:from-green-500 hover:to-green-600 text-white'
               }`}
             >
               {isValvesOpen ? <PowerOff className="w-5 h-5" /> : <Power className="w-5 h-5" />}
@@ -892,7 +895,7 @@ export default function DigitalTwin() {
           </div>
 
           {/* 模拟模式 */}
-          <div className="bg-white rounded-xl p-6 shadow-sm">
+          <div className="bg-white rounded-2xl p-6 shadow-lg shadow-gray-100/50 border border-gray-100">
             <h3 className="text-lg font-semibold text-gray-900 mb-4">模拟模式</h3>
             <div className="flex flex-wrap gap-3">
               <button

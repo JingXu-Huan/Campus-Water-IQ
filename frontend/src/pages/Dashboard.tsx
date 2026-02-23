@@ -214,23 +214,16 @@ export default function Dashboard() {
     const file = e.target.files?.[0]
     if (!file) return
     
-    // Convert to base64
-    const reader = new FileReader()
-    reader.onload = async () => {
-      const base64 = reader.result as string
-      setProfileLoading(true)
-      setProfileMessage(null)
-      try {
-        await authApi.updateAvatar({ avatar: base64 })
-        updateProfile(undefined, base64)
-        setProfileMessage({ type: 'success', text: '头像更新成功' })
-      } catch (error: any) {
-        setProfileMessage({ type: 'error', text: error.message || '更新失败' })
-      } finally {
-        setProfileLoading(false)
-      }
+    setProfileLoading(true)
+    setProfileMessage(null)
+    try {
+      await authApi.uploadAvatar(file, uid)
+      setProfileMessage({ type: 'success', text: '头像更新成功' })
+    } catch (error: any) {
+      setProfileMessage({ type: 'error', text: error.message || '更新失败' })
+    } finally {
+      setProfileLoading(false)
     }
-    reader.readAsDataURL(file)
   }
 
   // 获取楼宇实时数据
@@ -331,15 +324,15 @@ export default function Dashboard() {
   return (
     <div className="h-screen bg-gray-50 flex overflow-hidden">
       {/* Sidebar */}
-      <aside className={`${sidebarOpen ? 'w-64' : 'w-20'} bg-white shadow-lg transition-all duration-300 flex flex-col h-screen`}>
+      <aside className={`${sidebarOpen ? 'w-64' : 'w-20'} bg-gradient-to-b from-primary-600 to-primary-800 shadow-xl transition-all duration-300 flex flex-col h-screen`}>
         {/* Sidebar Header */}
-        <div className="p-4 border-b border-gray-200">
+        <div className="p-4 border-b border-white/10">
           <div className="flex items-center gap-3">
-            <div className="flex items-center justify-center w-10 h-10 bg-primary-100 rounded-lg flex-shrink-0">
-              <Droplets className="w-6 h-6 text-primary-600" />
+            <div className="flex items-center justify-center w-10 h-10 bg-white/20 backdrop-blur-sm rounded-xl flex-shrink-0">
+              <Droplets className="w-6 h-6 text-white" />
             </div>
             {sidebarOpen && (
-              <h1 className="text-lg font-bold text-gray-900">水务平台</h1>
+              <h1 className="text-lg font-bold text-white">水务平台</h1>
             )}
           </div>
         </div>
@@ -353,10 +346,10 @@ export default function Dashboard() {
                 <li key={item.id}>
                   <button
                     onClick={() => handleMenuClick(item)}
-                    className={`w-full flex items-center gap-2 px-3 py-2 rounded-lg transition-all duration-200 ${
+                    className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl transition-all duration-200 ${
                       activeMenu === item.id
-                        ? 'bg-primary-50 text-primary-600 border-r-2 border-primary-600'
-                        : 'text-gray-600 hover:bg-gray-50 hover:text-gray-900'
+                        ? 'bg-white/20 text-white border border-white/30 shadow-lg'
+                        : 'text-white/70 hover:bg-white/10 hover:text-white'
                     }`}
                   >
                     <Icon className="w-5 h-5 flex-shrink-0" />
@@ -371,8 +364,8 @@ export default function Dashboard() {
 
           {/* Campus Selector in Sidebar */}
           {sidebarOpen && (
-            <div className="border-t border-gray-200">
-              <p className="px-2 py-2 text-xs font-medium text-gray-400 uppercase">切换校区</p>
+            <div className="border-t border-white/10 mt-4 pt-2">
+              <p className="px-2 py-2 text-xs font-medium text-white/40 uppercase">切换校区</p>
               <div className="space-y-1">
                 {campuses.map((campus) => (
                   <button
@@ -380,14 +373,14 @@ export default function Dashboard() {
                     onClick={() => setSelectedCampus(campus.id)}
                     className={`w-full flex items-center gap-2 px-3 py-2 rounded-lg transition-all duration-200 ${
                       selectedCampus === campus.id
-                        ? 'bg-primary-50 text-primary-700 border border-primary-200'
-                        : 'text-gray-600 hover:bg-gray-50 hover:text-gray-900 border border-transparent'
+                        ? 'bg-white/20 text-white border border-white/30'
+                        : 'text-white/70 hover:bg-white/10 hover:text-white border border-transparent'
                     }`}
                   >
-                    <div className={`w-2 h-2 rounded-full ${selectedCampus === campus.id ? 'bg-primary-600' : 'bg-gray-300'}`}></div>
+                    <div className={`w-2 h-2 rounded-full ${selectedCampus === campus.id ? 'bg-white' : 'bg-white/40'}`}></div>
                     <div className="flex-1 text-left">
                       <div className="text-sm font-medium">{campus.name}</div>
-                      <div className="text-xs text-gray-400">{campus.code}</div>
+                      <div className="text-xs text-white/50">{campus.code}</div>
                     </div>
                   </button>
                 ))}
@@ -397,21 +390,21 @@ export default function Dashboard() {
         </nav>
 
         {/* Sidebar Footer */}
-        <div className="p-2 border-t border-gray-200 flex-shrink-0">
-          <div className="flex items-center gap-3 px-4 py-3">
+        <div className="p-2 border-t border-white/10 flex-shrink-0">
+          <div className="flex items-center gap-3 px-4 py-3 rounded-xl hover:bg-white/10 transition-all cursor-pointer">
             {avatar ? (
-              <img src={avatar} alt="头像" className="w-8 h-8 rounded-full object-cover" />
+              <img src={avatar} alt="头像" className="w-9 h-9 rounded-full object-cover ring-2 ring-white/30" />
             ) : (
-              <div className="w-8 h-8 bg-gray-200 rounded-full flex items-center justify-center">
-                <User className="w-4 h-4 text-gray-600" />
+              <div className="w-9 h-9 bg-white/20 rounded-full flex items-center justify-center ring-2 ring-white/30">
+                <User className="w-4 h-4 text-white" />
               </div>
             )}
             {sidebarOpen && (
               <div className="flex-1 min-w-0">
-                <p className="text-sm font-medium text-gray-900 truncate">
+                <p className="text-sm font-medium text-white truncate">
                   {nickname || '用户'}
                 </p>
-                <p className="text-xs text-gray-500 truncate">
+                <p className="text-xs text-white/60 truncate">
                   UID: {uid || '未知'}
                 </p>
               </div>
@@ -421,14 +414,14 @@ export default function Dashboard() {
             <div className="flex gap-2 mt-2">
               <button
                 onClick={openProfileModal}
-                className="flex-1 flex items-center justify-center gap-2 px-4 py-2 text-gray-600 hover:bg-gray-100 rounded-lg transition-all duration-200"
+                className="flex-1 flex items-center justify-center gap-2 px-4 py-2 text-white/70 hover:bg-white/10 hover:text-white rounded-xl transition-all duration-200"
               >
                 <User className="w-4 h-4" />
                 <span className="text-sm font-medium">个人中心</span>
               </button>
               <button
                 onClick={handleLogout}
-                className="flex items-center justify-center px-3 text-gray-600 hover:text-red-600 hover:bg-red-50 rounded-lg transition-all duration-200"
+                className="flex items-center justify-center px-3 text-white/70 hover:text-red-400 hover:bg-red-500/20 rounded-xl transition-all duration-200"
               >
                 <LogOut className="w-4 h-4" />
               </button>
@@ -438,25 +431,25 @@ export default function Dashboard() {
       </aside>
 
       {/* Main Content */}
-      <div className="flex-1 flex flex-col">
+      <div className="flex-1 flex flex-col bg-gray-50">
         {/* Top Header */}
-        <header className="bg-white shadow-sm">
+        <header className="bg-gradient-to-r from-primary-600 to-primary-800 shadow-lg">
           <div className="px-6 py-4 flex items-center justify-between">
             <div className="flex items-center gap-4">
               <button
                 onClick={() => setSidebarOpen(!sidebarOpen)}
-                className="p-2 text-gray-600 hover:text-gray-900 hover:bg-gray-100 rounded-lg transition-colors"
+                className="p-2 text-white/80 hover:text-white hover:bg-white/10 rounded-xl transition-all"
               >
                 {sidebarOpen ? <X className="w-5 h-5" /> : <Menu className="w-5 h-5" />}
               </button>
-              <h2 className="text-xl font-semibold text-gray-900">
+              <h2 className="text-xl font-bold text-white">
                 {menuItems.find(item => item.id === activeMenu)?.label || '仪表盘'}
               </h2>
               
               {/* Current Campus Indicator */}
-              <div className="flex items-center gap-2 px-3 py-1.5 bg-gray-100 rounded-lg">
-                <div className="w-2 h-2 bg-primary-600 rounded-full"></div>
-                <span className="text-sm text-gray-600">{currentCampus?.name}</span>
+              <div className="flex items-center gap-2 px-3 py-1.5 bg-white/10 backdrop-blur-sm rounded-xl">
+                <div className="w-2 h-2 bg-white rounded-full"></div>
+                <span className="text-sm text-white/80">{currentCampus?.name}</span>
               </div>
             </div>
             

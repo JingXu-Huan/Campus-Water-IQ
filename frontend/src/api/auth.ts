@@ -8,6 +8,31 @@ const api = axios.create({
   },
 })
 
+// 用于文件上传的 axios 实例
+const fileApi = axios.create({
+  baseURL: '/api',
+  timeout: 30000,
+})
+
+fileApi.interceptors.request.use(
+  (config) => {
+    const token = localStorage.getItem('auth-token')
+    if (token) {
+      config.headers.Authorization = `Bearer ${token}`
+    }
+    return config
+  },
+  (error) => Promise.reject(error)
+)
+
+fileApi.interceptors.response.use(
+  (response) => response.data,
+  (error) => {
+    const message = error.response?.data?.message || '请求失败，请稍后重试'
+    return Promise.reject(new Error(message))
+  }
+)
+
 api.interceptors.request.use(
   (config) => {
     const token = localStorage.getItem('auth-token')
@@ -108,6 +133,18 @@ export const authApi = {
   // 更新头像
   updateAvatar: (data: UpdateAvatarRequest) => 
     api.put('/user/avatar', data),
+  
+  // 上传头像 (MultipartFile)
+  uploadAvatar: (file: File, uid: string) => {
+    const formData = new FormData()
+    formData.append('image', file)
+    formData.append('uid', uid)
+    return fileApi.post('/user/avatar', formData, {
+      headers: {
+        'Content-Type': 'multipart/form-data',
+      },
+    })
+  },
 }
 
 export default api

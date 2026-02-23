@@ -186,6 +186,7 @@ export interface WaterQualityData {
   chlorine: number     // 含氯量 mg/L
   temperature: number  // 温度 °C
   status: 'online' | 'offline'
+  score?: number       // 水质分数
 }
 
 // 楼宇配置 VO
@@ -495,6 +496,20 @@ export const iotApi = {
     }
   },
 
+  // 获取水质分数（按设备ID）
+  getWaterQuality: async (deviceId: string): Promise<number> => {
+    try {
+      const res = await iotDataApi.get<number>('/Data/getWaterQuality', {
+        params: { deviceId }
+      })
+      const value = res?.data ?? res ?? 0
+      return typeof value === 'number' ? value : Number(value) || 0
+    } catch (error) {
+      console.error('获取水质分数失败:', error)
+      return 0
+    }
+  },
+
   // 获取某设备的环比增长率
   getAnnulus: async (deviceId: string): Promise<number> => {
     try {
@@ -714,7 +729,7 @@ export const iotApi = {
     try {
       const res = await iotDeviceApi.post('/simulator/meter/offLine', { ids: deviceIds }) as any
       return { 
-        success: res?.code === '00000' || res?.code === '0' || res?.code === 'DEV_1002' || res?.code === '200' || res?.code === 'DEV_1001' || res?.code === 'MTR_4001', 
+        success: res?.code === '00000' || res?.code === '0' || res?.code === 'DEV_1002' || res?.code === 'DEV_1005' || res?.code === '200' || res?.code === 'DEV_1001' || res?.code === 'MTR_4001', 
         message: res?.message || res?.msg || '水表下线成功' 
       }
     } catch (error: any) {
@@ -732,7 +747,7 @@ export const iotApi = {
       // 传感器下线用 POST /simulator/quality/stopAll
       const res = await iotDeviceApi.post('/simulator/quality/stopAll', { ids: deviceIds }) as any
       return { 
-        success: res?.code === '00000' || res?.code === '0' || res?.code === 'DEV_1002' || res?.code === '200' || res?.code === 'DEV_1001' || res?.code === 'MTR_4001', 
+        success: res?.code === '00000' || res?.code === '0' || res?.code === 'DEV_1002' || res?.code === 'DEV_1005' || res?.code === '200' || res?.code === 'DEV_1001' || res?.code === 'MTR_4001', 
         message: res?.message || res?.msg || '传感器下线成功' 
       }
     } catch (error: any) {

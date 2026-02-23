@@ -1,3 +1,6 @@
+server:
+  port: 18099
+
 dubbo:
   application:
     name: auth-service

@@ -92,4 +92,7 @@ public class User implements Serializable {
     */
     @NotNull(message="[1正常 0禁用 2冻结]不能为空")
     private Integer status;
+
+    @NotNull(message="头像URL地址")
+    private String avatar;
 }

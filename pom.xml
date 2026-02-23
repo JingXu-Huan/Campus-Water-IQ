@@ -45,7 +45,7 @@
         <spring-cloud-alibaba.version>2022.0.0.0</spring-cloud-alibaba.version>
         <rocketmq.version>2.3.4</rocketmq.version>
         <knife4j.version>4.4.0</knife4j.version>
-        <hutool.version>5.8.23</hutool.version>
+        <hutool.version>5.8.43</hutool.version>
         <caffeine.version>3.1.8</caffeine.version>
         <dubbo.version>3.3.6</dubbo.version>
         <lombok.version>1.18.32</lombok.version>

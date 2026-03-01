@@ -257,19 +257,19 @@ public class VirtualWaterQualityDeviceServiceImpl extends ServiceImpl<DeviceMapp
         double ph, turbidity, chlorine;
         if (season == 1) {
             ph = ThreadLocalRandom.current().nextDouble(6.8, 7.2);
-            turbidity = ThreadLocalRandom.current().nextDouble(0.3, 0.8);
+            turbidity = ThreadLocalRandom.current().nextDouble(0.3, 0.6);
             chlorine = ThreadLocalRandom.current().nextDouble(0.3, 0.45);
         } else if (season == 2) {
             ph = ThreadLocalRandom.current().nextDouble(7.2, 7.8);
-            turbidity = ThreadLocalRandom.current().nextDouble(0.5, 1.0);
+            turbidity = ThreadLocalRandom.current().nextDouble(0.5, 0.8);
             chlorine = ThreadLocalRandom.current().nextDouble(0.4, 0.7);
         } else if (season == 3) {
             ph = ThreadLocalRandom.current().nextDouble(7.0, 7.5);
-            turbidity = ThreadLocalRandom.current().nextDouble(0.2, 0.5);
+            turbidity = ThreadLocalRandom.current().nextDouble(0.2, 0.4);
             chlorine = ThreadLocalRandom.current().nextDouble(0.3, 0.45);
         } else {
             ph = ThreadLocalRandom.current().nextDouble(7.4, 8.0);
-            turbidity = ThreadLocalRandom.current().nextDouble(0.1, 0.3);
+            turbidity = ThreadLocalRandom.current().nextDouble(0.1, 0.25);
             chlorine = ThreadLocalRandom.current().nextDouble(0.2, 0.35);
         }
         dataBo.setPh(keep3(ph));
@@ -299,7 +299,7 @@ public class VirtualWaterQualityDeviceServiceImpl extends ServiceImpl<DeviceMapp
         scheduler.scheduleAtFixedRate(() -> {
             long now = System.currentTimeMillis();
             Long last = this.reportTime.get(deviceId);
-            long reportTime = (now - last) / 1000 > time  ? now : last;
+            long reportTime = (now - last) / 1000 > time ? now : last;
             try {
                 //只有不在线的设备，我们才停止心跳的上报
                 if (!isDeviceOnline(deviceId)) {

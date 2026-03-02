@@ -52,12 +52,13 @@ public class DeviceReservationServiceImpl extends ServiceImpl<DeviceReservationM
 
     @PostConstruct
     public void init() {
-        pool = getExecutorPools("userReport-work-Thread", 1, 10, 120, 1000);
+        pool = getExecutorPools("userReport-work-Thread", 10, 10, 120, 1000);
     }
 
     @Override
     public Result<Boolean> addAReport(UserReportDTO userReportDTO) {
         String deviceCode = userReportDTO.getDeviceCode();
+        String uid = userReportDTO.getUid();
         int type = Integer.parseInt(deviceCode.substring(0, 1));
         DeviceReservation deviceReservation = getDeviceReservation(userReportDTO, deviceCode, type);
         LambdaQueryWrapper<DeviceReservation> eq = new LambdaQueryWrapper<DeviceReservation>()
@@ -65,13 +66,14 @@ public class DeviceReservationServiceImpl extends ServiceImpl<DeviceReservationM
                 .eq(DeviceReservation::getDeviceCode, userReportDTO.getDeviceCode())
                 .eq(DeviceReservation::getStatus, userReportDTO.getStatus())
                 .eq(DeviceReservation::getFaultDesc, userReportDTO.getDesc());
-        //todo 将1L替换成用户ID
-        RLock lock = redissonClient.getLock("user:add:reservation" + 1L);
+
+        RLock lock = redissonClient.getLock("user:add:reservation" + uid);
         lock.lock();
         try {
             if (this.exists(eq)) {
                 return Result.fail(false, "当前报修单已存在");
-            } else save(deviceReservation);
+            }
+            else save(deviceReservation);
         } finally {
             lock.unlock();
         }

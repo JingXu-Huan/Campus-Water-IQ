@@ -23,6 +23,9 @@ public class UserReportDTO implements Serializable {
     //设备唯一编码
     String deviceCode;
 
+    //
+    String uid;
+
     //报修人姓名
     @Size(max = 64,message = "报修人姓名长度不能超过64个字符")
     String reportName;

@@ -15,6 +15,7 @@ import com.ncwu.ingestgroup.entity.IotDeviceData;
 import com.ncwu.ingestgroup.exception.DeserializationFailedException;
 import com.ncwu.ingestgroup.mapper.IotDataMapper;
 import jakarta.annotation.PostConstruct;
+import jakarta.annotation.PreDestroy;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.rocketmq.spring.annotation.RocketMQMessageListener;
@@ -28,6 +29,9 @@ import java.time.ZoneId;
 import java.time.ZonedDateTime;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.concurrent.Executors;
+import java.util.concurrent.ScheduledExecutorService;
+import java.util.concurrent.TimeUnit;
 
 /**
  * @author jingxu
@@ -44,18 +48,45 @@ public class MeterDataConsumer extends ServiceImpl<IotDataMapper, IotDeviceData>
     private final ObjectMapper objectMapper;
     private final List<IotDeviceData> buffer = new ArrayList<>(200);
     private InfluxDBClient influxDBClient;
+    private WriteApiBlocking writeApi;
     private final RocketMQTemplate rocketMQTemplate;
+    private final List<Point> points = new ArrayList<>(5000);
+    private final Object lock1 = new Object();
+    private final Object lock2 = new Object();
 
     @PostConstruct
     public void init() {
         influxDBClient = InfluxDBClientFactory
-                .create("http://localhost:8086", influxToken.toCharArray());
+                .create("http://localhost:8086", influxToken.toCharArray(),"ncwu","water");
+        writeApi = influxDBClient.getWriteApiBlocking();
+        startFlushRemainingData();
+    }
+
+    /**
+     * 守护线程，每5s跑一次任务
+     */
+    private void startFlushRemainingData() {
+        try (ScheduledExecutorService executorService = Executors.newSingleThreadScheduledExecutor(r -> {
+            Thread thread = new Thread(r, "reportDataThread");
+            thread.setDaemon(true);
+            return thread;
+        })) {
+            executorService.scheduleAtFixedRate(() -> {
+                if (!points.isEmpty()) {
+                    writeApi.writePoints(points);
+                }
+            }, 5, 5, TimeUnit.SECONDS);
+        }
+    }
+
+    @PreDestroy
+    public void flushRemainingData() {
+        writeApi.writePoints(points);
+        points.clear();
     }
 
     @Override
     public void onMessage(String s) {
-        String bucket = "water";
-        String org = "ncwu";
         System.out.println(s);
         MeterDataBo meterDataBo;
         try {
@@ -71,7 +102,7 @@ public class MeterDataConsumer extends ServiceImpl<IotDataMapper, IotDeviceData>
         iotDeviceData.setCollectTime(meterDataBo.getTimeStamp());
         iotDeviceData.setDeviceType("WATER_METER");
         //批量保存原始数据到数据库
-        synchronized (this) {
+        synchronized (lock1) {
             buffer.add(iotDeviceData);
             if (buffer.size() >= 200) {
                 MeterDataConsumer meterDataConsumer = (MeterDataConsumer) AopContext.currentProxy();
@@ -107,16 +138,20 @@ public class MeterDataConsumer extends ServiceImpl<IotDataMapper, IotDeviceData>
         }
         //正常数据：送到influxdb
         ZonedDateTime zdt = meterDataBo.getTimeStamp().atZone(ZoneId.of("Asia/Shanghai"));
-        Point point = Point
-                .measurement("water_meter")
-                .addTag("deviceId", meterDataBo.getDeviceId())
-                .addField("flow", meterDataBo.getFlow())
-                .addField("usage", meterDataBo.getTotalUsage())
-                .addField("tem", meterDataBo.getWaterTem())
-                .addField("pressure",meterDataBo.getPressure())
-                .time(zdt.toInstant(), WritePrecision.MS);
-        WriteApiBlocking writeApi = influxDBClient.getWriteApiBlocking();
-        writeApi.writePoint(bucket, org, point);
+        synchronized (lock2) {
+            points.add(Point
+                    .measurement("water_meter")
+                    .addTag("deviceId", meterDataBo.getDeviceId())
+                    .addField("flow", meterDataBo.getFlow())
+                    .addField("usage", meterDataBo.getTotalUsage())
+                    .addField("tem", meterDataBo.getWaterTem())
+                    .addField("pressure", meterDataBo.getPressure())
+                    .time(zdt.toInstant(), WritePrecision.MS));
+            if (points.size() >= 500) {
+                writeApi.writePoints(points);
+                points.clear();
+            }
+        }
     }
 
     private void generateAndSendErrorBO(String s, MeterDataBo meterDataBo) {

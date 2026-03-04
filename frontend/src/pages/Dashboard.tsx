@@ -5,6 +5,7 @@ import { useState, useEffect } from 'react'
 import { iotApi, generateDeviceId } from '@/api/iot'
 import { authApi } from '@/api/auth'
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, LineChart, Line } from 'recharts'
+import repair from "@/api/repair.ts";
 
 export default function Dashboard() {
   const navigate = useNavigate()
@@ -154,7 +155,7 @@ export default function Dashboard() {
 
       // 获取校园告警
       try {
-        const warningList = await iotApi.getCampusWarnings(currentCampus.schoolId)
+        const warningList = await repair.getCampusWarnings(currentCampus.schoolId)
         setWarnings(warningList || [])
         setAlertCount(warningList?.length || 0)
       } catch (err) {

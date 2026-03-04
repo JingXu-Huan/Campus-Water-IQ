@@ -14,6 +14,6 @@ import org.apache.ibatis.annotations.Select;
  */
 public interface DeviceReservationMapper extends BaseMapper<DeviceReservation> {
 
-    @Select("select count(*) from device_reservation where status != 'DONE' or status != 'CANCELLED'")
+    @Select("select count(*) from device_reservation where status != 'DONE'  and status!='CANCELLED'")
     Long countUnClosed();
 }

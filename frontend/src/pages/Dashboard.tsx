@@ -1,6 +1,6 @@
 import { useNavigate } from 'react-router-dom'
 import { useAuthStore } from '@/store/authStore'
-import { Droplets, LogOut, User, BarChart3, AlertTriangle, Settings, LayoutDashboard, Activity, Map, FileText, HelpCircle, Menu, X, RefreshCw, TrendingUp, TrendingDown, WifiOff, Camera, Eye, EyeOff, Check, Wrench } from 'lucide-react'
+import { Droplets, LogOut, User, BarChart3, AlertTriangle, Settings, LayoutDashboard, Activity, Map, FileText, HelpCircle, Menu, X, RefreshCw, TrendingUp, TrendingDown, WifiOff, Camera, Eye, EyeOff, Check, Wrench, Sun } from 'lucide-react'
 import { useState, useEffect } from 'react'
 import { iotApi, generateDeviceId } from '@/api/iot'
 import { authApi } from '@/api/auth'
@@ -24,10 +24,14 @@ export default function Dashboard() {
   const [profileMessage, setProfileMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null)
 
   const campuses = [
-    { id: 'huayuan', name: '花园校区', code: 'HY', schoolId: 1 },
-    { id: 'longzi', name: '龙子湖校区', code: 'LZ', schoolId: 2 },
-    { id: 'jianghuai', name: '江淮校区', code: 'JH', schoolId: 3 }
+    { id: 'huayuan', name: '花园校区', code: 'HY', schoolId: 1, city: '郑州', lat: 34.76, lon: 113.62 },
+    { id: 'longzi', name: '龙子湖校区', code: 'LZ', schoolId: 2, city: '郑州', lat: 34.76, lon: 113.62 },
+    { id: 'jianghuai', name: '江淮校区', code: 'JH', schoolId: 3, city: '信阳', lat: 32.13, lon: 114.09 }
   ]
+
+  // 天气状态
+  const [weather, setWeather] = useState<{ temp: number; condition: string; humidity: number; wind: string } | null>(null)
+  const [weatherLoading, setWeatherLoading] = useState(false)
 
   const [todayUsage, setTodayUsage] = useState<number>(0)
   const [yesterdayUsage, setYesterdayUsage] = useState<number>(0)
@@ -232,6 +236,45 @@ export default function Dashboard() {
     }
   }
 
+  // 获取天气数据
+  const fetchWeather = async (lat: number, lon: number) => {
+    setWeatherLoading(true)
+    try {
+      // 使用 Open-Meteo 免费天气 API（无需 API key，国内速度快）
+      const res = await fetch(
+        `https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lon}&current=temperature_2m,relative_humidity_2m,weather_code,wind_speed_10m&timezone=Asia/Shanghai`
+      )
+      const data = await res.json()
+      
+      if (data.current) {
+        const c = data.current
+        // WMO 天气代码转换
+        const weatherCode = c.weather_code
+        const conditions: Record<number, string> = {
+          0: '晴', 1: '晴间多云', 2: '多云', 3: '阴',
+          45: '雾', 48: '霜雾',
+          51: '小毛毛雨', 53: '中雨', 55: '大雨',
+          61: '小雨', 63: '中雨', 65: '大雨',
+          71: '小雪', 73: '中雪', 75: '大雪',
+          80: '阵雨', 81: '阵雨', 82: '强阵雨',
+          95: '雷暴', 96: '雷暴+冰雹', 99: '强雷暴'
+        }
+        
+        setWeather({
+          temp: Math.round(c.temperature_2m),
+          condition: conditions[weatherCode] || '未知',
+          humidity: c.relative_humidity_2m,
+          wind: Math.round(c.wind_speed_10m) + ' km/h'
+        })
+      }
+    } catch (error) {
+      console.error('获取天气失败:', error)
+      setWeather(null)
+    } finally {
+      setWeatherLoading(false)
+    }
+  }
+
   // 获取楼宇实时数据
   const fetchBuildingStats = async () => {
     if (!currentCampus) return
@@ -308,6 +351,10 @@ export default function Dashboard() {
   useEffect(() => {
     fetchWaterUsageData()
     fetchBuildingStats()
+    const campus = campuses.find(c => c.id === selectedCampus)
+    if (campus) {
+      fetchWeather(campus.lat, campus.lon)
+    }
   }, [selectedCampus])
 
   const menuItems = [
@@ -458,6 +505,28 @@ export default function Dashboard() {
                 <div className="w-2 h-2 bg-white rounded-full"></div>
                 <span className="text-sm text-white/80">{currentCampus?.name}</span>
               </div>
+              
+              {/* Weather Info */}
+              {weather && (
+                <div className="flex items-center gap-3 px-3 py-1.5 bg-white/10 backdrop-blur-sm rounded-xl">
+                  <Sun className="w-5 h-5 text-yellow-300" />
+                  <div className="flex items-center gap-2">
+                    <span className="text-lg font-bold text-white">{weather.temp}°C</span>
+                    <span className="text-xs text-white/70">{weather.condition}</span>
+                  </div>
+                  <div className="flex items-center gap-1 text-xs text-white/50">
+                    <span>💧 {weather.humidity}%</span>
+                    <span className="mx-1">|</span>
+                    <span>💨 {weather.wind}</span>
+                  </div>
+                </div>
+              )}
+              {weatherLoading && (
+                <div className="flex items-center gap-2 px-3 py-1.5 bg-white/10 backdrop-blur-sm rounded-xl">
+                  <RefreshCw className="w-4 h-4 text-white/60 animate-spin" />
+                  <span className="text-xs text-white/60">加载天气...</span>
+                </div>
+              )}
             </div>
             
             {!sidebarOpen && (

@@ -4,7 +4,7 @@ import { useAuthStore } from '@/store/authStore'
 import { repairApi, RepairOrder, RepairStatus, statusLabels, severityLabels, severityColors } from '@/api/repair'
 import { 
   Droplets, LayoutDashboard, Activity, Map, FileText, Settings, HelpCircle, 
-  Menu, X, RefreshCw, CheckCircle, Clock, AlertTriangle, Filter
+  Menu, X, RefreshCw, CheckCircle, Clock, AlertTriangle, Filter, Zap, Smile
 } from 'lucide-react'
 
 // 状态选项
@@ -325,8 +325,19 @@ export default function Repair() {
                 加载中...
               </div>
             ) : repairOrders.length === 0 ? (
-              <div className="p-8 text-center text-gray-500">
-                暂无报修单数据
+              <div className="p-12 text-center">
+                <div className="flex justify-center mb-4">
+                  <div className="p-4 bg-green-100 rounded-full">
+                    <CheckCircle className="w-12 h-12 text-green-600" />
+                  </div>
+                </div>
+                <h3 className="text-lg font-semibold text-gray-900 mb-2">一切正常运行中！</h3>
+                <p className="text-gray-500 mb-4">目前没有待处理的报修单，设备运行状态良好</p>
+                <div className="flex justify-center gap-2 text-sm text-gray-400">
+                  <Zap className="w-4 h-4" />
+                  <span>保持这个状态，继续加油！</span>
+                  <Smile className="w-4 h-4" />
+                </div>
               </div>
             ) : (
               <div className="overflow-x-auto">

@@ -515,7 +515,7 @@ export default function DigitalTwin() {
 
           {/* 状态概览 */}
           <div className="grid grid-cols-2 md:grid-cols-5 gap-4 mb-6">
-            <div className="bg-white rounded-2xl p-5 shadow-lg shadow-gray-100/50 border border-gray-100">
+            <div className="glass-card rounded-2xl p-5">
               <div className="flex items-center gap-3 mb-2">
                 <div className={`p-3 rounded-xl ${isInitialized ? 'bg-gradient-to-br from-green-400 to-green-600' : 'bg-gray-100'}`}>
                   <Cpu className={`w-5 h-5 ${isInitialized ? 'text-white' : 'text-gray-400'}`} />
@@ -527,7 +527,7 @@ export default function DigitalTwin() {
               </p>
             </div>
 
-            <div className="bg-white rounded-2xl p-5 shadow-lg shadow-gray-100/50 border border-gray-100">
+            <div className="glass-card rounded-2xl p-5">
               <div className="flex items-center gap-3 mb-2">
                 <div className="p-3 rounded-xl bg-gradient-to-br from-blue-400 to-blue-600">
                   <Droplets className="w-5 h-5 text-white" />
@@ -537,7 +537,7 @@ export default function DigitalTwin() {
               <p className="text-xl font-bold text-gray-900">{deviceCount}</p>
             </div>
 
-            <div className="bg-white rounded-2xl p-5 shadow-lg shadow-gray-100/50 border border-gray-100">
+            <div className="glass-card rounded-2xl p-5">
               <div className="flex items-center gap-3 mb-2">
                 <div className={`p-3 rounded-xl ${isMetersRunning ? 'bg-gradient-to-br from-green-400 to-green-600' : 'bg-gray-100'}`}>
                   <Play className={`w-5 h-5 ${isMetersRunning ? 'text-white' : 'text-gray-400'}`} />
@@ -549,7 +549,7 @@ export default function DigitalTwin() {
               </p>
             </div>
 
-            <div className="bg-white rounded-2xl p-5 shadow-lg shadow-gray-100/50 border border-gray-100">
+            <div className="glass-card rounded-2xl p-5">
               <div className="flex items-center gap-3 mb-2">
                 <div className="p-3 rounded-xl bg-gradient-to-br from-purple-400 to-purple-600">
                   <Activity className="w-5 h-5 text-white" />
@@ -559,7 +559,7 @@ export default function DigitalTwin() {
               <p className="text-xl font-bold text-gray-900">{(buildingConfig.educationBuildings + buildingConfig.experimentBuildings + buildingConfig.dormitoryBuildings) * buildingConfig.floors}</p>
             </div>
 
-            <div className="bg-white rounded-2xl p-5 shadow-lg shadow-gray-100/50 border border-gray-100">
+            <div className="glass-card rounded-2xl p-5">
               <div className="flex items-center gap-3 mb-2">
                 <div className={`p-3 rounded-xl ${isSensorsRunning ? 'bg-gradient-to-br from-green-400 to-green-600' : 'bg-gray-100'}`}>
                   <Play className={`w-5 h-5 ${isSensorsRunning ? 'text-white' : 'text-gray-400'}`} />

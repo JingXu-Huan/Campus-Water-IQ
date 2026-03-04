@@ -375,7 +375,7 @@ export default function Monitoring() {
               {/* 六个监测卡片 */}
               <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4 mb-4">
                 {/* 总流量 */}
-                <div className="bg-white rounded-xl p-5 shadow-sm hover:shadow-md transition-shadow">
+                <div className="glass-card rounded-2xl p-5">
                   <div className="flex items-center gap-3 mb-3">
                     <div className="p-2.5 bg-blue-100 rounded-xl">
                       <Droplets className="w-5 h-5 text-blue-600" />
@@ -389,7 +389,7 @@ export default function Monitoring() {
                 </div>
 
                 {/* 平均流量 */}
-                <div className="bg-white rounded-xl p-5 shadow-sm hover:shadow-md transition-shadow">
+                <div className="glass-card rounded-2xl p-5">
                   <div className="flex items-center gap-3 mb-3">
                     <div className="p-2.5 bg-purple-100 rounded-xl">
                       <Activity className="w-5 h-5 text-purple-600" />
@@ -403,7 +403,7 @@ export default function Monitoring() {
                 </div>
 
                 {/* 平均水压 */}
-                <div className="bg-white rounded-xl p-5 shadow-sm hover:shadow-md transition-shadow">
+                <div className="glass-card rounded-2xl p-5">
                   <div className="flex items-center gap-3 mb-3">
                     <div className="p-2.5 bg-cyan-100 rounded-xl">
                       <Gauge className="w-5 h-5 text-cyan-600" />
@@ -417,7 +417,7 @@ export default function Monitoring() {
                 </div>
 
                 {/* 平均水温 */}
-                <div className="bg-white rounded-xl p-5 shadow-sm hover:shadow-md transition-shadow">
+                <div className="glass-card rounded-2xl p-5">
                   <div className="flex items-center gap-3 mb-3">
                     <div className="p-2.5 bg-orange-100 rounded-xl">
                       <Activity className="w-5 h-5 text-orange-600" />
@@ -431,7 +431,7 @@ export default function Monitoring() {
                 </div>
 
                 {/* 水质分数 */}
-                <div className="bg-white rounded-xl p-5 shadow-sm hover:shadow-md transition-shadow">
+                <div className="glass-card rounded-2xl p-5">
                   <div className="flex items-center gap-3 mb-3">
                     <div className={`p-2.5 rounded-xl ${
                       waterQualityScore >= 90 ? 'bg-gradient-to-br from-green-400 to-green-600' :
@@ -457,7 +457,7 @@ export default function Monitoring() {
                 </div>
 
                 {/* 设备在线状态 */}
-                <div className="bg-white rounded-xl p-5 shadow-sm hover:shadow-md transition-shadow">
+                <div className="glass-card rounded-2xl p-5">
                   <div className="flex items-center gap-3 mb-3">
                     <div className={`p-2.5 rounded-xl ${
                       onlineCount > 0 ? 'bg-gradient-to-br from-green-400 to-green-600' : 'bg-gray-100'

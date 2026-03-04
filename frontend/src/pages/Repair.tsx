@@ -238,7 +238,7 @@ export default function Repair() {
         <main className="flex-1 overflow-auto p-6">
           {/* 统计卡片 */}
           <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
-            <div className="bg-white rounded-xl p-5 shadow-sm">
+            <div className="glass-card rounded-2xl p-5">
               <div className="flex items-center gap-3 mb-2">
                 <div className="p-2.5 bg-red-100 rounded-xl">
                   <AlertTriangle className="w-5 h-5 text-red-600" />
@@ -247,7 +247,7 @@ export default function Repair() {
               </div>
               <p className="text-2xl font-bold text-gray-900">{unclosedCount}</p>
             </div>
-            <div className="bg-white rounded-xl p-5 shadow-sm">
+            <div className="glass-card rounded-2xl p-5">
               <div className="flex items-center gap-3 mb-2">
                 <div className="p-2.5 bg-blue-100 rounded-xl">
                   <Clock className="w-5 h-5 text-blue-600" />
@@ -258,7 +258,7 @@ export default function Repair() {
                 {repairOrders.filter(o => o.status === 'CONFIRMED').length}
               </p>
             </div>
-            <div className="bg-white rounded-xl p-5 shadow-sm">
+            <div className="glass-card rounded-2xl p-5">
               <div className="flex items-center gap-3 mb-2">
                 <div className="p-2.5 bg-yellow-100 rounded-xl">
                   <Activity className="w-5 h-5 text-yellow-600" />
@@ -269,7 +269,7 @@ export default function Repair() {
                 {repairOrders.filter(o => o.status === 'PROCESSING').length}
               </p>
             </div>
-            <div className="bg-white rounded-xl p-5 shadow-sm">
+            <div className="glass-card rounded-2xl p-5">
               <div className="flex items-center gap-3 mb-2">
                 <div className="p-2.5 bg-green-100 rounded-xl">
                   <CheckCircle className="w-5 h-5 text-green-600" />
@@ -283,7 +283,7 @@ export default function Repair() {
           </div>
 
           {/* 筛选 */}
-          <div className="bg-white rounded-xl p-4 shadow-sm mb-6">
+          <div className="glass-card rounded-2xl p-4 mb-6">
             <div className="flex items-center gap-4">
               <div className="flex items-center gap-2">
                 <Filter className="w-4 h-4 text-gray-500" />

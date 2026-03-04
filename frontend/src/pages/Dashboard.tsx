@@ -43,6 +43,7 @@ export default function Dashboard() {
   const [alertCount, setAlertCount] = useState<number>(0)
   const [deviceCount, setDeviceCount] = useState<number>(0)
   const [offlineDevices, setOfflineDevices] = useState<string[]>([])
+  const [offlineRate, setOfflineRate] = useState<number>(0)
   const [healthyScore, setHealthyScore] = useState<number>(0)
   const [loading, setLoading] = useState<boolean>(true)
   
@@ -142,6 +143,15 @@ export default function Dashboard() {
       } catch (err) {
         console.error('获取在线设备数量失败:', err)
         setDeviceCount(0)
+      }
+
+      // 获取离线率
+      try {
+        const rate = await iotApi.getOfflineRate()
+        setOfflineRate(rate)
+      } catch (err) {
+        console.error('获取离线率失败:', err)
+        setOfflineRate(0)
       }
 
       // 获取设备健康评分
@@ -407,7 +417,7 @@ export default function Dashboard() {
   return (
     <div className="h-screen bg-gray-50 flex overflow-hidden">
       {/* Sidebar */}
-      <aside className={`${sidebarOpen ? 'w-64' : 'w-20'} bg-gradient-to-b from-primary-600 to-primary-800 shadow-xl transition-all duration-300 flex flex-col h-screen`}>
+      <aside className={`${sidebarOpen ? 'w-64' : 'w-20'} bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 backdrop-blur-sm shadow-xl transition-all duration-300 flex flex-col h-screen`}>
         {/* Sidebar Header */}
         <div className="p-4 border-b border-white/10">
           <div className="flex items-center gap-3">
@@ -516,7 +526,7 @@ export default function Dashboard() {
       {/* Main Content */}
       <div className="flex-1 flex flex-col bg-gray-50">
         {/* Top Header */}
-        <header className="bg-gradient-to-r from-primary-600 to-primary-800 shadow-lg">
+        <header className="bg-gradient-to-r from-slate-900 via-slate-800 to-slate-900 shadow-lg backdrop-blur-sm">
           <div className="px-6 py-4 flex items-center justify-between">
             <div className="flex items-center gap-4">
               <button
@@ -610,15 +620,15 @@ export default function Dashboard() {
           
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-6 mb-8">
           {/* 今日用水量 */}
-          <div className="bg-white rounded-xl p-6 shadow-sm">
+          <div className="glass-card rounded-2xl p-6">
             <div className="flex items-center justify-between mb-4">
-              <div className="p-3 bg-blue-100 rounded-lg">
-                <Droplets className="w-6 h-6 text-blue-600" />
+              <div className="p-3 bg-gradient-to-br from-blue-500 to-cyan-500 rounded-xl shadow-lg">
+                <Droplets className="w-6 h-6 text-white" />
               </div>
               {loadingToday ? (
                 <RefreshCw className="w-4 h-4 text-gray-400 animate-spin" />
               ) : (
-                <div className={`flex items-center gap-1 text-sm ${todayChange.isPositive ? 'text-red-600' : 'text-green-600'}`}>
+                <div className={`flex items-center gap-1 text-sm ${todayChange.isPositive ? 'text-red-600' : 'text-white'}`}>
                   {todayChange.isPositive ? <TrendingUp className="w-4 h-4" /> : <TrendingDown className="w-4 h-4" />}
                   <span>{todayChange.value.toFixed(1)}%</span>
                 </div>
@@ -638,15 +648,15 @@ export default function Dashboard() {
           </div>
 
           {/* 本月用水量 */}
-          <div className="bg-white rounded-xl p-6 shadow-sm">
+          <div className="glass-card rounded-2xl p-6">
             <div className="flex items-center justify-between mb-4">
-              <div className="p-3 bg-purple-100 rounded-lg">
-                <BarChart3 className="w-6 h-6 text-purple-600" />
+              <div className="p-3 bg-gradient-to-br from-purple-500 to-pink-500 rounded-xl shadow-lg">
+                <BarChart3 className="w-6 h-6 text-white" />
               </div>
               {loadingMonth ? (
                 <RefreshCw className="w-4 h-4 text-gray-400 animate-spin" />
               ) : (
-                <div className={`flex items-center gap-1 text-sm ${monthChange.isPositive ? 'text-red-600' : 'text-green-600'}`}>
+                <div className={`flex items-center gap-1 text-sm ${monthChange.isPositive ? 'text-red-600' : 'text-white'}`}>
                   {monthChange.isPositive ? <TrendingUp className="w-4 h-4" /> : <TrendingDown className="w-4 h-4" />}
                   <span>{monthChange.value.toFixed(1)}%</span>
                 </div>
@@ -666,10 +676,10 @@ export default function Dashboard() {
           </div>
 
           {/* 异常告警 */}
-          <div className="bg-white rounded-xl p-6 shadow-sm">
+          <div className="glass-card rounded-2xl p-6">
             <div className="flex items-center justify-between mb-4">
-              <div className="p-3 bg-yellow-100 rounded-lg">
-                <AlertTriangle className="w-6 h-6 text-yellow-600" />
+              <div className="p-3 bg-gradient-to-br from-amber-500 to-orange-500 rounded-xl shadow-lg">
+                <AlertTriangle className="w-6 h-6 text-white" />
               </div>
               <span className="text-sm text-red-600">+{alertCount}</span>
             </div>
@@ -680,11 +690,16 @@ export default function Dashboard() {
           </div>
 
           {/* 在线设备 */}
-          <div className="bg-white rounded-xl p-6 shadow-sm">
+          <div className="glass-card rounded-2xl p-6">
             <div className="flex items-center justify-between mb-4">
-              <div className="p-3 bg-green-100 rounded-lg">
-                <User className="w-6 h-6 text-green-600" />
+              <div className="p-3 bg-gradient-to-br from-green-500 to-teal-500 rounded-xl shadow-lg">
+                <User className="w-6 h-6 text-white" />
               </div>
+              {offlineRate > 0 && (
+                <span className="px-2 py-1 bg-red-100 text-red-700 text-xs font-medium rounded-full">
+                  离线率 {offlineRate.toFixed(1)}%
+                </span>
+              )}
             </div>
             <p className="text-sm text-gray-500">在线设备</p>
             <p className="text-2xl font-bold text-gray-900">
@@ -703,10 +718,10 @@ export default function Dashboard() {
           </div>
 
           {/* 健康评分 */}
-          <div className="bg-white rounded-xl p-6 shadow-sm">
+          <div className="glass-card rounded-2xl p-6">
             <div className="flex items-center justify-between mb-4">
-              <div className="p-3 bg-emerald-100 rounded-lg">
-                <Activity className="w-6 h-6 text-emerald-600" />
+              <div className="p-3 bg-gradient-to-br from-emerald-500 to-cyan-500 rounded-xl shadow-lg">
+                <Activity className="w-6 h-6 text-white" />
               </div>
             </div>
             <p className="text-sm text-gray-500">设备健康评分</p>
@@ -718,12 +733,10 @@ export default function Dashboard() {
         </div>
 
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-          <div className="bg-white rounded-xl p-6 shadow-sm">
+          {/* 实时监测 */}
+          <div className="glass-card rounded-2xl p-6">
             <div className="flex items-center justify-between mb-4">
               <h2 className="text-lg font-semibold text-gray-900">实时监测</h2>
-              <button className="p-2 hover:bg-gray-100 rounded-lg transition-colors">
-                <Settings className="w-5 h-5 text-gray-400" />
-              </button>
             </div>
             <div className="space-y-3">
               {loadingBuildings ? (
@@ -732,23 +745,32 @@ export default function Dashboard() {
                 </div>
               ) : buildingStats.length > 0 ? (
                 buildingStats.map((building, idx) => (
-                  <div key={idx} className="flex items-center justify-between p-3.5 bg-gray-50 rounded-lg">
-                    <div className="flex items-center gap-3">
-                      <div className={`w-2 h-2 rounded-full ${building.status === '正常' ? 'bg-green-500' : 'bg-red-500'}`}></div>
-                      <div>
-                        <p className="font-medium text-gray-900 text-sm">{building.name}</p>
-                        <p className="text-xs text-gray-500">
-                          水压 {building.pressure.toFixed(2)} MPa • 流量 {building.flow.toFixed(2)} L/s
-                        </p>
+                  <div
+                    key={idx}
+                    className={`p-4 rounded-lg border-l-4 ${
+                      building.status === '正常'
+                        ? 'bg-green-50 border-green-500'
+                        : 'bg-red-50 border-red-500'
+                    }`}
+                  >
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-2">
+                        <div className={`w-2 h-2 rounded-full ${building.status === '正常' ? 'bg-green-500' : 'bg-red-500'}`}></div>
+                        <span className="font-medium text-gray-900 text-sm">{building.name}</span>
                       </div>
+                      <span className={`px-2 py-0.5 text-xs rounded ${
+                        building.status === '正常'
+                          ? 'bg-green-200 text-green-800'
+                          : 'bg-red-200 text-red-800'
+                      }`}>
+                        {building.status}
+                      </span>
                     </div>
-                    <span className={`px-2.5 py-1 text-xs font-medium rounded-full ${
-                      building.status === '正常' 
-                        ? 'bg-green-100 text-green-700' 
-                        : 'bg-red-100 text-red-700'
-                    }`}>
-                      {building.status}
-                    </span>
+                    <div className="mt-2 ml-4 flex items-center gap-4 text-sm text-gray-600">
+                      <span>水压 {building.pressure.toFixed(2)} MPa</span>
+                      <span className="text-gray-400">|</span>
+                      <span>流量 {building.flow.toFixed(2)} L/s</span>
+                    </div>
                   </div>
                 ))
               ) : (
@@ -757,7 +779,8 @@ export default function Dashboard() {
             </div>
           </div>
 
-          <div className="bg-white rounded-xl p-6 shadow-sm">
+          {/* 最近告警 */}
+          <div className="glass-card rounded-2xl p-6">
             <div className="flex items-center justify-between mb-4">
               <h2 className="text-lg font-semibold text-gray-900">最近告警</h2>
               {warnings.length > 0 && (
@@ -786,7 +809,7 @@ export default function Dashboard() {
                         <AlertTriangle
                           className={`w-4 h-4 flex-shrink-0 ${
                             warning.eventLevel === 'WARN' || warning.eventLevel === '1'
-                              ? 'text-yellow-600'
+                              ? 'text-white'
                               : 'text-red-600'
                           }`}
                         />
@@ -830,7 +853,7 @@ export default function Dashboard() {
 
         {/* 离线设备列表 */}
         {!loadingOffline && offlineDevices.length > 0 && (
-          <div className="mt-6 bg-white rounded-xl p-6 shadow-sm">
+          <div className="mt-6 glass-card rounded-2xl p-6">
             <div className="flex items-center gap-2 mb-4">
               <WifiOff className="w-5 h-5 text-red-500" />
               <h2 className="text-lg font-semibold text-gray-900">离线设备列表</h2>
@@ -852,7 +875,7 @@ export default function Dashboard() {
         {/* 图表区域 */}
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mt-6">
           {/* 用水趋势图 */}
-          <div className="bg-white rounded-xl p-6 shadow-sm">
+          <div className="glass-card rounded-2xl p-6">
             <h2 className="text-lg font-semibold text-gray-900 mb-4">本周用水趋势</h2>
             <ResponsiveContainer width="100%" height={280}>
               <LineChart data={weeklyUsageData}>
@@ -869,7 +892,7 @@ export default function Dashboard() {
           </div>
 
           {/* 各校区用水量对比 */}
-          <div className="bg-white rounded-xl p-6 shadow-sm">
+          <div className="glass-card rounded-2xl p-6">
             <h2 className="text-lg font-semibold text-gray-900 mb-4">各校区用水量对比</h2>
             <ResponsiveContainer width="100%" height={280}>
               <BarChart data={campusUsageData} layout="vertical">

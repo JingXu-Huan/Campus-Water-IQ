@@ -10,8 +10,18 @@ const iotDeviceApi = axios.create({
     withCredentials: false,
 })
 
-// IoT-service 服务 (流量数据)
+// IoT-service 服务
 const iotDataApi = axios.create({
+    baseURL: 'http://127.0.0.1:18016',
+    timeout: 10000,
+    headers: {
+        'Content-Type': 'application/json',
+    },
+    withCredentials: false,
+})
+
+// IoT-service 服务 (实时监测 18016)
+const iotMonitorApi = axios.create({
     baseURL: 'http://127.0.0.1:18016',
     timeout: 10000,
     headers: {
@@ -342,7 +352,7 @@ export const iotApi = {
     // 获取离线率
     getOfflineRate: async (): Promise<number> => {
         try {
-            const res = await iotDataApi.get<number>('/Data/getOffLineRate')
+            const res = await iotMonitorApi.get<number>('/Data/getOffLineRate')
             return res?.data ?? res ?? 0
         } catch (error) {
             console.error('获取离线率失败:', error)

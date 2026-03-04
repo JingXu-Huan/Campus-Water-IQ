@@ -5,7 +5,7 @@ import { iotApi, generateDeviceId, generateWaterQualitySensorId } from '@/api/io
 import { 
   Droplets, User, Menu, X, Activity, LayoutDashboard, 
   Play, RotateCcw, Power, PowerOff, AlertCircle, CheckCircle,
-  Gauge, RefreshCw, Cpu, ChevronDown
+  Gauge, RefreshCw, Cpu, ChevronDown, AlertTriangle
 } from 'lucide-react'
 
 type SimMode = 'normal' | 'leaking' | 'burstPipe' | 'shows'
@@ -39,6 +39,9 @@ export default function DigitalTwin() {
   
   // 弹窗状态
   const [modal, setModal] = useState<{ show: boolean; type: 'success' | 'error' | 'info'; title: string; message: string } | null>(null)
+  
+  // 确认弹窗状态
+  const [confirmModal, setConfirmModal] = useState<{ show: boolean; title: string; message: string; onConfirm: () => void } | null>(null)
   
   // 楼宇配置
   const [buildingConfig, setBuildingConfig] = useState({
@@ -160,46 +163,56 @@ export default function DigitalTwin() {
 
   // 初始化设备
   const handleInit = async () => {
-    if (!confirm('确认初始化设备？这将创建新的虚拟设备。')) return
-    
-    setLoading(true)
-    try {
-      const result = await iotApi.initDevices(buildingConfig)
-      if (result.success) {
-        showMessage('success', '设备初始化成功')
-        await fetchDeviceStatus()
-      } else {
-        showMessage('error', result.message)
+    setConfirmModal({
+      show: true,
+      title: '确认初始化设备',
+      message: '这将创建新的虚拟设备，是否继续？',
+      onConfirm: async () => {
+        setConfirmModal(null)
+        setLoading(true)
+        try {
+          const result = await iotApi.initDevices(buildingConfig)
+          if (result.success) {
+            showMessage('success', '设备初始化成功')
+            await fetchDeviceStatus()
+          } else {
+            showMessage('error', result.message)
+          }
+        } catch (error) {
+          showMessage('error', '初始化失败')
+        } finally {
+          setLoading(false)
+        }
       }
-    } catch (error) {
-      showMessage('error', '初始化失败')
-    } finally {
-      setLoading(false)
-    }
+    })
   }
 
   // 重置设备（先停止再重置）
   const handleReset = async () => {
-    if (!confirm('确认重置所有设备？这将停止所有设备并清除数据。')) return
-    
-    setLoading(true)
-    try {
-      // 先停止水表和传感器
-      await iotApi.stopAllMeters()
-      await iotApi.stopAllSensors()
-      
-      const result = await iotApi.resetDevices()
-      if (result.success) {
-        showMessage('success', '设备重置成功')
-        await fetchDeviceStatus()
-      } else {
-        showMessage('error', result.message)
+    setConfirmModal({
+      show: true,
+      title: '确认重置设备',
+      message: '这将停止所有设备并清除数据，是否继续？',
+      onConfirm: async () => {
+        setConfirmModal(null)
+        setLoading(true)
+        try {
+          await iotApi.stopAllMeters()
+          await iotApi.stopAllSensors()
+          const result = await iotApi.resetDevices()
+          if (result.success) {
+            showMessage('success', '设备重置成功')
+            await fetchDeviceStatus()
+          } else {
+            showMessage('error', result.message)
+          }
+        } catch (error) {
+          showMessage('error', '重置失败')
+        } finally {
+          setLoading(false)
+        }
       }
-    } catch (error) {
-      showMessage('error', '重置失败')
-    } finally {
-      setLoading(false)
-    }
+    })
   }
 
   // 停止水表
@@ -432,42 +445,77 @@ export default function DigitalTwin() {
 
           {/* 弹窗 */}
           {modal && (
-            <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 animate-fade-in">
-              <div className={`bg-white rounded-xl shadow-2xl p-6 max-w-sm w-full mx-4 transform transition-all animate-scale-in ${
-                modal.type === 'success' ? 'border-t-4 border-green-500' : 
-                modal.type === 'error' ? 'border-t-4 border-red-500' : 'border-t-4 border-blue-500'
-              }`}>
-                <div className="flex items-center gap-3 mb-4">
-                  {modal.type === 'success' && <CheckCircle className="w-8 h-8 text-green-500 animate-bounce" />}
-                  {modal.type === 'error' && <AlertCircle className="w-8 h-8 text-red-500 animate-bounce" />}
-                  {modal.type === 'info' && <Activity className="w-8 h-8 text-blue-500 animate-bounce" />}
-                  <h3 className={`text-lg font-bold ${
-                    modal.type === 'success' ? 'text-green-700' : 
-                    modal.type === 'error' ? 'text-red-700' : 'text-blue-700'
+            <div className="fixed inset-0 z-50 flex items-center justify-center">
+              <div className="absolute inset-0 bg-gray-900/60 backdrop-blur-sm" onClick={() => setModal(null)} />
+              <div className="relative bg-white rounded-2xl shadow-2xl p-8 max-w-md w-full mx-4 transform transition-all">
+                <div className="text-center">
+                  <div className={`mx-auto w-16 h-16 rounded-full flex items-center justify-center mb-4 ${
+                    modal.type === 'success' ? 'bg-green-100' : 
+                    modal.type === 'error' ? 'bg-red-100' : 'bg-blue-100'
+                  }`}>
+                    {modal.type === 'success' && <CheckCircle className="w-8 h-8 text-green-600" />}
+                    {modal.type === 'error' && <AlertCircle className="w-8 h-8 text-red-600" />}
+                    {modal.type === 'info' && <Activity className="w-8 h-8 text-blue-600" />}
+                  </div>
+                  <h3 className={`text-xl font-bold mb-2 ${
+                    modal.type === 'success' ? 'text-green-600' : 
+                    modal.type === 'error' ? 'text-red-600' : 'text-blue-600'
                   }`}>
                     {modal.title}
                   </h3>
+                  <p className="text-gray-600 mb-6">{modal.message}</p>
+                  <button
+                    onClick={() => {
+                      setModal(null)
+                      fetchDeviceStatus()
+                    }}
+                    className={`px-8 py-2.5 rounded-xl font-medium text-white transition-all ${
+                      modal.type === 'success' ? 'bg-green-500 hover:bg-green-600' : 
+                      modal.type === 'error' ? 'bg-red-500 hover:bg-red-600' : 'bg-blue-500 hover:bg-blue-600'
+                    }`}
+                  >
+                    确定
+                  </button>
                 </div>
-                <p className="text-gray-600 mb-6">{modal.message}</p>
-                <button
-                  onClick={() => {
-                    setModal(null)
-                    fetchDeviceStatus()
-                  }}
-                  className={`w-full py-2.5 rounded-lg font-medium text-white transition-all transform hover:scale-105 active:scale-95 ${
-                    modal.type === 'success' ? 'bg-green-500 hover:bg-green-600' : 
-                    modal.type === 'error' ? 'bg-red-500 hover:bg-red-600' : 'bg-blue-500 hover:bg-blue-600'
-                  }`}
-                >
-                  确定
-                </button>
+              </div>
+            </div>
+          )}
+
+          {/* 确认弹窗 */}
+          {confirmModal && (
+            <div className="fixed inset-0 z-50 flex items-center justify-center">
+              <div className="absolute inset-0 bg-gray-900/60 backdrop-blur-sm" onClick={() => setConfirmModal(null)} />
+              <div className="relative bg-white rounded-2xl shadow-2xl p-8 max-w-md w-full mx-4 transform transition-all">
+                <div className="text-center">
+                  <div className="mx-auto w-16 h-16 rounded-full flex items-center justify-center mb-4 bg-amber-100">
+                    <AlertTriangle className="w-8 h-8 text-amber-600" />
+                  </div>
+                  <h3 className="text-xl font-bold text-gray-900 mb-2">
+                    {confirmModal.title}
+                  </h3>
+                  <p className="text-gray-600 mb-6">{confirmModal.message}</p>
+                  <div className="flex gap-3">
+                    <button
+                      onClick={() => setConfirmModal(null)}
+                      className="flex-1 px-6 py-2.5 rounded-xl font-medium text-gray-700 bg-gray-100 hover:bg-gray-200 transition-colors"
+                    >
+                      取消
+                    </button>
+                    <button
+                      onClick={confirmModal.onConfirm}
+                      className="flex-1 px-6 py-2.5 rounded-xl font-medium text-white bg-amber-500 hover:bg-amber-600 transition-colors"
+                    >
+                      确认
+                    </button>
+                  </div>
+                </div>
               </div>
             </div>
           )}
 
           {/* 状态概览 */}
           <div className="grid grid-cols-2 md:grid-cols-5 gap-4 mb-6">
-            <div className="bg-white rounded-2xl p-5 shadow-lg shadow-gray-100/50 border border-gray-100">
+            <div className="glass-card rounded-2xl p-5">
               <div className="flex items-center gap-3 mb-2">
                 <div className={`p-3 rounded-xl ${isInitialized ? 'bg-gradient-to-br from-green-400 to-green-600' : 'bg-gray-100'}`}>
                   <Cpu className={`w-5 h-5 ${isInitialized ? 'text-white' : 'text-gray-400'}`} />
@@ -479,7 +527,7 @@ export default function DigitalTwin() {
               </p>
             </div>
 
-            <div className="bg-white rounded-2xl p-5 shadow-lg shadow-gray-100/50 border border-gray-100">
+            <div className="glass-card rounded-2xl p-5">
               <div className="flex items-center gap-3 mb-2">
                 <div className="p-3 rounded-xl bg-gradient-to-br from-blue-400 to-blue-600">
                   <Droplets className="w-5 h-5 text-white" />
@@ -489,7 +537,7 @@ export default function DigitalTwin() {
               <p className="text-xl font-bold text-gray-900">{deviceCount}</p>
             </div>
 
-            <div className="bg-white rounded-2xl p-5 shadow-lg shadow-gray-100/50 border border-gray-100">
+            <div className="glass-card rounded-2xl p-5">
               <div className="flex items-center gap-3 mb-2">
                 <div className={`p-3 rounded-xl ${isMetersRunning ? 'bg-gradient-to-br from-green-400 to-green-600' : 'bg-gray-100'}`}>
                   <Play className={`w-5 h-5 ${isMetersRunning ? 'text-white' : 'text-gray-400'}`} />
@@ -501,7 +549,7 @@ export default function DigitalTwin() {
               </p>
             </div>
 
-            <div className="bg-white rounded-2xl p-5 shadow-lg shadow-gray-100/50 border border-gray-100">
+            <div className="glass-card rounded-2xl p-5">
               <div className="flex items-center gap-3 mb-2">
                 <div className="p-3 rounded-xl bg-gradient-to-br from-purple-400 to-purple-600">
                   <Activity className="w-5 h-5 text-white" />
@@ -511,7 +559,7 @@ export default function DigitalTwin() {
               <p className="text-xl font-bold text-gray-900">{(buildingConfig.educationBuildings + buildingConfig.experimentBuildings + buildingConfig.dormitoryBuildings) * buildingConfig.floors}</p>
             </div>
 
-            <div className="bg-white rounded-2xl p-5 shadow-lg shadow-gray-100/50 border border-gray-100">
+            <div className="glass-card rounded-2xl p-5">
               <div className="flex items-center gap-3 mb-2">
                 <div className={`p-3 rounded-xl ${isSensorsRunning ? 'bg-gradient-to-br from-green-400 to-green-600' : 'bg-gray-100'}`}>
                   <Play className={`w-5 h-5 ${isSensorsRunning ? 'text-white' : 'text-gray-400'}`} />

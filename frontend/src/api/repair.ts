@@ -93,6 +93,18 @@ export const repairApi = {
   // 查询未解决的报修单数量
   getUnclosedCount: () => 
     api.get<{ code: string; data: number }>('/operations/getAllUnClosedNums'),
-}
 
+  // 获取校园告警列表
+  getCampusWarnings: async (campus: number): Promise<any[]> => {
+    try {
+        const res = await api.get<any[]>('/operations/getCampusWarings', {
+            params: { campus }
+        })
+        return res?.data ?? res ?? []
+    } catch (error) {
+        console.error('获取校园告警失败:', error)
+        return []
+    }
+}
+}
 export default repairApi

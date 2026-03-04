@@ -3,6 +3,8 @@ package com.ncwu.repairservice.controller;
 
 import com.ncwu.common.domain.vo.Result;
 import com.ncwu.common.enums.ErrorCode;
+import com.ncwu.repairservice.entity.domain.IotDeviceEvent;
+import com.ncwu.repairservice.entity.vo.IotDeviceEventVo;
 import com.ncwu.repairservice.entity.vo.UserReportVO;
 import com.ncwu.repairservice.service.IDeviceReservationService;
 import lombok.RequiredArgsConstructor;
@@ -10,6 +12,8 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.web.bind.annotation.*;
 
+import javax.validation.constraints.Max;
+import javax.validation.constraints.Min;
 import javax.validation.constraints.NotNull;
 import javax.validation.constraints.Pattern;
 import java.util.Collections;
@@ -92,6 +96,11 @@ public class OperationsController {
     @GetMapping("/getAllUnClosedNums")
     public Result<Long> getAllUnClosedNums() {
         return deviceReservationService.getAllUnClosedNums();
+    }
+
+    @GetMapping("/getCampusWarings")
+    public Result<List<IotDeviceEventVo>> getCampusWarnings(@Min(1) @Max(3) int campus){
+        return deviceReservationService.getCampusWarnings(campus);
     }
 
 

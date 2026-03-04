@@ -1,10 +1,11 @@
 import { useNavigate } from 'react-router-dom'
 import { useAuthStore } from '@/store/authStore'
-import { Droplets, LogOut, User, BarChart3, AlertTriangle, Settings, LayoutDashboard, Activity, Map, FileText, HelpCircle, Menu, X, RefreshCw, TrendingUp, TrendingDown, WifiOff, Camera, Eye, EyeOff, Check, Wrench } from 'lucide-react'
+import { Droplets, LogOut, User, BarChart3, AlertTriangle, Settings, LayoutDashboard, Activity, Map, FileText, HelpCircle, Menu, X, RefreshCw, TrendingUp, TrendingDown, WifiOff, Camera, Eye, EyeOff, Check, Wrench, Sun } from 'lucide-react'
 import { useState, useEffect } from 'react'
 import { iotApi, generateDeviceId } from '@/api/iot'
 import { authApi } from '@/api/auth'
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, LineChart, Line } from 'recharts'
+import repair from "@/api/repair.ts";
 
 export default function Dashboard() {
   const navigate = useNavigate()
@@ -24,10 +25,14 @@ export default function Dashboard() {
   const [profileMessage, setProfileMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null)
 
   const campuses = [
-    { id: 'huayuan', name: '花园校区', code: 'HY', schoolId: 1 },
-    { id: 'longzi', name: '龙子湖校区', code: 'LZ', schoolId: 2 },
-    { id: 'jianghuai', name: '江淮校区', code: 'JH', schoolId: 3 }
+    { id: 'huayuan', name: '花园校区', code: 'HY', schoolId: 1, city: '郑州', lat: 34.76, lon: 113.62 },
+    { id: 'longzi', name: '龙子湖校区', code: 'LZ', schoolId: 2, city: '郑州', lat: 34.76, lon: 113.62 },
+    { id: 'jianghuai', name: '江淮校区', code: 'JH', schoolId: 3, city: '信阳', lat: 32.13, lon: 114.09 }
   ]
+
+  // 天气状态
+  const [weather, setWeather] = useState<{ temp: number; condition: string; humidity: number; wind: string } | null>(null)
+  const [weatherLoading, setWeatherLoading] = useState(false)
 
   const [todayUsage, setTodayUsage] = useState<number>(0)
   const [yesterdayUsage, setYesterdayUsage] = useState<number>(0)
@@ -38,8 +43,26 @@ export default function Dashboard() {
   const [alertCount, setAlertCount] = useState<number>(0)
   const [deviceCount, setDeviceCount] = useState<number>(0)
   const [offlineDevices, setOfflineDevices] = useState<string[]>([])
+  const [offlineRate, setOfflineRate] = useState<number>(0)
   const [healthyScore, setHealthyScore] = useState<number>(0)
   const [loading, setLoading] = useState<boolean>(true)
+  
+  // 告警数据
+  const [warnings, setWarnings] = useState<{
+    deviceCode: string
+    eventDesc: string
+    eventLevel: string
+    deviceType: string
+    eventTime: string
+  }[]>([])
+  const [loadingWarnings, setLoadingWarnings] = useState(false)
+
+  // 设备类型中文映射
+  const deviceTypeMap: Record<string, string> = {
+    'METER': '水表告警',
+    '1': '水表',
+    '2': '水质传感器'
+  }
   
   // 图表数据 - 模拟近7天用水趋势
   const [weeklyUsageData] = useState([
@@ -94,6 +117,7 @@ export default function Dashboard() {
     setLoading(true)
     setLoadingToday(true)
     setLoadingMonth(true)
+    setLoadingWarnings(true)
     setError(null)
     
     try {
@@ -111,8 +135,6 @@ export default function Dashboard() {
       setLoadingToday(false)
       setLoadingMonth(false)
       setLoading(false)
-      // 模拟告警数据，实际应该从 API 获取
-      setAlertCount(Math.floor(Math.random() * 5))
       
       // 从 iot-service 获取在线设备数量
       try {
@@ -123,6 +145,15 @@ export default function Dashboard() {
         setDeviceCount(0)
       }
 
+      // 获取离线率
+      try {
+        const rate = await iotApi.getOfflineRate()
+        setOfflineRate(rate)
+      } catch (err) {
+        console.error('获取离线率失败:', err)
+        setOfflineRate(0)
+      }
+
       // 获取设备健康评分
       try {
         const score = await iotApi.getHealthyScore()
@@ -130,6 +161,18 @@ export default function Dashboard() {
       } catch (err) {
         console.error('获取健康评分失败:', err)
         setHealthyScore(0)
+      }
+
+      // 获取校园告警
+      try {
+        const warningList = await repair.getCampusWarnings(currentCampus.schoolId)
+        setWarnings(warningList || [])
+        setAlertCount(warningList?.length || 0)
+      } catch (err) {
+        console.error('获取告警列表失败:', err)
+        setWarnings([])
+      } finally {
+        setLoadingWarnings(false)
       }
     }
 
@@ -232,6 +275,45 @@ export default function Dashboard() {
     }
   }
 
+  // 获取天气数据
+  const fetchWeather = async (lat: number, lon: number) => {
+    setWeatherLoading(true)
+    try {
+      // 使用 Open-Meteo 免费天气 API（无需 API key，国内速度快）
+      const res = await fetch(
+        `https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lon}&current=temperature_2m,relative_humidity_2m,weather_code,wind_speed_10m&timezone=Asia/Shanghai`
+      )
+      const data = await res.json()
+      
+      if (data.current) {
+        const c = data.current
+        // WMO 天气代码转换
+        const weatherCode = c.weather_code
+        const conditions: Record<number, string> = {
+          0: '晴', 1: '晴间多云', 2: '多云', 3: '阴',
+          45: '雾', 48: '霜雾',
+          51: '小毛毛雨', 53: '中雨', 55: '大雨',
+          61: '小雨', 63: '中雨', 65: '大雨',
+          71: '小雪', 73: '中雪', 75: '大雪',
+          80: '阵雨', 81: '阵雨', 82: '强阵雨',
+          95: '雷暴', 96: '雷暴+冰雹', 99: '强雷暴'
+        }
+        
+        setWeather({
+          temp: Math.round(c.temperature_2m),
+          condition: conditions[weatherCode] || '未知',
+          humidity: c.relative_humidity_2m,
+          wind: Math.round(c.wind_speed_10m) + ' km/h'
+        })
+      }
+    } catch (error) {
+      console.error('获取天气失败:', error)
+      setWeather(null)
+    } finally {
+      setWeatherLoading(false)
+    }
+  }
+
   // 获取楼宇实时数据
   const fetchBuildingStats = async () => {
     if (!currentCampus) return
@@ -308,6 +390,10 @@ export default function Dashboard() {
   useEffect(() => {
     fetchWaterUsageData()
     fetchBuildingStats()
+    const campus = campuses.find(c => c.id === selectedCampus)
+    if (campus) {
+      fetchWeather(campus.lat, campus.lon)
+    }
   }, [selectedCampus])
 
   const menuItems = [
@@ -331,7 +417,7 @@ export default function Dashboard() {
   return (
     <div className="h-screen bg-gray-50 flex overflow-hidden">
       {/* Sidebar */}
-      <aside className={`${sidebarOpen ? 'w-64' : 'w-20'} bg-gradient-to-b from-primary-600 to-primary-800 shadow-xl transition-all duration-300 flex flex-col h-screen`}>
+      <aside className={`${sidebarOpen ? 'w-64' : 'w-20'} bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 backdrop-blur-sm shadow-xl transition-all duration-300 flex flex-col h-screen`}>
         {/* Sidebar Header */}
         <div className="p-4 border-b border-white/10">
           <div className="flex items-center gap-3">
@@ -440,7 +526,7 @@ export default function Dashboard() {
       {/* Main Content */}
       <div className="flex-1 flex flex-col bg-gray-50">
         {/* Top Header */}
-        <header className="bg-gradient-to-r from-primary-600 to-primary-800 shadow-lg">
+        <header className="bg-gradient-to-r from-slate-900 via-slate-800 to-slate-900 shadow-lg backdrop-blur-sm">
           <div className="px-6 py-4 flex items-center justify-between">
             <div className="flex items-center gap-4">
               <button
@@ -458,6 +544,28 @@ export default function Dashboard() {
                 <div className="w-2 h-2 bg-white rounded-full"></div>
                 <span className="text-sm text-white/80">{currentCampus?.name}</span>
               </div>
+              
+              {/* Weather Info */}
+              {weather && (
+                <div className="flex items-center gap-3 px-3 py-1.5 bg-white/10 backdrop-blur-sm rounded-xl">
+                  <Sun className="w-5 h-5 text-yellow-300" />
+                  <div className="flex items-center gap-2">
+                    <span className="text-lg font-bold text-white">{weather.temp}°C</span>
+                    <span className="text-xs text-white/70">{weather.condition}</span>
+                  </div>
+                  <div className="flex items-center gap-1 text-xs text-white/50">
+                    <span>💧 {weather.humidity}%</span>
+                    <span className="mx-1">|</span>
+                    <span>💨 {weather.wind}</span>
+                  </div>
+                </div>
+              )}
+              {weatherLoading && (
+                <div className="flex items-center gap-2 px-3 py-1.5 bg-white/10 backdrop-blur-sm rounded-xl">
+                  <RefreshCw className="w-4 h-4 text-white/60 animate-spin" />
+                  <span className="text-xs text-white/60">加载天气...</span>
+                </div>
+              )}
             </div>
             
             {!sidebarOpen && (
@@ -512,15 +620,15 @@ export default function Dashboard() {
           
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-6 mb-8">
           {/* 今日用水量 */}
-          <div className="bg-white rounded-xl p-6 shadow-sm">
+          <div className="glass-card rounded-2xl p-6">
             <div className="flex items-center justify-between mb-4">
-              <div className="p-3 bg-blue-100 rounded-lg">
-                <Droplets className="w-6 h-6 text-blue-600" />
+              <div className="p-3 bg-gradient-to-br from-blue-500 to-cyan-500 rounded-xl shadow-lg">
+                <Droplets className="w-6 h-6 text-white" />
               </div>
               {loadingToday ? (
                 <RefreshCw className="w-4 h-4 text-gray-400 animate-spin" />
               ) : (
-                <div className={`flex items-center gap-1 text-sm ${todayChange.isPositive ? 'text-red-600' : 'text-green-600'}`}>
+                <div className={`flex items-center gap-1 text-sm ${todayChange.isPositive ? 'text-red-600' : 'text-white'}`}>
                   {todayChange.isPositive ? <TrendingUp className="w-4 h-4" /> : <TrendingDown className="w-4 h-4" />}
                   <span>{todayChange.value.toFixed(1)}%</span>
                 </div>
@@ -540,15 +648,15 @@ export default function Dashboard() {
           </div>
 
           {/* 本月用水量 */}
-          <div className="bg-white rounded-xl p-6 shadow-sm">
+          <div className="glass-card rounded-2xl p-6">
             <div className="flex items-center justify-between mb-4">
-              <div className="p-3 bg-purple-100 rounded-lg">
-                <BarChart3 className="w-6 h-6 text-purple-600" />
+              <div className="p-3 bg-gradient-to-br from-purple-500 to-pink-500 rounded-xl shadow-lg">
+                <BarChart3 className="w-6 h-6 text-white" />
               </div>
               {loadingMonth ? (
                 <RefreshCw className="w-4 h-4 text-gray-400 animate-spin" />
               ) : (
-                <div className={`flex items-center gap-1 text-sm ${monthChange.isPositive ? 'text-red-600' : 'text-green-600'}`}>
+                <div className={`flex items-center gap-1 text-sm ${monthChange.isPositive ? 'text-red-600' : 'text-white'}`}>
                   {monthChange.isPositive ? <TrendingUp className="w-4 h-4" /> : <TrendingDown className="w-4 h-4" />}
                   <span>{monthChange.value.toFixed(1)}%</span>
                 </div>
@@ -568,10 +676,10 @@ export default function Dashboard() {
           </div>
 
           {/* 异常告警 */}
-          <div className="bg-white rounded-xl p-6 shadow-sm">
+          <div className="glass-card rounded-2xl p-6">
             <div className="flex items-center justify-between mb-4">
-              <div className="p-3 bg-yellow-100 rounded-lg">
-                <AlertTriangle className="w-6 h-6 text-yellow-600" />
+              <div className="p-3 bg-gradient-to-br from-amber-500 to-orange-500 rounded-xl shadow-lg">
+                <AlertTriangle className="w-6 h-6 text-white" />
               </div>
               <span className="text-sm text-red-600">+{alertCount}</span>
             </div>
@@ -582,11 +690,16 @@ export default function Dashboard() {
           </div>
 
           {/* 在线设备 */}
-          <div className="bg-white rounded-xl p-6 shadow-sm">
+          <div className="glass-card rounded-2xl p-6">
             <div className="flex items-center justify-between mb-4">
-              <div className="p-3 bg-green-100 rounded-lg">
-                <User className="w-6 h-6 text-green-600" />
+              <div className="p-3 bg-gradient-to-br from-green-500 to-teal-500 rounded-xl shadow-lg">
+                <User className="w-6 h-6 text-white" />
               </div>
+              {offlineRate > 0 && (
+                <span className="px-2 py-1 bg-red-100 text-red-700 text-xs font-medium rounded-full">
+                  离线率 {offlineRate.toFixed(1)}%
+                </span>
+              )}
             </div>
             <p className="text-sm text-gray-500">在线设备</p>
             <p className="text-2xl font-bold text-gray-900">
@@ -605,10 +718,10 @@ export default function Dashboard() {
           </div>
 
           {/* 健康评分 */}
-          <div className="bg-white rounded-xl p-6 shadow-sm">
+          <div className="glass-card rounded-2xl p-6">
             <div className="flex items-center justify-between mb-4">
-              <div className="p-3 bg-emerald-100 rounded-lg">
-                <Activity className="w-6 h-6 text-emerald-600" />
+              <div className="p-3 bg-gradient-to-br from-emerald-500 to-cyan-500 rounded-xl shadow-lg">
+                <Activity className="w-6 h-6 text-white" />
               </div>
             </div>
             <p className="text-sm text-gray-500">设备健康评分</p>
@@ -620,34 +733,44 @@ export default function Dashboard() {
         </div>
 
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-          <div className="bg-white rounded-xl p-6 shadow-sm">
-            <div className="flex items-center justify-between mb-6">
+          {/* 实时监测 */}
+          <div className="glass-card rounded-2xl p-6">
+            <div className="flex items-center justify-between mb-4">
               <h2 className="text-lg font-semibold text-gray-900">实时监测</h2>
-              <button className="p-2 hover:bg-gray-100 rounded-lg transition-colors">
-                <Settings className="w-5 h-5 text-gray-400" />
-              </button>
             </div>
-            <div className="space-y-4">
+            <div className="space-y-3">
               {loadingBuildings ? (
                 <div className="flex items-center justify-center py-8">
                   <RefreshCw className="w-6 h-6 text-gray-400 animate-spin" />
                 </div>
               ) : buildingStats.length > 0 ? (
                 buildingStats.map((building, idx) => (
-                  <div key={idx} className="flex items-center justify-between p-4 bg-gray-50 rounded-lg">
-                    <div>
-                      <p className="font-medium text-gray-900">{building.name}</p>
-                      <p className="text-sm text-gray-500">
-                        水压 {building.pressure.toFixed(2)} MPa • 流量 {building.flow.toFixed(2)} L/s
-                      </p>
+                  <div
+                    key={idx}
+                    className={`p-4 rounded-lg border-l-4 ${
+                      building.status === '正常'
+                        ? 'bg-green-50 border-green-500'
+                        : 'bg-red-50 border-red-500'
+                    }`}
+                  >
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-2">
+                        <div className={`w-2 h-2 rounded-full ${building.status === '正常' ? 'bg-green-500' : 'bg-red-500'}`}></div>
+                        <span className="font-medium text-gray-900 text-sm">{building.name}</span>
+                      </div>
+                      <span className={`px-2 py-0.5 text-xs rounded ${
+                        building.status === '正常'
+                          ? 'bg-green-200 text-green-800'
+                          : 'bg-red-200 text-red-800'
+                      }`}>
+                        {building.status}
+                      </span>
                     </div>
-                    <span className={`px-3 py-1 text-sm rounded-full ${
-                      building.status === '正常' 
-                        ? 'bg-green-100 text-green-700' 
-                        : 'bg-red-100 text-red-700'
-                    }`}>
-                      {building.status}
-                    </span>
+                    <div className="mt-2 ml-4 flex items-center gap-4 text-sm text-gray-600">
+                      <span>水压 {building.pressure.toFixed(2)} MPa</span>
+                      <span className="text-gray-400">|</span>
+                      <span>流量 {building.flow.toFixed(2)} L/s</span>
+                    </div>
                   </div>
                 ))
               ) : (
@@ -656,32 +779,81 @@ export default function Dashboard() {
             </div>
           </div>
 
-          <div className="bg-white rounded-xl p-6 shadow-sm">
-            <h2 className="text-lg font-semibold text-gray-900 mb-6">最近告警</h2>
-            <div className="space-y-4">
-              <div className="flex items-start gap-4 p-4 border border-red-200 bg-red-50 rounded-lg">
-                <AlertTriangle className="w-5 h-5 text-red-500 mt-0.5" />
-                <div>
-                  <p className="font-medium text-gray-900">漏水检测 - 宿舍楼 C 区</p>
-                  <p className="text-sm text-gray-500 mt-1">检测到异常用水模式，可能存在管道漏水</p>
-                  <p className="text-xs text-gray-400 mt-2">2026-02-19 14:30</p>
+          {/* 最近告警 */}
+          <div className="glass-card rounded-2xl p-6">
+            <div className="flex items-center justify-between mb-4">
+              <h2 className="text-lg font-semibold text-gray-900">最近告警</h2>
+              {warnings.length > 0 && (
+                <span className="px-2 py-1 bg-yellow-100 text-yellow-700 text-xs font-medium rounded-full">
+                  {warnings.length} 条
+                </span>
+              )}
+            </div>
+            <div className="space-y-3">
+              {loadingWarnings ? (
+                <div className="flex items-center justify-center py-8">
+                  <RefreshCw className="w-6 h-6 text-gray-400 animate-spin" />
                 </div>
-              </div>
-              <div className="flex items-start gap-4 p-4 border border-yellow-200 bg-yellow-50 rounded-lg">
-                <AlertTriangle className="w-5 h-5 text-yellow-500 mt-0.5" />
-                <div>
-                  <p className="font-medium text-gray-900">水压异常 - 体育馆</p>
-                  <p className="text-sm text-gray-500 mt-1">水压低于正常阈值</p>
-                  <p className="text-xs text-gray-400 mt-2">2026-02-19 10:15</p>
+              ) : warnings.length > 0 ? (
+                warnings.map((warning, idx) => (
+                  <div
+                    key={idx}
+                    className={`p-4 rounded-lg border-l-4 ${
+                      warning.eventLevel === 'WARN' || warning.eventLevel === '1'
+                        ? 'bg-yellow-50 border-yellow-500'
+                        : 'bg-red-50 border-red-500'
+                    }`}
+                  >
+                    <div className="flex items-start justify-between">
+                      <div className="flex items-center gap-2">
+                        <AlertTriangle
+                          className={`w-4 h-4 flex-shrink-0 ${
+                            warning.eventLevel === 'WARN' || warning.eventLevel === '1'
+                              ? 'text-white'
+                              : 'text-red-600'
+                          }`}
+                        />
+                        <span className="font-medium text-gray-900 text-sm">
+                          {deviceTypeMap[warning.deviceType] || warning.deviceType}
+                        </span>
+                      </div>
+                      <span className={`px-2 py-0.5 text-xs rounded ${
+                        warning.eventLevel === 'WARN' || warning.eventLevel === '1'
+                          ? 'bg-yellow-200 text-yellow-800'
+                          : 'bg-red-200 text-red-800'
+                      }`}>
+                        {warning.eventLevel === 'WARN' || warning.eventLevel === '1' ? '警告' : '严重'}
+                      </span>
+                    </div>
+                    <p className="text-sm text-gray-600 mt-2 ml-6">{warning.eventDesc}</p>
+                    <div className="flex items-center gap-4 mt-2 ml-6 text-xs text-gray-400">
+                      <span className="font-mono bg-gray-100 px-1.5 py-0.5 rounded">
+                        {warning.deviceCode}
+                      </span>
+                    </div>
+                    <div className="flex items-center gap-1 mt-1 ml-6 text-xs text-gray-400">
+                      <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+                      </svg>
+                      {warning.eventTime ? new Date(warning.eventTime).toLocaleString('zh-CN') : ''}
+                    </div>
+                  </div>
+                ))
+              ) : (
+                <div className="text-center py-8 text-gray-400">
+                  <svg className="w-12 h-12 mx-auto mb-2 text-gray-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                  </svg>
+                  <p>暂无告警</p>
                 </div>
-              </div>
+              )}
             </div>
           </div>
         </div>
 
         {/* 离线设备列表 */}
         {!loadingOffline && offlineDevices.length > 0 && (
-          <div className="mt-6 bg-white rounded-xl p-6 shadow-sm">
+          <div className="mt-6 glass-card rounded-2xl p-6">
             <div className="flex items-center gap-2 mb-4">
               <WifiOff className="w-5 h-5 text-red-500" />
               <h2 className="text-lg font-semibold text-gray-900">离线设备列表</h2>
@@ -703,7 +875,7 @@ export default function Dashboard() {
         {/* 图表区域 */}
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mt-6">
           {/* 用水趋势图 */}
-          <div className="bg-white rounded-xl p-6 shadow-sm">
+          <div className="glass-card rounded-2xl p-6">
             <h2 className="text-lg font-semibold text-gray-900 mb-4">本周用水趋势</h2>
             <ResponsiveContainer width="100%" height={280}>
               <LineChart data={weeklyUsageData}>
@@ -720,7 +892,7 @@ export default function Dashboard() {
           </div>
 
           {/* 各校区用水量对比 */}
-          <div className="bg-white rounded-xl p-6 shadow-sm">
+          <div className="glass-card rounded-2xl p-6">
             <h2 className="text-lg font-semibold text-gray-900 mb-4">各校区用水量对比</h2>
             <ResponsiveContainer width="100%" height={280}>
               <BarChart data={campusUsageData} layout="vertical">

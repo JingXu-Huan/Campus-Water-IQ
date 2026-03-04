@@ -4,7 +4,7 @@ import { useAuthStore } from '@/store/authStore'
 import { repairApi, RepairOrder, RepairStatus, statusLabels, severityLabels, severityColors } from '@/api/repair'
 import { 
   Droplets, LayoutDashboard, Activity, Map, FileText, Settings, HelpCircle, 
-  Menu, X, RefreshCw, CheckCircle, Clock, AlertTriangle, Filter
+  Menu, X, RefreshCw, CheckCircle, Clock, AlertTriangle, Filter, Zap, Smile
 } from 'lucide-react'
 
 // 状态选项
@@ -238,7 +238,7 @@ export default function Repair() {
         <main className="flex-1 overflow-auto p-6">
           {/* 统计卡片 */}
           <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
-            <div className="bg-white rounded-xl p-5 shadow-sm">
+            <div className="glass-card rounded-2xl p-5">
               <div className="flex items-center gap-3 mb-2">
                 <div className="p-2.5 bg-red-100 rounded-xl">
                   <AlertTriangle className="w-5 h-5 text-red-600" />
@@ -247,7 +247,7 @@ export default function Repair() {
               </div>
               <p className="text-2xl font-bold text-gray-900">{unclosedCount}</p>
             </div>
-            <div className="bg-white rounded-xl p-5 shadow-sm">
+            <div className="glass-card rounded-2xl p-5">
               <div className="flex items-center gap-3 mb-2">
                 <div className="p-2.5 bg-blue-100 rounded-xl">
                   <Clock className="w-5 h-5 text-blue-600" />
@@ -258,7 +258,7 @@ export default function Repair() {
                 {repairOrders.filter(o => o.status === 'CONFIRMED').length}
               </p>
             </div>
-            <div className="bg-white rounded-xl p-5 shadow-sm">
+            <div className="glass-card rounded-2xl p-5">
               <div className="flex items-center gap-3 mb-2">
                 <div className="p-2.5 bg-yellow-100 rounded-xl">
                   <Activity className="w-5 h-5 text-yellow-600" />
@@ -269,7 +269,7 @@ export default function Repair() {
                 {repairOrders.filter(o => o.status === 'PROCESSING').length}
               </p>
             </div>
-            <div className="bg-white rounded-xl p-5 shadow-sm">
+            <div className="glass-card rounded-2xl p-5">
               <div className="flex items-center gap-3 mb-2">
                 <div className="p-2.5 bg-green-100 rounded-xl">
                   <CheckCircle className="w-5 h-5 text-green-600" />
@@ -283,7 +283,7 @@ export default function Repair() {
           </div>
 
           {/* 筛选 */}
-          <div className="bg-white rounded-xl p-4 shadow-sm mb-6">
+          <div className="glass-card rounded-2xl p-4 mb-6">
             <div className="flex items-center gap-4">
               <div className="flex items-center gap-2">
                 <Filter className="w-4 h-4 text-gray-500" />
@@ -325,8 +325,19 @@ export default function Repair() {
                 加载中...
               </div>
             ) : repairOrders.length === 0 ? (
-              <div className="p-8 text-center text-gray-500">
-                暂无报修单数据
+              <div className="p-12 text-center">
+                <div className="flex justify-center mb-4">
+                  <div className="p-4 bg-green-100 rounded-full">
+                    <CheckCircle className="w-12 h-12 text-green-600" />
+                  </div>
+                </div>
+                <h3 className="text-lg font-semibold text-gray-900 mb-2">一切正常运行中！</h3>
+                <p className="text-gray-500 mb-4">目前没有待处理的报修单，设备运行状态良好</p>
+                <div className="flex justify-center gap-2 text-sm text-gray-400">
+                  <Zap className="w-4 h-4" />
+                  <span>保持这个状态，继续加油！</span>
+                  <Smile className="w-4 h-4" />
+                </div>
               </div>
             ) : (
               <div className="overflow-x-auto">

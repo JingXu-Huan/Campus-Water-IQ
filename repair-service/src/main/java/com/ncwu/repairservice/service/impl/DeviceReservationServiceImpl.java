@@ -9,9 +9,11 @@ import com.ncwu.common.domain.vo.Result;
 import com.ncwu.repairservice.entity.dto.UserReportDTO;
 import com.ncwu.repairservice.entity.domain.DeviceUser;
 import com.ncwu.repairservice.entity.po.DeviceReservation;
+import com.ncwu.repairservice.entity.vo.IotDeviceEventVo;
 import com.ncwu.repairservice.entity.vo.UserReportVO;
 import com.ncwu.repairservice.mapper.DeviceReservationMapper;
 import com.ncwu.repairservice.mapper.DeviceUserMapper;
+import com.ncwu.repairservice.mapper.IoTDeviceMapper;
 import com.ncwu.repairservice.service.IDeviceReservationService;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import jakarta.annotation.PostConstruct;
@@ -48,6 +50,7 @@ public class DeviceReservationServiceImpl extends ServiceImpl<DeviceReservationM
     private final DeviceReservationMapper deviceReservationMapper;
     private final StringRedisTemplate redisTemplate;
     private final DeviceUserMapper deviceUserMapper;
+    private final IoTDeviceMapper ioTDeviceMapper;
     private ExecutorService pool;
 
     @PostConstruct
@@ -205,11 +208,17 @@ public class DeviceReservationServiceImpl extends ServiceImpl<DeviceReservationM
     }
 
     @Override
-    public Result<Boolean> changeStatus(String status, String deviceReservationId) {
+    public Result<Boolean> changeStatus(String newStatus, String deviceReservationId) {
+        String originalStatus = lambdaQuery().eq(DeviceReservation::getId, deviceReservationId)
+                .select(DeviceReservation::getStatus).one().getStatus();
         LambdaUpdateWrapper<DeviceReservation> set = new LambdaUpdateWrapper<DeviceReservation>()
                 .eq(DeviceReservation::getId, deviceReservationId)
-                .set(DeviceReservation::getStatus, status);
+                .set(DeviceReservation::getStatus, newStatus);
         this.update(set);
+        pool.submit(() -> {
+            redisTemplate.delete("ReportByStatus:" + newStatus);
+            redisTemplate.delete("ReportByStatus:"+originalStatus);
+        });
         return Result.ok(true);
     }
 
@@ -227,6 +236,11 @@ public class DeviceReservationServiceImpl extends ServiceImpl<DeviceReservationM
     public Result<Long> getAllUnClosedNums() {
         Long res = deviceReservationMapper.countUnClosed();
         return Result.ok(res);
+    }
+
+    @Override
+    public Result<List<IotDeviceEventVo>> getCampusWarnings(int campus) {
+        return Result.ok(ioTDeviceMapper.getCampusWarnings(campus));
     }
 
     private UserReportVO toVO(DeviceReservation deviceReservation) {

@@ -71,7 +71,6 @@ public class DataSender {
     @RandomEvent
     @CloseValue
     public void sendMeterData(MeterDataBo dataBo) throws MessageSendException {
-        //检查上一次上报时间
         String deviceId = dataBo.getDeviceId();
         Object onLineMap = redisTemplate.opsForHash().get("OnLineMap", dataBo.getDeviceId());
         long deviceCurrentTime = dataBo.getTimeStamp().atZone(ZoneId.of("Asia/Shanghai")).toInstant().toEpochMilli();
@@ -87,7 +86,6 @@ public class DataSender {
                 return;
             }
             double increment = keep3(dataBo.getFlow() * (deviceCurrentTime - preTime) / 1000.0);
-
             Double currentTotal = redisTemplate.opsForHash().increment("meter:total_usage", deviceId, increment);
             dataBo.setTotalUsage(keep3(currentTotal));
         }
@@ -112,6 +110,9 @@ public class DataSender {
         }
         //Iot设备上报数据频率高，这里使用异步调用
         asyncSendData("Meter-Data", data);
+        
+        // 数据上报成功后，同步更新心跳时间戳，确保心跳和数据的同步性
+        heartBeat(deviceId, deviceCurrentTime);
     }
 
     public void heartBeat(String deviceId, long timestamp) {
@@ -143,6 +144,9 @@ public class DataSender {
         }
         //Iot设备上报数据频率高，这里使用异步调用
         asyncSendData("WaterQuality-Data", data);
+        
+        // 数据上报成功后，同步更新心跳时间戳，确保心跳和数据的同步性
+        heartBeat(deviceId, timestamp);
     }
 
     /**

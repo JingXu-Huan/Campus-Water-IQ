@@ -223,9 +223,9 @@ public class VirtualWaterQualityDeviceServiceImpl extends ServiceImpl<DeviceMapp
         if (!runningDevices.contains(deviceId)) {
             return;
         }
-        //读取上报时间
-        String reportFrequency = serverConfig.getMeterReportFrequency();
-        String timeOffset = serverConfig.getMeterTimeOffset();
+        //读取上报时间 - 使用水质传感器的配置
+        String reportFrequency = serverConfig.getWaterQualityReportFrequency();
+        String timeOffset = serverConfig.getWaterQualityReportTimeOffset();
         if (reportFrequency == null) {
             return;
         }
@@ -298,14 +298,18 @@ public class VirtualWaterQualityDeviceServiceImpl extends ServiceImpl<DeviceMapp
         int offset = Integer.parseInt(serverConfig.getWaterQualityReportTimeOffset()) / 1000;
         scheduler.scheduleAtFixedRate(() -> {
             long now = System.currentTimeMillis();
-            Long last = this.reportTime.get(deviceId);
-            long reportTime = (now - last) / 1000 > time ? now : last;
+            Long lastReportTime = this.reportTime.get(deviceId);
+            
+            // 检查设备是否在线，如果不在运行则停止心跳
+            if (!isDeviceOnline(deviceId)) {
+                return;
+            }
+            
+            // 使用当前时间作为心跳时间戳，确保心跳的时效性
+            // 如果距离上次上报超过配置的时间间隔，说明设备可能有问题，但仍使用当前时间保持心跳
+            long heartbeatTimestamp = now;
             try {
-                //只有不在线的设备，我们才停止心跳的上报
-                if (!isDeviceOnline(deviceId)) {
-                    return;
-                }
-                dataSender.getObject().heartBeat(deviceId, reportTime);
+                dataSender.getObject().heartBeat(deviceId, heartbeatTimestamp);
             } catch (Exception e) {
                 log.error("心跳发送异常: {}", e.getMessage(), e);
             }

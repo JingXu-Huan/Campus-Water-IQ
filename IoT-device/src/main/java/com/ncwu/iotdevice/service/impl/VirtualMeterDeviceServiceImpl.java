@@ -562,24 +562,22 @@ public class VirtualMeterDeviceServiceImpl extends ServiceImpl<DeviceMapper, Vir
         // 获取心跳发送间隔（秒）和时间偏移（秒）
         int time = Integer.parseInt(serverConfig.getMeterReportFrequency()) / 1000;
         int offset = Integer.parseInt(serverConfig.getMeterTimeOffset()) / 1000;
-
         // 启动定时心跳任务
         scheduler.scheduleAtFixedRate(() -> {
             long now = System.currentTimeMillis();
-            Long reportTime = this.reportTime.get(deviceId);
+            Long lastReportTime = this.reportTime.get(deviceId);
 
             // 检查设备是否还在运行，如果不在运行则停止心跳
-            if (reportTime == null || !isDeviceOnline(deviceId)) {
+            if (!runningDevices.contains(deviceId)) {
                 return;
             }
-
-            // 如果距离上次上报超过10秒，使用当前时间作为心跳时间戳
-            // 这样可以确保心跳时间戳的合理性
-            reportTime = now - reportTime >= 10_000L ? now : reportTime;
-
+            
+            // 使用当前时间作为心跳时间戳，确保心跳的时效性
+            // 如果距离上次上报超过15秒，说明设备可能有问题，但仍使用当前时间保持心跳
+            long heartbeatTimestamp = now;
             try {
                 // 发送心跳信息
-                dataSender.getObject().heartBeat(deviceId, reportTime);
+                dataSender.getObject().heartBeat(deviceId, heartbeatTimestamp);
             } catch (Exception e) {
                 log.error("心跳发送异常: {}", e.getMessage(), e);
             }
@@ -627,8 +625,6 @@ public class VirtualMeterDeviceServiceImpl extends ServiceImpl<DeviceMapper, Vir
                 log.error("设备 {} 数据上报失败: {}", sanitizedDeviceId, e.getMessage(), e);
             } finally {
                 // 无论成功失败，都要递归调度下一次上报
-                // 更新上报时间戳，用于心跳对齐
-                reportTime.put(deviceId, System.currentTimeMillis());
                 scheduleNextReport(deviceId);
             }
         }, delay, TimeUnit.MILLISECONDS);
@@ -700,6 +696,7 @@ public class VirtualMeterDeviceServiceImpl extends ServiceImpl<DeviceMapper, Vir
 
         // 发送数据到消息队列或数据接收端
         dataSender.getObject().sendMeterData(dataBo);
+        reportTime.put(dataBo.getDeviceId(), System.currentTimeMillis());
     }
 
     /**

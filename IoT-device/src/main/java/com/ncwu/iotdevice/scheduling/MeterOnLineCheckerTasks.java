@@ -73,7 +73,7 @@ public class MeterOnLineCheckerTasks {
                 if (lastReportTime == -1 || deviceId.startsWith("2")) {
                     continue;
                 }
-                long i = Long.parseLong(serverConfig.getWaterQualityReportFrequency());
+                long i = Long.parseLong(serverConfig.getMeterReportFrequency());
                 int n = Math.max(1, serverConfig.getN());
                 if (now - lastReportTime > i * n) {
                     processOffline(deviceId);

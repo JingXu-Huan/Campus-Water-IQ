@@ -253,20 +253,26 @@ export default function DigitalTwin() {
     const deviceId = generateDeviceId(campus, building, floor, unit)
     const locationLabel = `${CAMPUS_OPTIONS.find(c => c.value === campus)?.label} ${building}号楼 ${floor}层 ${unit}室`
     
-    if (!confirm(`确认水表设备下线？\n位置: ${locationLabel}\n设备ID: ${deviceId}`)) return
-    
-    setLoading(true)
-    try {
-      const result = await iotApi.offlineMeters([deviceId])
-      showResultMessage(result, `水表 ${locationLabel} 已下线`)
-      if (result.success) {
-        await fetchDeviceStatus()
+    setConfirmModal({
+      show: true,
+      title: '确认水表设备下线',
+      message: `位置: ${locationLabel}\n设备ID: ${deviceId}`,
+      onConfirm: async () => {
+        setConfirmModal(null)
+        setLoading(true)
+        try {
+          const result = await iotApi.offlineMeters([deviceId])
+          showResultMessage(result, `水表 ${locationLabel} 已下线`)
+          if (result.success) {
+            await fetchDeviceStatus()
+          }
+        } catch (error) {
+          showMessage('error', '水表下线失败')
+        } finally {
+          setLoading(false)
+        }
       }
-    } catch (error) {
-      showMessage('error', '水表下线失败')
-    } finally {
-      setLoading(false)
-    }
+    })
   }
 
   // 传感器下线
@@ -275,20 +281,26 @@ export default function DigitalTwin() {
     const deviceId = generateWaterQualitySensorId(campus, building, floor)
     const locationLabel = `${CAMPUS_OPTIONS.find(c => c.value === campus)?.label} ${building}号楼 ${floor}层`
     
-    if (!confirm(`确认传感器设备下线？\n位置: ${locationLabel}\n设备ID: ${deviceId}`)) return
-    
-    setLoading(true)
-    try {
-      const result = await iotApi.offlineSensors([deviceId])
-      showResultMessage(result, `传感器 ${locationLabel} 已下线`)
-      if (result.success) {
-        await fetchDeviceStatus()
+    setConfirmModal({
+      show: true,
+      title: '确认传感器设备下线',
+      message: `位置: ${locationLabel}\n设备ID: ${deviceId}`,
+      onConfirm: async () => {
+        setConfirmModal(null)
+        setLoading(true)
+        try {
+          const result = await iotApi.offlineSensors([deviceId])
+          showResultMessage(result, `传感器 ${locationLabel} 已下线`)
+          if (result.success) {
+            await fetchDeviceStatus()
+          }
+        } catch (error) {
+          showMessage('error', '传感器下线失败')
+        } finally {
+          setLoading(false)
+        }
       }
-    } catch (error) {
-      showMessage('error', '传感器下线失败')
-    } finally {
-      setLoading(false)
-    }
+    })
   }
 
   // 切换阀门

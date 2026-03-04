@@ -403,7 +403,7 @@ export default function Dashboard() {
     { id: 'repair', label: '报修管理', icon: Wrench, path: '/repair' },
     { id: 'reports', label: '数据报表', icon: FileText, path: '' },
     { id: 'settings', label: '系统设置', icon: Settings, path: '' },
-    { id: 'help', label: '帮助中心', icon: HelpCircle, path: '' },
+    { id: 'help', label: '帮助中心', icon: HelpCircle, path: '/help' },
   ]
 
   const handleMenuClick = (item: typeof menuItems[0]) => {
@@ -417,7 +417,7 @@ export default function Dashboard() {
   return (
     <div className="h-screen bg-gray-50 flex overflow-hidden">
       {/* Sidebar */}
-      <aside className={`${sidebarOpen ? 'w-64' : 'w-20'} bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 backdrop-blur-sm shadow-xl transition-all duration-300 flex flex-col h-screen`}>
+      <aside className={`${sidebarOpen ? 'w-64' : 'w-20'} bg-gradient-to-b from-primary-600 to-primary-800 shadow-xl transition-all duration-300 flex flex-col h-screen`}>
         {/* Sidebar Header */}
         <div className="p-4 border-b border-white/10">
           <div className="flex items-center gap-3">
@@ -442,7 +442,7 @@ export default function Dashboard() {
                     className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl transition-all duration-200 ${
                       activeMenu === item.id
                         ? 'bg-white/20 text-white border border-white/30 shadow-lg'
-                        : 'text-white/70 hover:bg-white/10 hover:text-white'
+                        : 'text-white hover:bg-white/10 hover:text-white'
                     }`}
                   >
                     <Icon className="w-5 h-5 flex-shrink-0" />
@@ -458,7 +458,7 @@ export default function Dashboard() {
           {/* Campus Selector in Sidebar */}
           {sidebarOpen && (
             <div className="border-t border-white/10 mt-4 pt-2">
-              <p className="px-2 py-2 text-xs font-medium text-white/40 uppercase">切换校区</p>
+              <p className="px-2 py-2 text-xs font-medium text-white/80 uppercase">切换校区</p>
               <div className="space-y-1">
                 {campuses.map((campus) => (
                   <button
@@ -467,13 +467,13 @@ export default function Dashboard() {
                     className={`w-full flex items-center gap-2 px-3 py-2 rounded-lg transition-all duration-200 ${
                       selectedCampus === campus.id
                         ? 'bg-white/20 text-white border border-white/30'
-                        : 'text-white/70 hover:bg-white/10 hover:text-white border border-transparent'
+                        : 'text-white hover:bg-white/10 hover:text-white border border-transparent'
                     }`}
                   >
                     <div className={`w-2 h-2 rounded-full ${selectedCampus === campus.id ? 'bg-white' : 'bg-white/40'}`}></div>
                     <div className="flex-1 text-left">
                       <div className="text-sm font-medium">{campus.name}</div>
-                      <div className="text-xs text-white/50">{campus.code}</div>
+                      <div className="text-xs text-white/80">{campus.code}</div>
                     </div>
                   </button>
                 ))}
@@ -497,7 +497,7 @@ export default function Dashboard() {
                 <p className="text-sm font-medium text-white truncate">
                   {nickname || '用户'}
                 </p>
-                <p className="text-xs text-white/60 truncate">
+                <p className="text-xs text-white truncate">
                   UID: {uid || '未知'}
                 </p>
               </div>
@@ -507,14 +507,14 @@ export default function Dashboard() {
             <div className="flex gap-2 mt-2">
               <button
                 onClick={openProfileModal}
-                className="flex-1 flex items-center justify-center gap-2 px-4 py-2 text-white/70 hover:bg-white/10 hover:text-white rounded-xl transition-all duration-200"
+                className="flex-1 flex items-center justify-center gap-2 px-4 py-2 text-white hover:bg-white/10 hover:text-white rounded-xl transition-all duration-200"
               >
                 <User className="w-4 h-4" />
                 <span className="text-sm font-medium">个人中心</span>
               </button>
               <button
                 onClick={handleLogout}
-                className="flex items-center justify-center px-3 text-white/70 hover:text-red-400 hover:bg-red-500/20 rounded-xl transition-all duration-200"
+                className="flex items-center justify-center px-3 text-white hover:text-red-400 hover:bg-red-500/20 rounded-xl transition-all duration-200"
               >
                 <LogOut className="w-4 h-4" />
               </button>
@@ -526,7 +526,7 @@ export default function Dashboard() {
       {/* Main Content */}
       <div className="flex-1 flex flex-col bg-gray-50">
         {/* Top Header */}
-        <header className="bg-gradient-to-r from-slate-900 via-slate-800 to-slate-900 shadow-lg backdrop-blur-sm">
+        <header className="bg-gradient-to-r from-primary-600 to-primary-800 shadow-lg">
           <div className="px-6 py-4 flex items-center justify-between">
             <div className="flex items-center gap-4">
               <button
@@ -544,16 +544,18 @@ export default function Dashboard() {
                 <div className="w-2 h-2 bg-white rounded-full"></div>
                 <span className="text-sm text-white/80">{currentCampus?.name}</span>
               </div>
-              
+            </div>
+            
+            <div className="flex items-center gap-4">
               {/* Weather Info */}
               {weather && (
                 <div className="flex items-center gap-3 px-3 py-1.5 bg-white/10 backdrop-blur-sm rounded-xl">
                   <Sun className="w-5 h-5 text-yellow-300" />
                   <div className="flex items-center gap-2">
                     <span className="text-lg font-bold text-white">{weather.temp}°C</span>
-                    <span className="text-xs text-white/70">{weather.condition}</span>
+                    <span className="text-xs text-white">{weather.condition}</span>
                   </div>
-                  <div className="flex items-center gap-1 text-xs text-white/50">
+                  <div className="flex items-center gap-1 text-xs text-white/80">
                     <span>💧 {weather.humidity}%</span>
                     <span className="mx-1">|</span>
                     <span>💨 {weather.wind}</span>
@@ -562,29 +564,26 @@ export default function Dashboard() {
               )}
               {weatherLoading && (
                 <div className="flex items-center gap-2 px-3 py-1.5 bg-white/10 backdrop-blur-sm rounded-xl">
-                  <RefreshCw className="w-4 h-4 text-white/60 animate-spin" />
-                  <span className="text-xs text-white/60">加载天气...</span>
+                  <RefreshCw className="w-4 h-4 text-white animate-spin" />
+                  <span className="text-xs text-white">加载天气...</span>
                 </div>
               )}
+              
+              {!sidebarOpen && (
+                <>
+                  <div className="flex items-center gap-2 text-sm text-white">
+                    <User className="w-4 h-4" />
+                    <span>{nickname || '用户'}</span>
+                  </div>
+                  <button
+                    onClick={handleLogout}
+                    className="flex items-center gap-2 px-3 py-1.5 text-white/70 hover:text-white hover:bg-white/10 rounded-xl transition-colors"
+                  >
+                    <LogOut className="w-4 h-4" />
+                  </button>
+                </>
+              )}
             </div>
-            
-            {!sidebarOpen && (
-              <div className="flex items-center gap-4">
-                <div className="flex items-center gap-2 text-sm text-gray-600">
-                  <User className="w-4 h-4" />
-                  <span>{nickname || '用户'}</span>
-                  <span className="text-gray-400">|</span>
-                  <span className="text-xs text-gray-500">UID: {uid || '未知'}</span>
-                </div>
-                <button
-                  onClick={handleLogout}
-                  className="flex items-center gap-2 px-4 py-2 text-gray-600 hover:text-gray-900 transition-colors"
-                >
-                  <LogOut className="w-5 h-5" />
-                  <span>退出登录</span>
-                </button>
-              </div>
-            )}
           </div>
         </header>
 
@@ -622,7 +621,7 @@ export default function Dashboard() {
           {/* 今日用水量 */}
           <div className="glass-card rounded-2xl p-6">
             <div className="flex items-center justify-between mb-4">
-              <div className="p-3 bg-gradient-to-br from-blue-500 to-cyan-500 rounded-xl shadow-lg">
+              <div className="p-3 bg-blue-600 rounded-xl">
                 <Droplets className="w-6 h-6 text-white" />
               </div>
               {loadingToday ? (
@@ -650,7 +649,7 @@ export default function Dashboard() {
           {/* 本月用水量 */}
           <div className="glass-card rounded-2xl p-6">
             <div className="flex items-center justify-between mb-4">
-              <div className="p-3 bg-gradient-to-br from-purple-500 to-pink-500 rounded-xl shadow-lg">
+              <div className="p-3 bg-purple-600 rounded-xl">
                 <BarChart3 className="w-6 h-6 text-white" />
               </div>
               {loadingMonth ? (
@@ -678,7 +677,7 @@ export default function Dashboard() {
           {/* 异常告警 */}
           <div className="glass-card rounded-2xl p-6">
             <div className="flex items-center justify-between mb-4">
-              <div className="p-3 bg-gradient-to-br from-amber-500 to-orange-500 rounded-xl shadow-lg">
+              <div className="p-3 bg-yellow-500 rounded-xl">
                 <AlertTriangle className="w-6 h-6 text-white" />
               </div>
               <span className="text-sm text-red-600">+{alertCount}</span>
@@ -692,7 +691,7 @@ export default function Dashboard() {
           {/* 在线设备 */}
           <div className="glass-card rounded-2xl p-6">
             <div className="flex items-center justify-between mb-4">
-              <div className="p-3 bg-gradient-to-br from-green-500 to-teal-500 rounded-xl shadow-lg">
+              <div className="p-3 bg-green-600 rounded-xl">
                 <User className="w-6 h-6 text-white" />
               </div>
               {offlineRate > 0 && (
@@ -720,7 +719,7 @@ export default function Dashboard() {
           {/* 健康评分 */}
           <div className="glass-card rounded-2xl p-6">
             <div className="flex items-center justify-between mb-4">
-              <div className="p-3 bg-gradient-to-br from-emerald-500 to-cyan-500 rounded-xl shadow-lg">
+              <div className="p-3 bg-emerald-600 rounded-xl">
                 <Activity className="w-6 h-6 text-white" />
               </div>
             </div>
@@ -879,14 +878,14 @@ export default function Dashboard() {
             <h2 className="text-lg font-semibold text-gray-900 mb-4">本周用水趋势</h2>
             <ResponsiveContainer width="100%" height={280}>
               <LineChart data={weeklyUsageData}>
-                <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" />
+                <CartesianGrid strokeDasharray="3 3" stroke="#d1d5db" />
                 <XAxis dataKey="day" tick={{ fontSize: 12 }} />
                 <YAxis tick={{ fontSize: 12 }} unit="m³" />
                 <Tooltip 
                   formatter={(value: number | undefined) => value !== undefined ? [`${value} m³`, '用水量'] : ['无数据', '用水量']}
                   contentStyle={{ borderRadius: '8px', border: 'none', boxShadow: '0 2px 8px rgba(0,0,0,0.1)' }}
                 />
-                <Line type="monotone" dataKey="usage" stroke="#3b82f6" strokeWidth={2} dot={{ fill: '#3b82f6', r: 4 }} />
+                <Line type="monotone" dataKey="usage" stroke="#1d4ed8" strokeWidth={3} dot={{ fill: '#1d4ed8', r: 5 }} />
               </LineChart>
             </ResponsiveContainer>
           </div>
@@ -896,14 +895,14 @@ export default function Dashboard() {
             <h2 className="text-lg font-semibold text-gray-900 mb-4">各校区用水量对比</h2>
             <ResponsiveContainer width="100%" height={280}>
               <BarChart data={campusUsageData} layout="vertical">
-                <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" />
+                <CartesianGrid strokeDasharray="3 3" stroke="#d1d5db" />
                 <XAxis type="number" tick={{ fontSize: 12 }} unit="m³" />
                 <YAxis dataKey="name" type="category" tick={{ fontSize: 12 }} width={60} />
                 <Tooltip 
                   formatter={(value: number | undefined) => value !== undefined ? [`${value.toFixed(1)} m³`, '用水量'] : ['无数据', '用水量']}
                   contentStyle={{ borderRadius: '8px', border: 'none', boxShadow: '0 2px 8px rgba(0,0,0,0.1)' }}
                 />
-                <Bar dataKey="usage" fill="#22c55e" radius={[0, 4, 4, 0]} />
+                <Bar dataKey="usage" fill="#15803d" radius={[0, 4, 4, 0]} />
               </BarChart>
             </ResponsiveContainer>
           </div>

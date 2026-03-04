@@ -44,6 +44,11 @@
             <artifactId>guava</artifactId>
         </dependency>
         <dependency>
+            <groupId>dev.langchain4j</groupId>
+            <artifactId>langchain4j-ollama-spring-boot-starter</artifactId>
+            <version>1.0.0-beta3</version>
+        </dependency>
+        <dependency>
             <groupId>com.ncwu</groupId>
             <artifactId>common</artifactId>
             <version>0.0.1-SNAPSHOT</version>

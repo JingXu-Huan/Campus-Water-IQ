@@ -55,7 +55,7 @@ export default function Repair() {
     { id: 'digital-twin', label: '数字孪生', icon: Map, path: '/digital-twin' },
     { id: 'repair', label: '报修管理', icon: FileText, path: '/repair' },
     { id: 'settings', label: '系统设置', icon: Settings, path: '' },
-    { id: 'help', label: '帮助中心', icon: HelpCircle, path: '' },
+    { id: 'help', label: '帮助中心', icon: HelpCircle, path: '/help' },
   ]
 
   const handleMenuClick = (item: typeof menuItems[0]) => {

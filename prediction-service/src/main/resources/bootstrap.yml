@@ -2,7 +2,7 @@ spring:
   application:
     name: prediction-service
   profiles:
-    active: dev
+    active: dev,ai
   cloud:
     nacos:
       config:

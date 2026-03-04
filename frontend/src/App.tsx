@@ -6,6 +6,7 @@ import Dashboard from './pages/Dashboard'
 import Monitoring from './pages/Monitoring'
 import DigitalTwin from './pages/DigitalTwin'
 import Repair from './pages/Repair'
+import Help from './pages/Help'
 
 function ProtectedRoute({ children }: { children: React.ReactNode }) {
   const { token } = useAuthStore()
@@ -50,6 +51,14 @@ function App() {
           element={
             <ProtectedRoute>
               <Repair />
+            </ProtectedRoute>
+          } 
+        />
+        <Route 
+          path="/help" 
+          element={
+            <ProtectedRoute>
+              <Help />
             </ProtectedRoute>
           } 
         />

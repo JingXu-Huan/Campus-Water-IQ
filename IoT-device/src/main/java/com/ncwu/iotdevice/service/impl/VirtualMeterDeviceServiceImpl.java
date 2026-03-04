@@ -565,7 +565,6 @@ public class VirtualMeterDeviceServiceImpl extends ServiceImpl<DeviceMapper, Vir
         // 启动定时心跳任务
         scheduler.scheduleAtFixedRate(() -> {
             long now = System.currentTimeMillis();
-            Long lastReportTime = this.reportTime.get(deviceId);
 
             // 检查设备是否还在运行，如果不在运行则停止心跳
             if (!runningDevices.contains(deviceId)) {

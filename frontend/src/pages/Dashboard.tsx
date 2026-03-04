@@ -45,6 +45,23 @@ export default function Dashboard() {
   const [healthyScore, setHealthyScore] = useState<number>(0)
   const [loading, setLoading] = useState<boolean>(true)
   
+  // 告警数据
+  const [warnings, setWarnings] = useState<{
+    deviceCode: string
+    eventDesc: string
+    eventLevel: string
+    deviceType: string
+    eventTime: string
+  }[]>([])
+  const [loadingWarnings, setLoadingWarnings] = useState(false)
+
+  // 设备类型中文映射
+  const deviceTypeMap: Record<string, string> = {
+    'METER': '水表告警',
+    '1': '水表',
+    '2': '水质传感器'
+  }
+  
   // 图表数据 - 模拟近7天用水趋势
   const [weeklyUsageData] = useState([
     { day: '周一', usage: 120 },
@@ -98,6 +115,7 @@ export default function Dashboard() {
     setLoading(true)
     setLoadingToday(true)
     setLoadingMonth(true)
+    setLoadingWarnings(true)
     setError(null)
     
     try {
@@ -115,8 +133,6 @@ export default function Dashboard() {
       setLoadingToday(false)
       setLoadingMonth(false)
       setLoading(false)
-      // 模拟告警数据，实际应该从 API 获取
-      setAlertCount(Math.floor(Math.random() * 5))
       
       // 从 iot-service 获取在线设备数量
       try {
@@ -134,6 +150,18 @@ export default function Dashboard() {
       } catch (err) {
         console.error('获取健康评分失败:', err)
         setHealthyScore(0)
+      }
+
+      // 获取校园告警
+      try {
+        const warningList = await iotApi.getCampusWarnings(currentCampus.schoolId)
+        setWarnings(warningList || [])
+        setAlertCount(warningList?.length || 0)
+      } catch (err) {
+        console.error('获取告警列表失败:', err)
+        setWarnings([])
+      } finally {
+        setLoadingWarnings(false)
       }
     }
 
@@ -690,27 +718,30 @@ export default function Dashboard() {
 
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
           <div className="bg-white rounded-xl p-6 shadow-sm">
-            <div className="flex items-center justify-between mb-6">
+            <div className="flex items-center justify-between mb-4">
               <h2 className="text-lg font-semibold text-gray-900">实时监测</h2>
               <button className="p-2 hover:bg-gray-100 rounded-lg transition-colors">
                 <Settings className="w-5 h-5 text-gray-400" />
               </button>
             </div>
-            <div className="space-y-4">
+            <div className="space-y-3">
               {loadingBuildings ? (
                 <div className="flex items-center justify-center py-8">
                   <RefreshCw className="w-6 h-6 text-gray-400 animate-spin" />
                 </div>
               ) : buildingStats.length > 0 ? (
                 buildingStats.map((building, idx) => (
-                  <div key={idx} className="flex items-center justify-between p-4 bg-gray-50 rounded-lg">
-                    <div>
-                      <p className="font-medium text-gray-900">{building.name}</p>
-                      <p className="text-sm text-gray-500">
-                        水压 {building.pressure.toFixed(2)} MPa • 流量 {building.flow.toFixed(2)} L/s
-                      </p>
+                  <div key={idx} className="flex items-center justify-between p-3.5 bg-gray-50 rounded-lg">
+                    <div className="flex items-center gap-3">
+                      <div className={`w-2 h-2 rounded-full ${building.status === '正常' ? 'bg-green-500' : 'bg-red-500'}`}></div>
+                      <div>
+                        <p className="font-medium text-gray-900 text-sm">{building.name}</p>
+                        <p className="text-xs text-gray-500">
+                          水压 {building.pressure.toFixed(2)} MPa • 流量 {building.flow.toFixed(2)} L/s
+                        </p>
+                      </div>
                     </div>
-                    <span className={`px-3 py-1 text-sm rounded-full ${
+                    <span className={`px-2.5 py-1 text-xs font-medium rounded-full ${
                       building.status === '正常' 
                         ? 'bg-green-100 text-green-700' 
                         : 'bg-red-100 text-red-700'
@@ -726,24 +757,72 @@ export default function Dashboard() {
           </div>
 
           <div className="bg-white rounded-xl p-6 shadow-sm">
-            <h2 className="text-lg font-semibold text-gray-900 mb-6">最近告警</h2>
-            <div className="space-y-4">
-              <div className="flex items-start gap-4 p-4 border border-red-200 bg-red-50 rounded-lg">
-                <AlertTriangle className="w-5 h-5 text-red-500 mt-0.5" />
-                <div>
-                  <p className="font-medium text-gray-900">漏水检测 - 宿舍楼 C 区</p>
-                  <p className="text-sm text-gray-500 mt-1">检测到异常用水模式，可能存在管道漏水</p>
-                  <p className="text-xs text-gray-400 mt-2">2026-02-19 14:30</p>
+            <div className="flex items-center justify-between mb-4">
+              <h2 className="text-lg font-semibold text-gray-900">最近告警</h2>
+              {warnings.length > 0 && (
+                <span className="px-2 py-1 bg-yellow-100 text-yellow-700 text-xs font-medium rounded-full">
+                  {warnings.length} 条
+                </span>
+              )}
+            </div>
+            <div className="space-y-3">
+              {loadingWarnings ? (
+                <div className="flex items-center justify-center py-8">
+                  <RefreshCw className="w-6 h-6 text-gray-400 animate-spin" />
                 </div>
-              </div>
-              <div className="flex items-start gap-4 p-4 border border-yellow-200 bg-yellow-50 rounded-lg">
-                <AlertTriangle className="w-5 h-5 text-yellow-500 mt-0.5" />
-                <div>
-                  <p className="font-medium text-gray-900">水压异常 - 体育馆</p>
-                  <p className="text-sm text-gray-500 mt-1">水压低于正常阈值</p>
-                  <p className="text-xs text-gray-400 mt-2">2026-02-19 10:15</p>
+              ) : warnings.length > 0 ? (
+                warnings.map((warning, idx) => (
+                  <div
+                    key={idx}
+                    className={`p-4 rounded-lg border-l-4 ${
+                      warning.eventLevel === 'WARN' || warning.eventLevel === '1'
+                        ? 'bg-yellow-50 border-yellow-500'
+                        : 'bg-red-50 border-red-500'
+                    }`}
+                  >
+                    <div className="flex items-start justify-between">
+                      <div className="flex items-center gap-2">
+                        <AlertTriangle
+                          className={`w-4 h-4 flex-shrink-0 ${
+                            warning.eventLevel === 'WARN' || warning.eventLevel === '1'
+                              ? 'text-yellow-600'
+                              : 'text-red-600'
+                          }`}
+                        />
+                        <span className="font-medium text-gray-900 text-sm">
+                          {deviceTypeMap[warning.deviceType] || warning.deviceType}
+                        </span>
+                      </div>
+                      <span className={`px-2 py-0.5 text-xs rounded ${
+                        warning.eventLevel === 'WARN' || warning.eventLevel === '1'
+                          ? 'bg-yellow-200 text-yellow-800'
+                          : 'bg-red-200 text-red-800'
+                      }`}>
+                        {warning.eventLevel === 'WARN' || warning.eventLevel === '1' ? '警告' : '严重'}
+                      </span>
+                    </div>
+                    <p className="text-sm text-gray-600 mt-2 ml-6">{warning.eventDesc}</p>
+                    <div className="flex items-center gap-4 mt-2 ml-6 text-xs text-gray-400">
+                      <span className="font-mono bg-gray-100 px-1.5 py-0.5 rounded">
+                        {warning.deviceCode}
+                      </span>
+                    </div>
+                    <div className="flex items-center gap-1 mt-1 ml-6 text-xs text-gray-400">
+                      <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+                      </svg>
+                      {warning.eventTime ? new Date(warning.eventTime).toLocaleString('zh-CN') : ''}
+                    </div>
+                  </div>
+                ))
+              ) : (
+                <div className="text-center py-8 text-gray-400">
+                  <svg className="w-12 h-12 mx-auto mb-2 text-gray-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                  </svg>
+                  <p>暂无告警</p>
                 </div>
-              </div>
+              )}
             </div>
           </div>
         </div>

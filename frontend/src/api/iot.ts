@@ -12,7 +12,7 @@ const iotDeviceApi = axios.create({
 
 // IoT-service 服务 (流量数据)
 const iotDataApi = axios.create({
-  baseURL: 'http://127.0.0.1:18016',
+  baseURL: 'http://127.0.0.1:20000',
   timeout: 10000,
   headers: {
     'Content-Type': 'application/json',
@@ -546,6 +546,19 @@ export const iotApi = {
     } catch (error) {
       console.error('获取健康评分失败:', error)
       return 0
+    }
+  },
+
+  // 获取校园告警列表
+  getCampusWarnings: async (campus: number): Promise<any[]> => {
+    try {
+      const res = await iotDataApi.get<any[]>('/operations/getCampusWarings', {
+        params: { campus }
+      })
+      return res?.data ?? res ?? []
+    } catch (error) {
+      console.error('获取校园告警失败:', error)
+      return []
     }
   },
 

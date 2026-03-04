@@ -4,6 +4,7 @@ import com.ncwu.common.domain.vo.Result;
 import com.ncwu.repairservice.entity.dto.UserReportDTO;
 import com.ncwu.repairservice.entity.po.DeviceReservation;
 import com.baomidou.mybatisplus.extension.service.IService;
+import com.ncwu.repairservice.entity.vo.IotDeviceEventVo;
 import com.ncwu.repairservice.entity.vo.UserReportVO;
 
 import java.util.Collection;
@@ -36,4 +37,6 @@ public interface IDeviceReservationService extends IService<DeviceReservation> {
     Result<List<UserReportVO>> getDeviceReportByUid(String uid, int pageNum, int pageSize);
 
     Result<Long> getAllUnClosedNums();
+
+    Result<List<IotDeviceEventVo>> getCampusWarnings(int campus);
 }

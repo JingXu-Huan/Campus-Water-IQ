@@ -203,11 +203,17 @@ public class DeviceReservationServiceImpl extends ServiceImpl<DeviceReservationM
     }
 
     @Override
-    public Result<Boolean> changeStatus(String status, String deviceReservationId) {
+    public Result<Boolean> changeStatus(String newStatus, String deviceReservationId) {
+        String originalStatus = lambdaQuery().eq(DeviceReservation::getId, deviceReservationId)
+                .select(DeviceReservation::getStatus).one().getStatus();
         LambdaUpdateWrapper<DeviceReservation> set = new LambdaUpdateWrapper<DeviceReservation>()
                 .eq(DeviceReservation::getId, deviceReservationId)
-                .set(DeviceReservation::getStatus, status);
+                .set(DeviceReservation::getStatus, newStatus);
         this.update(set);
+        pool.submit(() -> {
+            redisTemplate.delete("ReportByStatus:" + newStatus);
+            redisTemplate.delete("ReportByStatus:"+originalStatus);
+        });
         return Result.ok(true);
     }
 

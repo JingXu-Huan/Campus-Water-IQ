@@ -12,6 +12,6 @@ import java.util.List;
  * @version 1.0.0
  * @since 2026/3/4
  */
-public interface Assistant {
+public interface AiService {
     Result<Double> predictTomorrowWaterUsage(@Min(1) @Max(3) int campus, List<Double> usage);
 }

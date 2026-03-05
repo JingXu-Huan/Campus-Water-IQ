@@ -31,7 +31,10 @@ public class AIServiceController {
      */
     @PostMapping("/predictTomorrowWaterUsage")
     public Result<Double> predictTomorrowWaterUsage(@RequestBody List<Double> usage) {
-        String res = chatLanguageModel.chat("给你一写用水量信息，预测下一个用水量信息,只返回一个浮点数即可" + usage.toString());
+
+        String res = chatLanguageModel.chat("Predict the next water usage value based on this data: "
+                + usage.toString() +
+            ". Return ONLY a single number without any explanation, text, or formatting. Example response: 209.25");
         Double v = Double.valueOf(res);
         return Result.ok(v);
     }

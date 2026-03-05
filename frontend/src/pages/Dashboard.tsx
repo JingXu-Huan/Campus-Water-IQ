@@ -2,7 +2,8 @@ import { useNavigate } from 'react-router-dom'
 import { useAuthStore } from '@/store/authStore'
 import { Droplets, LogOut, User, BarChart3, AlertTriangle, Settings, LayoutDashboard, Activity, Map, FileText, HelpCircle, Menu, X, RefreshCw, TrendingUp, TrendingDown, WifiOff, Camera, Eye, EyeOff, Check, Wrench, Sun } from 'lucide-react'
 import { useState, useEffect } from 'react'
-import { iotApi, generateDeviceId } from '@/api/iot'
+import { iotApi, iotDataApi, generateDeviceId, formatDate } from '@/api/iot'
+import { aiApi } from '@/api/ai'
 import { authApi } from '@/api/auth'
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, LineChart, Line } from 'recharts'
 import repair from "@/api/repair.ts";
@@ -83,11 +84,22 @@ export default function Dashboard() {
   const [loadingToday, setLoadingToday] = useState<boolean>(true)
   const [loadingMonth, setLoadingMonth] = useState<boolean>(true)
   const [loadingOffline, setLoadingOffline] = useState<boolean>(true)
+  const [loadingPrediction, setLoadingPrediction] = useState<boolean>(false)
+  const [predictedTomorrowUsage, setPredictedTomorrowUsage] = useState<number | null>(null)
   const [error, setError] = useState<string | null>(null)
 
   const handleLogout = () => {
     clearAuth()
     navigate('/login')
+  }
+
+  // 手动刷新
+  const handleRefresh = () => {
+    fetchWaterUsageData()
+    fetchBuildingStats()
+    if (currentCampus) {
+      fetchPrediction(currentCampus.schoolId)
+    }
   }
 
   const currentCampus = campuses.find(c => c.id === selectedCampus)
@@ -195,9 +207,40 @@ export default function Dashboard() {
     fetchOfflineDevices()
   }
 
-  // 手动刷新
-  const handleRefresh = () => {
-    fetchWaterUsageData()
+  // 获取明日用水量预测
+  const fetchPrediction = async (schoolId: number) => {
+    setLoadingPrediction(true)
+    try {
+      // Mock 数据测试 - 实际使用时替换为真实 API 调用
+      // const usageData: number[] = []
+      // for (let i = 6; i >= 0; i--) {
+      //   const date = new Date()
+      //   date.setDate(date.getDate() - i)
+      //   const startOfDay = new Date(date.getFullYear(), date.getMonth(), date.getDate())
+      //   const endOfDay = new Date(date.getFullYear(), date.getMonth(), date.getDate(), 23, 59, 59)
+      //   
+      //   try {
+      //     const res = await iotDataApi.get<number>('/Data/schoolUsage', {
+      //       params: { school: schoolId, start: formatDate(startOfDay), end: formatDate(endOfDay) }
+      //     })
+      //     usageData.push(res?.data ?? res ?? 0)
+      //   } catch {
+      //     usageData.push(0)
+      //   }
+      // }
+      
+      // Mock 数据
+      const usageData = [120.5, 135.2, 128.0, 142.3, 130.1, 118.9, 140.0]
+      
+      // 调用预测接口
+      const result = await aiApi.predictTomorrowWaterUsage(usageData, schoolId)
+      setPredictedTomorrowUsage(result?.usage ?? 0)
+    } catch (err) {
+      console.error('获取预测数据失败:', err)
+      setPredictedTomorrowUsage(null)
+    } finally {
+      setLoadingPrediction(false)
+    }
   }
 
   // 打开个人中心
@@ -393,6 +436,7 @@ export default function Dashboard() {
     const campus = campuses.find(c => c.id === selectedCampus)
     if (campus) {
       fetchWeather(campus.lat, campus.lon)
+      fetchPrediction(campus.schoolId)
     }
   }, [selectedCampus])
 
@@ -617,7 +661,7 @@ export default function Dashboard() {
             </button>
           </div>
           
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-6 mb-8">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-6 gap-6 mb-8">
           {/* 今日用水量 */}
           <div className="glass-card rounded-2xl p-6">
             <div className="flex items-center justify-between mb-4">
@@ -671,6 +715,35 @@ export default function Dashboard() {
             </p>
             {!loadingMonth && lastMonthSameDay > 0 && (
               <p className="text-xs text-gray-400 mt-1">上月同期: {formatUsage(lastMonthSameDay)} m³</p>
+            )}
+          </div>
+
+          {/* 明日用水量预测 */}
+          <div className="glass-card rounded-2xl p-6">
+            <div className="flex items-center justify-between mb-4">
+              <div className="p-3 bg-orange-500 rounded-xl">
+                <TrendingUp className="w-6 h-6 text-white" />
+              </div>
+              {loadingPrediction ? (
+                <RefreshCw className="w-4 h-4 text-gray-400 animate-spin" />
+              ) : predictedTomorrowUsage !== null ? (
+                <span className="px-2 py-1 bg-green-100 text-green-700 text-xs font-medium rounded-full">
+                  AI 预测
+                </span>
+              ) : null}
+            </div>
+            <p className="text-sm text-gray-500">明日用水预测</p>
+            <p className="text-2xl font-bold text-gray-900">
+              {loadingPrediction ? (
+                <span className="text-gray-300">预测中...</span>
+              ) : predictedTomorrowUsage !== null ? (
+                <span>{formatUsage(predictedTomorrowUsage)} m³</span>
+              ) : (
+                <span className="text-gray-400 text-lg">暂无数据</span>
+              )}
+            </p>
+            {!loadingPrediction && predictedTomorrowUsage !== null && (
+              <p className="text-xs text-gray-400 mt-1">基于近7天数据分析</p>
             )}
           </div>
 

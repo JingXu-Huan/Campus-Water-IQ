@@ -3,6 +3,7 @@ package com.ncwu.predictionservice.config;
 
 import dev.langchain4j.community.model.zhipu.ZhipuAiChatModel;
 import dev.langchain4j.model.chat.ChatLanguageModel;
+import jakarta.annotation.PostConstruct;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 
@@ -15,10 +16,12 @@ import java.time.Duration;
  */
 @Configuration
 public class ModelConfig {
+    String key = System.getenv("API_KEY");
+
     @Bean
     public ChatLanguageModel initModel() {
         return ZhipuAiChatModel.builder()
-                .apiKey("ddbe9bfd3bcd4a6aafe2d2a2eef3a4bf.s8E9iKjRMVE0lhej")
+                .apiKey(key)
                 .callTimeout(Duration.ofSeconds(60))
                 .connectTimeout(Duration.ofSeconds(60))
                 .writeTimeout(Duration.ofSeconds(60))

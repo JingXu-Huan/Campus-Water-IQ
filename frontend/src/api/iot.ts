@@ -11,7 +11,7 @@ const iotDeviceApi = axios.create({
 })
 
 // IoT-service 服务
-const iotDataApi = axios.create({
+export const iotDataApi = axios.create({
     baseURL: 'http://127.0.0.1:18016',
     timeout: 10000,
     headers: {
@@ -98,7 +98,7 @@ export interface SchoolUsageParams {
 }
 
 // 格式化日期为 yyyy-MM-dd HH:mm:ss
-const formatDate = (date: Date): string => {
+export const formatDate = (date: Date): string => {
     const year = date.getFullYear()
     const month = String(date.getMonth() + 1).padStart(2, '0')
     const day = String(date.getDate()).padStart(2, '0')

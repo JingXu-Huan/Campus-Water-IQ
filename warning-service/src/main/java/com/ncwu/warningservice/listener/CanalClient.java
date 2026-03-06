@@ -112,15 +112,14 @@ public class CanalClient {
             String eventLevel = data.get("event_level");
             String eventDesc = data.get("event_desc");
             String eventType = data.get("event_type");
-            String suggestion;
-            if (eventType.equals("ABNORMAL")) {
-                suggestion = "请断电重启，并且检查传感器是否正常工作。";
-            } else if (eventType.equals("OFFLINE")) {
-                suggestion = "设备离线，请将设备重新断电启动。";
+            String suggestion = switch (eventType) {
+                case "ABNORMAL" -> "请断电重启，并且检查传感器是否正常工作。";
+                case "OFFLINE" -> "设备离线，请将设备重新断电启动。";
                 //todo 通知用户
-            } else {
-                suggestion = "设备数据异常，请检查设备和传感器是否正常工作。";
-            }
+                case "BurstPipe" -> "管网可能出现破损，请检查管网。";
+                //todo 通知用户
+                default -> "设备数据异常，请检查设备和传感器是否正常工作。";
+            };
             weChatNotifyService.sendMdText(deviceCode, eventLevel, eventDesc, eventTime, suggestion);
         } else if (tableName.equals("device_reservation")) {
             String deviceCode = data.get("device_code");

@@ -2,13 +2,16 @@ package com.ncwu.repairservice.controller;
 
 
 
-import com.alibaba.nacos.api.model.v2.Result;
+import com.ncwu.common.domain.vo.Result;
 import com.ncwu.repairservice.service.IoTDeviceService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
+
+import java.util.List;
 
 /**
  * 设备事件控制器
@@ -29,7 +32,13 @@ public class IoTEventController {
      * 添加用户的报修信息
      */
     @PostMapping("/addNewEvent")
-    public Result<Boolean> addNewEvent() {
+    public com.alibaba.nacos.api.model.v2.Result<Boolean> addNewEvent() {
         return ioTDeviceService.addNewEvent();
+    }
+
+
+    @DeleteMapping("/dissMissWarning")
+    public Result<Boolean> dissMissWarn(List<String> ids){
+        return ioTDeviceService.dissMissWarning(ids);
     }
 }

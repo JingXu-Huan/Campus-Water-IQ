@@ -474,7 +474,7 @@ public class IoTDataServiceImpl extends ServiceImpl<IoTDeviceDataMapper, IotDevi
                 .keySet()
                 .stream()
                 .map(Object::toString)
-                .filter(id-> id.substring(1,2).equals(String.valueOf(campus))&&id.startsWith("1")).count());
+                .filter(id -> id.substring(1, 2).equals(String.valueOf(campus)) && id.startsWith("1")).count());
     }
 
     @Override
@@ -532,5 +532,20 @@ public class IoTDataServiceImpl extends ServiceImpl<IoTDeviceDataMapper, IotDevi
         }
         return Result.ok(tem);
 
+    }
+
+    @Override
+    public Result<Double> getRate(int region, int campus) {
+        return null;
+    }
+
+    @Override
+    public Result<LocalDateTime> getHighWaterUsageTime(int campus) {
+        return null;
+    }
+
+    @Override
+    public Result<Map<Integer, Double>> getCampusRate() {
+        return null;
     }
 }

@@ -95,4 +95,17 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User> implements Us
         String avatar = this.lambdaQuery().eq(User::getUid, uid).select(User::getAvatar).one().getAvatar();
         return Result.ok(avatar);
     }
+
+    @Override
+    public Result<Boolean> changeNickName(String newName, String uid) {
+        boolean update = this.lambdaUpdate().eq(User::getUid, uid).set(User::getNickName, newName).update();
+        return update ? Result.ok(true) : Result.fail(false);
+    }
+
+    @Override
+    public Result<Boolean> changePwd(String oldPwd, String newPwd, String uid) {
+        return null;
+    }
+
+
 }

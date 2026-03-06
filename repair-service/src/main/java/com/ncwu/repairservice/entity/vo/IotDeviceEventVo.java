@@ -12,6 +12,7 @@ import java.time.LocalDateTime;
  */
 @Data
 public class IotDeviceEventVo {
+    public long id;
     public String deviceCode;
     public String eventDesc;
     public String eventLevel;

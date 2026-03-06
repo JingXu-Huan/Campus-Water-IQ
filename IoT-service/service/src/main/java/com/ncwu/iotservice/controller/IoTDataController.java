@@ -138,7 +138,7 @@ public class IoTDataController {
      * 得到某设备的最近一条水压数据
      */
     @GetMapping("/getPressureNow")
-    public Result<Double> getPresNow(String deviceId){
+    public Result<Double> getPresNow(String deviceId) {
         return ioTDataService.getPressureNow(deviceId);
     }
 
@@ -146,7 +146,7 @@ public class IoTDataController {
      * 得到某设备的最近一条水温数据
      */
     @GetMapping("/getTemNow")
-    public Result<Double> getTemNow(String deviceId){
+    public Result<Double> getTemNow(String deviceId) {
         return ioTDataService.getTemNow(deviceId);
     }
 
@@ -176,6 +176,32 @@ public class IoTDataController {
             return ioTDataService.getAnnulus(deviceId);
         } else return Result.fail(ErrorCode.PARAM_VALIDATION_ERROR.code(), ErrorCode.PARAM_VALIDATION_ERROR.message());
     }
+
+    /**
+     * 得到某区域在整个校园用水场景中的用水占比
+     *
+     * @param region 用水区域。
+     * @param campus 校区信息
+     */
+    @GetMapping("/getUsageRateInCampus")
+    public Result<Double> getRate(int region, int campus) {
+        return ioTDataService.getRate(region, campus);
+    }
+
+    /**
+     * 获得某校区高峰用水时段
+     */
+    @GetMapping("highWaterUsageTime")
+    public Result<LocalDateTime> getHighWaterUsageTime(int campus) {
+        return ioTDataService.getHighWaterUsageTime(campus);
+    }
+    /**获得三校区各自用水占比*/
+    @GetMapping("/getCampusRate")
+    public Result<Map<Integer,Double>> getCampusRate(){
+        return ioTDataService.getCampusRate();
+    }
+
+
 
 
 

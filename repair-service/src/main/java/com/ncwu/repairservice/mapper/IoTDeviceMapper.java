@@ -16,6 +16,6 @@ import java.util.List;
  */
 @Mapper
 public interface IoTDeviceMapper extends BaseMapper<IotDeviceEvent> {
-    @Select("select device_code,event_desc ,event_level,device_type,event_time from iot_device_event where substring(device_code,2,1)=#{campus} limit 2")
+    @Select("select id,device_code,event_desc ,event_level,device_type,event_time from iot_device_event where substring(device_code,2,1)=#{campus} limit 2")
     List<IotDeviceEventVo> getCampusWarnings(Integer campus);
 }

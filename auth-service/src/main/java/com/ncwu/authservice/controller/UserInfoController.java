@@ -37,4 +37,20 @@ public class UserInfoController {
         return userService.getAvatar(uid);
     }
 
+    /**
+     * 用户修改自己的昵称
+     */
+    @PostMapping("/changeNickName")
+    public Result<Boolean> updateNickName(String newName, String uid) {
+        return userService.changeNickName(newName, uid);
+    }
+
+    /**
+     * 用户修改自己的密码
+     */
+    @PostMapping("/changePwd")
+    public Result<Boolean> changePwd(String oldPwd, String newPwd, String uid) {
+        return userService.changePwd(oldPwd, newPwd, uid);
+    }
+
 }

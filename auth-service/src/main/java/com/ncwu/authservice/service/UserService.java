@@ -24,4 +24,8 @@ public interface UserService extends IService<User> {
     Result<Boolean> uploadAvatar(MultipartFile file, String uid);
 
     Result<String> getAvatar(String uid);
+
+    Result<Boolean> changeNickName(String newName,String uid);
+
+    Result<Boolean> changePwd(String oldPwd,String newPwd, String uid);
 }

@@ -1,8 +1,8 @@
 import { useNavigate } from 'react-router-dom'
 import { useAuthStore } from '@/store/authStore'
-import { Droplets, LogOut, User, BarChart3, AlertTriangle, Settings, LayoutDashboard, Activity, Map, FileText, HelpCircle, Menu, X, RefreshCw, TrendingUp, TrendingDown, WifiOff, Camera, Eye, EyeOff, Check, Wrench, Sun } from 'lucide-react'
+import { Droplets, LogOut, User, BarChart3, AlertTriangle, Settings, LayoutDashboard, Activity, Map, FileText, HelpCircle, Menu, X, RefreshCw, TrendingUp, TrendingDown, WifiOff, Camera, Eye, EyeOff, Check, Wrench, Sun, Lightbulb } from 'lucide-react'
 import { useState, useEffect } from 'react'
-import { iotApi, iotDataApi, generateDeviceId, formatDate } from '@/api/iot'
+import { iotApi, generateDeviceId } from '@/api/iot'
 import { aiApi } from '@/api/ai'
 import { authApi } from '@/api/auth'
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, LineChart, Line } from 'recharts'
@@ -86,6 +86,7 @@ export default function Dashboard() {
   const [loadingOffline, setLoadingOffline] = useState<boolean>(true)
   const [loadingPrediction, setLoadingPrediction] = useState<boolean>(false)
   const [predictedTomorrowUsage, setPredictedTomorrowUsage] = useState<number | null>(null)
+  const [waterSuggestion, setWaterSuggestion] = useState<string | null>(null)
   const [error, setError] = useState<string | null>(null)
 
   const handleLogout = () => {
@@ -240,6 +241,17 @@ export default function Dashboard() {
       setPredictedTomorrowUsage(null)
     } finally {
       setLoadingPrediction(false)
+    }
+  }
+
+  // 获取节水建议
+  const fetchWaterSuggestion = async () => {
+    try {
+      const result = await aiApi.getWaterSavingSuggestions()
+      setWaterSuggestion(result ?? null)
+    } catch (err) {
+      console.error('获取节水建议失败:', err)
+      setWaterSuggestion(null)
     }
   }
 
@@ -433,6 +445,7 @@ export default function Dashboard() {
   useEffect(() => {
     fetchWaterUsageData()
     fetchBuildingStats()
+    fetchWaterSuggestion()
     const campus = campuses.find(c => c.id === selectedCampus)
     if (campus) {
       fetchWeather(campus.lat, campus.lon)
@@ -588,6 +601,14 @@ export default function Dashboard() {
                 <div className="w-2 h-2 bg-white rounded-full"></div>
                 <span className="text-sm text-white/80">{currentCampus?.name}</span>
               </div>
+              
+              {/* 节水建议 */}
+              {waterSuggestion && (
+                <div className="flex items-center gap-2 px-3 py-1.5 bg-white/10 backdrop-blur-sm rounded-xl">
+                  <Lightbulb className="w-5 h-5 text-cyan-300" />
+                  <span className="text-sm text-white whitespace-nowrap">{waterSuggestion}</span>
+                </div>
+              )}
             </div>
             
             <div className="flex items-center gap-4">

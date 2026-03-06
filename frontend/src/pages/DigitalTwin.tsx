@@ -29,6 +29,8 @@ export default function DigitalTwin() {
   const [isSensorsRunning, setIsSensorsRunning] = useState(false)
   const [isValvesOpen, setIsValvesOpen] = useState(true)
   const [simMode, setSimMode] = useState<SimMode>('normal')
+  const [simTime, setSimTime] = useState<number>(43200) // 默认12点（秒）
+  const [simSeason, setSimSeason] = useState<number>(1) // 默认春季
   
   // 任务运行状态（用于判断是否能重置）
   const [isAnyTaskRunning, setIsAnyTaskRunning] = useState(false)
@@ -338,6 +340,34 @@ export default function DigitalTwin() {
       }
     } catch (error) {
       showModal('error', '切换失败', '切换模式失败')
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  // 更改模拟时间
+  const handleChangeTime = async (time: number) => {
+    setLoading(true)
+    try {
+      await iotApi.changeTime(time)
+      setSimTime(time)
+      showModal('success', '操作成功', '时间已更改')
+    } catch (error) {
+      showModal('error', '更改失败', '更改时间失败')
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  // 更改模拟季节
+  const handleChangeSeason = async (season: number) => {
+    setLoading(true)
+    try {
+      await iotApi.changeSeason(season)
+      setSimSeason(season)
+      showModal('success', '操作成功', `已切换至${season === 1 ? '春季' : season === 2 ? '夏季' : season === 3 ? '秋季' : '冬季'}`)
+    } catch (error) {
+      showModal('error', '更改失败', '更改季节失败')
     } finally {
       setLoading(false)
     }
@@ -956,12 +986,19 @@ export default function DigitalTwin() {
 
           {/* 模拟模式 */}
           <div className="bg-white rounded-2xl p-6 shadow-lg shadow-gray-100/50 border border-gray-100">
-            <h3 className="text-lg font-semibold text-gray-900 mb-4">模拟模式</h3>
-            <div className="flex flex-wrap gap-3">
+            <div className="flex items-center justify-between mb-4">
+              <h3 className="text-lg font-semibold text-gray-900">模拟模式</h3>
+              <span className="text-sm text-gray-500">
+                当前: {simMode === 'normal' ? '正常' : simMode === 'leaking' ? '漏水检测' : simMode === 'burstPipe' ? '爆管模拟' : '演示模式'}
+              </span>
+            </div>
+            
+            {/* 模式选择 */}
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-4">
               <button
                 onClick={() => handleChangeMode('normal')}
                 disabled={loading}
-                className={`px-6 py-3 rounded-lg font-medium transition-colors ${
+                className={`px-4 py-2.5 rounded-lg font-medium transition-colors ${
                   simMode === 'normal'
                     ? 'bg-green-500 text-white'
                     : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
@@ -972,7 +1009,7 @@ export default function DigitalTwin() {
               <button
                 onClick={() => handleChangeMode('shows')}
                 disabled={loading}
-                className={`px-6 py-3 rounded-lg font-medium transition-colors ${
+                className={`px-4 py-2.5 rounded-lg font-medium transition-colors ${
                   simMode === 'shows'
                     ? 'bg-blue-500 text-white'
                     : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
@@ -983,7 +1020,7 @@ export default function DigitalTwin() {
               <button
                 onClick={() => handleChangeMode('leaking')}
                 disabled={loading}
-                className={`px-6 py-3 rounded-lg font-medium transition-colors ${
+                className={`px-4 py-2.5 rounded-lg font-medium transition-colors ${
                   simMode === 'leaking'
                     ? 'bg-yellow-500 text-white'
                     : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
@@ -994,7 +1031,7 @@ export default function DigitalTwin() {
               <button
                 onClick={() => handleChangeMode('burstPipe')}
                 disabled={loading}
-                className={`px-6 py-3 rounded-lg font-medium transition-colors ${
+                className={`px-4 py-2.5 rounded-lg font-medium transition-colors ${
                   simMode === 'burstPipe'
                     ? 'bg-red-500 text-white'
                     : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
@@ -1003,9 +1040,87 @@ export default function DigitalTwin() {
                 爆管模式
               </button>
             </div>
-            <p className="text-sm text-gray-500 mt-3">
-              当前模式: {simMode === 'normal' ? '正常' : simMode === 'leaking' ? '漏水检测' : simMode === 'burstPipe' ? '爆管模拟' : '演示模式'}
-            </p>
+            
+            {/* 时间和季节 */}
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 pt-4 border-t border-gray-100">
+              {/* 模拟时间 */}
+              <div>
+                <h4 className="text-sm font-medium text-gray-700 mb-2">模拟时间</h4>
+                <div className="flex gap-2">
+                  {[
+                    { value: 0, label: '凌晨' },
+                    { value: 6, label: '早上' },
+                    { value: 12, label: '中午' },
+                    { value: 18, label: '傍晚' },
+                    { value: 24, label: '深夜' }
+                  ].map((t) => (
+                    <button
+                      key={t.value}
+                      onClick={() => handleChangeTime(t.value * 3600)}
+                      disabled={loading}
+                      className={`flex-1 px-2 py-1.5 text-xs rounded-lg transition-colors ${
+                        simTime >= t.value * 3600 && simTime < (t.value + 6) * 3600
+                          ? 'bg-purple-500 text-white'
+                          : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+                      }`}
+                    >
+                      {t.label}
+                    </button>
+                  ))}
+                </div>
+              </div>
+              
+              {/* 模拟季节 */}
+              <div>
+                <h4 className="text-sm font-medium text-gray-700 mb-2">模拟季节</h4>
+                <div className="flex gap-2">
+                  <button
+                    onClick={() => handleChangeSeason(1)}
+                    disabled={loading}
+                    className={`flex-1 px-2 py-1.5 text-xs rounded-lg transition-colors ${
+                      simSeason === 1
+                        ? 'bg-green-500 text-white'
+                        : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+                    }`}
+                  >
+                    春
+                  </button>
+                  <button
+                    onClick={() => handleChangeSeason(2)}
+                    disabled={loading}
+                    className={`flex-1 px-2 py-1.5 text-xs rounded-lg transition-colors ${
+                      simSeason === 2
+                        ? 'bg-red-500 text-white'
+                        : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+                    }`}
+                  >
+                    夏
+                  </button>
+                  <button
+                    onClick={() => handleChangeSeason(3)}
+                    disabled={loading}
+                    className={`flex-1 px-2 py-1.5 text-xs rounded-lg transition-colors ${
+                      simSeason === 3
+                        ? 'bg-orange-500 text-white'
+                        : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+                    }`}
+                  >
+                    秋
+                  </button>
+                  <button
+                    onClick={() => handleChangeSeason(4)}
+                    disabled={loading}
+                    className={`flex-1 px-2 py-1.5 text-xs rounded-lg transition-colors ${
+                      simSeason === 4
+                        ? 'bg-blue-500 text-white'
+                        : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+                    }`}
+                  >
+                    冬
+                  </button>
+                </div>
+              </div>
+            </div>
           </div>
         </main>
       </div>

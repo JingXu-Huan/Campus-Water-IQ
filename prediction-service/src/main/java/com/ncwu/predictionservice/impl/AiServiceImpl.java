@@ -59,6 +59,31 @@ public class AiServiceImpl implements AiService {
         return generateAndCachePrediction(usage, campus);
     }
 
+    @Override
+    public Result<String> suggestionOfWaterUsage() {
+        String suggestion = redisTemplate.opsForValue().get("suggestion");
+        if (suggestion==null){
+            RLock lock = redissonClient.getLock("suggestions");
+            String response;
+            try {
+                if (lock.tryLock()) {
+                    response = chatLanguageModel
+                            .chat("请使用中文生成一个20字左右的节水建议。Example response: 刷牙的时候记得把水龙头关掉哦");
+                    redisTemplate.opsForValue().set("suggestion", response, 30, TimeUnit.MINUTES);
+                }
+                else return Result.ok("刷牙的时候记得把水龙头关掉哦");
+            } catch (Exception e) {
+                throw new RuntimeException(e);
+            } finally {
+                if (lock.isHeldByCurrentThread()) {
+                    lock.unlock();
+                }
+            }
+            return Result.ok(response);
+        }
+        else return Result.ok(suggestion);
+    }
+
     private double getRes(List<Double> usage) {
         try {
             String response = chatLanguageModel.chat(

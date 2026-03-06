@@ -1,11 +1,7 @@
 package com.ncwu.predictionservice;
 
-
 import com.ncwu.common.domain.vo.Result;
 import com.ncwu.predictionservice.domain.vo.UsageVO;
-
-import javax.validation.constraints.Max;
-import javax.validation.constraints.Min;
 import java.util.List;
 
 /**
@@ -15,4 +11,6 @@ import java.util.List;
  */
 public interface AiService {
     Result<UsageVO> predictTomorrowWaterUsage(List<Double> usage, int campus);
+
+    Result<String> suggestionOfWaterUsage();
 }

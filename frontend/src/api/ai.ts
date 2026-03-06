@@ -48,5 +48,13 @@ export const aiApi = {
         })
         // 后端返回 Result<UsageVO>，data 字段才是 UsageVO
         return res.data
+    },
+
+    /**
+     * 获取节水建议
+     */
+    getWaterSavingSuggestions: async (): Promise<string> => {
+        const res = await aiApiClient.post<any>('/ai/suggestions')
+        return res.data
     }
 }

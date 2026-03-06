@@ -31,9 +31,16 @@ public class AIServiceController {
      */
     @PostMapping("/predictTomorrowWaterUsage")
     public Result<UsageVO> predictTomorrowWaterUsage(@RequestBody List<Double> usage, @Min(1) @Max(3) int campus) {
-        return aiService.predictTomorrowWaterUsage(usage,campus);
+        return aiService.predictTomorrowWaterUsage(usage, campus);
     }
 
+    /**
+     * 给出一条节水建议
+     */
+    @PostMapping("/suggestions")
+    public Result<String> giveSuggestions() {
+        return aiService.suggestionOfWaterUsage();
+    }
 
 
 }

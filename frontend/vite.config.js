@@ -31,10 +31,6 @@ export default defineConfig({
                 changeOrigin: true,
                 rewrite: function (path) { return path.replace(/^\/api/, ''); },
             },
-            '/ai': {
-                target: 'http://localhost:18011',
-                changeOrigin: true,
-            },
         },
     },
 });

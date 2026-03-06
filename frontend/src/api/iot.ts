@@ -953,5 +953,21 @@ export const iotApi = {
                 rooms: 10
             }
         }
+    },
+
+    // 更改模拟时间（秒，0-86400）
+    changeTime: async (time: number): Promise<string> => {
+        const res = await iotDeviceApi.get('/device/timeChange', {
+            params: { time }
+        })
+        return res?.data ?? res ?? ''
+    },
+
+    // 更改模拟季节（1=春, 2=夏, 3=秋, 4=冬）
+    changeSeason: async (season: number): Promise<string> => {
+        const res = await iotDeviceApi.get('/device/seasonChange', {
+            params: { season }
+        })
+        return res?.data ?? res ?? ''
     }
 }

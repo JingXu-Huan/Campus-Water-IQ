@@ -1,5 +1,7 @@
 package com.ncwu.iotservice.service.impl;
 
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import com.ncwu.common.apis.iot_device.VirtualMeterDeviceService;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import com.influxdb.client.InfluxDBClient;
@@ -9,6 +11,7 @@ import com.influxdb.query.FluxTable;
 import com.ncwu.common.enums.ErrorCode;
 import com.ncwu.common.enums.SuccessCode;
 import com.ncwu.common.domain.vo.Result;
+import com.ncwu.iotservice.entity.BO.SchoolUsageBO;
 import com.ncwu.iotservice.entity.IotDeviceData;
 import com.ncwu.iotservice.exception.QueryFailedException;
 import com.ncwu.iotservice.mapper.IoTDeviceDataMapper;
@@ -17,7 +20,10 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.dubbo.config.annotation.DubboReference;
 import org.jspecify.annotations.NonNull;
+import org.redisson.api.RLock;
+import org.redisson.api.RedissonClient;
 import org.springframework.data.redis.core.StringRedisTemplate;
+import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Service;
 
 import java.io.BufferedReader;
@@ -26,6 +32,8 @@ import java.io.InputStreamReader;
 import java.time.*;
 import java.time.format.DateTimeFormatter;
 import java.util.*;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 
@@ -46,6 +54,9 @@ public class IoTDataServiceImpl extends ServiceImpl<IoTDeviceDataMapper, IotDevi
     private final InfluxDBClient influxDBClient;
     private final StringRedisTemplate redisTemplate;
     private final IoTDeviceDataMapper ioTDeviceDataMapper;
+    private final RedissonClient redissonClient;
+    private final ObjectMapper objectMapper;
+    private final ExecutorService pool = Executors.newFixedThreadPool(10);
 
     @DubboReference(version = "1.0.0")
     private VirtualMeterDeviceService virtualMeterDeviceService;
@@ -146,16 +157,79 @@ public class IoTDataServiceImpl extends ServiceImpl<IoTDeviceDataMapper, IotDevi
         return Result.ok(flow);
     }
 
+    /**
+     * 此方法的调用是昂贵的。必要时，需要分布式锁+逻辑过期
+     */
     @Override
     public Result<Double> getSchoolUsage(int school, LocalDateTime start, LocalDateTime end) {
-        //todo 加入redis缓存
-        // TTL [4,6] 分钟 key自定(value结构即可)
-
         //时间戳转换
         DateFormatBo dateFormatBo = getDateFormatBo(start, end);
         String startTime = dateFormatBo.startTime();
         String endTime = dateFormatBo.endTime();
+        RLock lock = redissonClient.getLock("SchoolUsageUpdateLock" + school);
+        Double res = null;
+        String json = redisTemplate.opsForValue().get("SchoolUsage:" + school);
+        if (json == null) {
+            try {
+                if (lock.tryLock()) {
+                    Result<Double> usage = getSchoolUsageFromDb(school, startTime, endTime);
+                    res = usage.getData();
+                    setValueToCache(res, school);
+                }
+            } catch (Exception e) {
+                throw new RuntimeException(e);
+            } finally {
+                if (lock.isHeldByCurrentThread()) {
+                    lock.unlock();
+                }
+            }
+        } else {
+            SchoolUsageBO usageBO;
+            try {
+                usageBO = objectMapper.readValue(json, SchoolUsageBO.class);
+            } catch (JsonProcessingException e) {
+                throw new RuntimeException(e);
+            }
+            if (usageBO.getExpireTime().isBefore(LocalDateTime.now())) {
+                res = usageBO.getUsage();
+                pool.submit(() -> {
+                    try {
+                        if (lock.tryLock()) {
+                            Result<Double> usage = getSchoolUsageFromDb(school, startTime, endTime);
+                            setValueToCache(usage.getData(), school);
+                        }
+                    } catch (Exception e) {
+                        throw new RuntimeException(e);
+                    } finally {
+                        if (lock.isHeldByCurrentThread()) {
+                            lock.unlock();
+                        }
+                    }
+                });
+            } else {
+                res = usageBO.getUsage();
+            }
+        }
+        if (res == null) {
+            return getSchoolUsageFromDb(school, startTime, endTime);
+        }
+        return Result.ok(res);
+    }
 
+    @Async
+    public void setValueToCache(Double data, int school) {
+        LocalDateTime expireTime = LocalDateTime.now().plusMinutes(30);
+        SchoolUsageBO usageBO = new SchoolUsageBO(data, expireTime);
+        try {
+            //序列化
+            String json = objectMapper.writeValueAsString(usageBO);
+            redisTemplate.opsForValue().set("SchoolUsage:" + school, json);
+        } catch (JsonProcessingException e) {
+            throw new RuntimeException(e);
+        }
+    }
+
+    public Result<Double> getSchoolUsageFromDb(int school, String startTime, String endTime) {
         String fluxQuery = String.format("""
                 import "strings"
                 

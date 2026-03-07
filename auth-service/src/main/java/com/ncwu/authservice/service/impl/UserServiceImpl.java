@@ -20,6 +20,7 @@ import com.ncwu.common.domain.vo.Result;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.redis.core.StringRedisTemplate;
+import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
 
@@ -41,6 +42,7 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User> implements Us
     private final LoginStrategyFactory loginStrategyFactory;
     private final SignUpStrategyFactory signUpStrategyFactory;
     private final OSS OSSClient;
+    private final BCryptPasswordEncoder passwordEncoder = new BCryptPasswordEncoder();
 
     @Override
     public AuthResult signIn(SignInRequest request) {
@@ -104,7 +106,10 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User> implements Us
 
     @Override
     public Result<Boolean> changePwd(String oldPwd, String newPwd, String uid) {
-        return null;
+        // 使用 BCrypt 加密新密码
+        String encodedPwd = passwordEncoder.encode(newPwd);
+        boolean update = this.lambdaUpdate().eq(User::getUid, uid).set(User::getPassword, encodedPwd).update();
+        return update ? Result.ok(true) : Result.fail(false);
     }
 
 

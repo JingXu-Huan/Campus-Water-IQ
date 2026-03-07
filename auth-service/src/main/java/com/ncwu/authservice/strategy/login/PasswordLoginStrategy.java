@@ -18,6 +18,7 @@ import lombok.RequiredArgsConstructor;
 import org.jspecify.annotations.NonNull;
 import org.redisson.api.RBloomFilter;
 import org.springframework.data.redis.core.StringRedisTemplate;
+import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.stereotype.Component;
 
 import java.util.List;
@@ -39,6 +40,7 @@ public class PasswordLoginStrategy implements LoginStrategy {
     private final TokenHelper tokenHelper;
     private final StringRedisTemplate redisTemplate;
     private final ObjectMapper objectMapper;
+    private final BCryptPasswordEncoder passwordEncoder = new BCryptPasswordEncoder();
 
     @PostConstruct
     void init() {
@@ -96,13 +98,22 @@ public class PasswordLoginStrategy implements LoginStrategy {
 
     private @NonNull AuthResult getAuthResult(String nickName, String validPwd,
                                               Integer userType, Integer status, String password, String uid, String avatar) {
+        // 调试日志
+        System.out.println("=== 登录调试 ===");
+        System.out.println("前端密码: [" + password + "]");
+        System.out.println("数据库哈希: [" + validPwd + "]");
+        System.out.println("userType: " + userType + ", status: " + status);
+        
         if (status != 1) {
             //账号不正常
             return new AuthResult(false);
         }
-        if (!password.equals(validPwd)) {
+        if (!passwordEncoder.matches(password, validPwd)) {
+            System.out.println("BCrypt 匹配失败!");
             return new AuthResult(false);
         }
+        System.out.println("登录成功!");
+        System.out.println("================");
         String token = tokenHelper.genToken(uid, nickName, userType);
         return new AuthResult(true, uid, token, nickName, avatar);
     }

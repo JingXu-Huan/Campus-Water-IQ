@@ -13,6 +13,7 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.redisson.api.RBloomFilter;
 import org.springframework.data.redis.core.StringRedisTemplate;
+import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.stereotype.Service;
 
 import java.util.List;
@@ -32,6 +33,8 @@ public class EmailCodeSignUpStrategy implements SignUpStrategy {
 
     private final List<RBloomFilter<String>> bloomFilters;
     private RBloomFilter<String> passwordBloomFilter;
+    private final BCryptPasswordEncoder passwordEncoder = new BCryptPasswordEncoder();
+    
     @PostConstruct
     void init() {
         passwordBloomFilter = bloomFilters.getLast();
@@ -68,8 +71,8 @@ public class EmailCodeSignUpStrategy implements SignUpStrategy {
 
         String uid = genUid(1);
         String nickname = signUpRequest.getNickname();
-        // 前端已加密的密码，直接存储
-        String pwd = signUpRequest.getPwd();
+        // 使用 BCrypt 加密密码
+        String pwd = passwordEncoder.encode(signUpRequest.getPwd());
         User userEntity = new User();
         userEntity.setEmail(toEmail);
         userEntity.setNickName(nickname);

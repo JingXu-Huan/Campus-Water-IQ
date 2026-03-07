@@ -195,15 +195,14 @@ public class IoTDataController {
     public Result<LocalDateTime> getHighWaterUsageTime(int campus) {
         return ioTDataService.getHighWaterUsageTime(campus);
     }
-    /**获得三校区各自用水占比*/
+
+    /**
+     * 获得三校区各自用水占比
+     */
     @GetMapping("/getCampusRate")
-    public Result<Map<Integer,Double>> getCampusRate(){
+    public Result<Map<Integer, Double>> getCampusRate() {
         return ioTDataService.getCampusRate();
     }
-
-
-
-
 
 
 

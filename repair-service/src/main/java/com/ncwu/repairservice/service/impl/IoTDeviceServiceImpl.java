@@ -33,4 +33,10 @@ public class IoTDeviceServiceImpl extends ServiceImpl<IoTDeviceMapper, IotDevice
         ioTDeviceMapper.deleteByIds(ids);
         return com.ncwu.common.domain.vo.Result.ok(true);
     }
+
+    @Override
+    public com.ncwu.common.domain.vo.Result<Integer> getAllWarningsNum() {
+        int cnt = ioTDeviceMapper.selectAllNums();
+        return com.ncwu.common.domain.vo.Result.ok(cnt);
+    }
 }

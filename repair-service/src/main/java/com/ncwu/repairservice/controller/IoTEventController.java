@@ -1,16 +1,10 @@
 package com.ncwu.repairservice.controller;
 
-
-
 import com.ncwu.common.domain.vo.Result;
 import com.ncwu.repairservice.service.IoTDeviceService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.web.bind.annotation.DeleteMapping;
-import org.springframework.web.bind.annotation.PostMapping;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RestController;
-
+import org.springframework.web.bind.annotation.*;
 import java.util.List;
 
 /**
@@ -36,9 +30,19 @@ public class IoTEventController {
         return ioTDeviceService.addNewEvent();
     }
 
-
+    /**
+     * 手动清除告警
+     */
     @DeleteMapping("/dissMissWarning")
-    public Result<Boolean> dissMissWarn(List<String> ids){
+    public Result<Boolean> dissMissWarn(@RequestBody List<String> ids) {
         return ioTDeviceService.dissMissWarning(ids);
+    }
+
+    /**
+     * 得到系统所有告警数量
+     */
+    @GetMapping("/getAllWarningNum")
+    public Result<Integer> getAllWarningNums() {
+        return ioTDeviceService.getAllWarningsNum();
     }
 }

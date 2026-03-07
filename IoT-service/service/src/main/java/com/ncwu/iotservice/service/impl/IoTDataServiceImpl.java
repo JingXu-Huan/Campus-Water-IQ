@@ -32,6 +32,7 @@ import java.io.InputStreamReader;
 import java.time.*;
 import java.time.format.DateTimeFormatter;
 import java.util.*;
+import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.stream.Collectors;
@@ -610,6 +611,7 @@ public class IoTDataServiceImpl extends ServiceImpl<IoTDeviceDataMapper, IotDevi
 
     @Override
     public Result<Double> getRate(int region, int campus) {
+
         return null;
     }
 
@@ -620,6 +622,31 @@ public class IoTDataServiceImpl extends ServiceImpl<IoTDeviceDataMapper, IotDevi
 
     @Override
     public Result<Map<Integer, Double>> getCampusRate() {
-        return null;
+        //1 花园
+        //2 龙子湖
+        //3 江淮
+        double[] res = new double[4];
+        HashMap<Integer, Double> map = new HashMap<>();
+        double sum = 0.0;
+        CompletableFuture<Double>[] futures = new CompletableFuture[4];
+        for (int i = 1; i <= 3; i++) {
+            int finalI = i;
+            futures[i] = CompletableFuture.supplyAsync(() -> getSchoolUsage(finalI, LocalDateTime.now().minusDays(1),
+                    LocalDateTime.now()).getData());
+        }
+        for (int i = 1; i <= 3; i++) {
+            res[i] = futures[i].join();
+            sum += res[i];
+        }
+        for (int i = 1; i <= 3; i++) {
+            if (sum == 0) {
+                map.put(i, Double.NaN);
+            }
+            else{
+                map.put(i, res[i] / sum);
+            }
+
+        }
+        return Result.ok(map);
     }
 }

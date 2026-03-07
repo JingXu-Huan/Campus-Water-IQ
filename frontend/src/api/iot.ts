@@ -30,6 +30,16 @@ const iotMonitorApi = axios.create({
     withCredentials: false,
 })
 
+// IoT-event 服务 (告警管理 20000)
+const iotEventApi = axios.create({
+    baseURL: 'http://127.0.0.1:20000',
+    timeout: 10000,
+    headers: {
+        'Content-Type': 'application/json',
+    },
+    withCredentials: false,
+})
+
 // 请求拦截器
 iotDeviceApi.interceptors.request.use((config: any) => {
     const token = localStorage.getItem('auth-token')
@@ -40,6 +50,14 @@ iotDeviceApi.interceptors.request.use((config: any) => {
 })
 
 iotDataApi.interceptors.request.use((config: any) => {
+    const token = localStorage.getItem('auth-token')
+    if (token) {
+        config.headers.Authorization = `Bearer ${token}`
+    }
+    return config
+})
+
+iotEventApi.interceptors.request.use((config: any) => {
     const token = localStorage.getItem('auth-token')
     if (token) {
         config.headers.Authorization = `Bearer ${token}`
@@ -969,5 +987,17 @@ export const iotApi = {
             params: { season }
         })
         return res?.data ?? res ?? ''
+    },
+
+    // 获取三校区用水占比
+    getCampusRate: async () => {
+        const res = await iotDataApi.get('/Data/getCampusRate')
+        return res.data
+    },
+
+    // 清除告警
+    dismissWarning: async (ids: string[]) => {
+        const res = await iotEventApi.delete('/iot-event/dissMissWarning', { data: ids })
+        return res.data
     }
 }

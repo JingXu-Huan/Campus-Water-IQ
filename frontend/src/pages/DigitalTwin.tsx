@@ -1043,24 +1043,81 @@ export default function DigitalTwin() {
             
             {/* 时间和季节 */}
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4 pt-4 border-t border-gray-100">
-              {/* 模拟时间 */}
+              {/* 模拟时间 - 可拖动进度条 */}
               <div>
-                <h4 className="text-sm font-medium text-gray-700 mb-2">模拟时间</h4>
-                <div className="flex gap-2">
+                <h4 className="text-sm font-medium text-gray-700 mb-2">
+                  模拟时间: <span className="text-blue-600 font-bold">{Math.floor(simTime / 3600).toString().padStart(2, '0')}:{Math.floor((simTime % 3600) / 60).toString().padStart(2, '0')}</span>
+                </h4>
+                <div className="flex items-center gap-3">
+                  <span className="text-xs text-gray-400 w-10 text-right">00:00</span>
+                  <div className="flex-1 relative h-6 flex items-center">
+                    {/* 背景轨道 */}
+                    <div className="absolute left-0 right-0 h-2 bg-blue-100 rounded-full"></div>
+                    {/* 进度填充 */}
+                    <div 
+                      className="absolute left-0 h-2 bg-blue-400 rounded-full transition-all duration-150"
+                      style={{ width: `${(simTime / 86400) * 100}%` }}
+                    ></div>
+                    {/* 滑块 */}
+                    <input
+                      type="range"
+                      min={0}
+                      max={86399}
+                      value={simTime}
+                      onChange={(e) => {
+                        const newTime = parseInt(e.target.value)
+                        setSimTime(newTime)
+                      }}
+                      onMouseUp={(e) => {
+                        const newTime = parseInt((e.target as HTMLInputElement).value)
+                        handleChangeTime(newTime)
+                      }}
+                      onTouchEnd={(e) => {
+                        const newTime = parseInt((e.target as HTMLInputElement).value)
+                        handleChangeTime(newTime)
+                      }}
+                      disabled={loading}
+                      className="relative w-full h-6 bg-transparent cursor-pointer appearance-none z-10 disabled:opacity-50 disabled:cursor-not-allowed"
+                    />
+                    <style>{`
+                      input[type="range"]::-webkit-slider-thumb {
+                        -webkit-appearance: none;
+                        width: 16px;
+                        height: 16px;
+                        background: white;
+                        border: 2px solid #3b82f6;
+                        border-radius: 50%;
+                        cursor: pointer;
+                        box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+                      }
+                      input[type="range"]::-moz-range-thumb {
+                        width: 16px;
+                        height: 16px;
+                        background: white;
+                        border: 2px solid #3b82f6;
+                        border-radius: 50%;
+                        cursor: pointer;
+                      }
+                    `}</style>
+                  </div>
+                  <span className="text-xs text-gray-400 w-10">24:00</span>
+                </div>
+                {/* 快速选择 */}
+                <div className="flex gap-1 mt-3">
                   {[
-                    { value: 0, label: '凌晨' },
-                    { value: 6, label: '早上' },
-                    { value: 12, label: '中午' },
-                    { value: 18, label: '傍晚' },
-                    { value: 24, label: '深夜' }
+                    { h: 0, label: '凌晨' },
+                    { h: 6, label: '早上' },
+                    { h: 12, label: '中午' },
+                    { h: 18, label: '傍晚' },
+                    { h: 24, label: '深夜' }
                   ].map((t) => (
                     <button
-                      key={t.value}
-                      onClick={() => handleChangeTime(t.value * 3600)}
+                      key={t.h}
+                      onClick={() => handleChangeTime(t.h * 3600)}
                       disabled={loading}
                       className={`flex-1 px-2 py-1.5 text-xs rounded-lg transition-colors ${
-                        simTime >= t.value * 3600 && simTime < (t.value + 6) * 3600
-                          ? 'bg-purple-500 text-white'
+                        (t.h === 24 && Math.floor(simTime/3600) === 24) || (t.h < 24 && Math.floor(simTime/3600) === t.h)
+                          ? 'bg-blue-500 text-white'
                           : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
                       }`}
                     >
@@ -1073,11 +1130,11 @@ export default function DigitalTwin() {
               {/* 模拟季节 */}
               <div>
                 <h4 className="text-sm font-medium text-gray-700 mb-2">模拟季节</h4>
-                <div className="flex gap-2">
+                <div className="flex gap-2 mt-7">
                   <button
                     onClick={() => handleChangeSeason(1)}
                     disabled={loading}
-                    className={`flex-1 px-2 py-1.5 text-xs rounded-lg transition-colors ${
+                    className={`flex-1 px-4 py-3 text-base rounded-lg transition-colors ${
                       simSeason === 1
                         ? 'bg-green-500 text-white'
                         : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
@@ -1088,7 +1145,7 @@ export default function DigitalTwin() {
                   <button
                     onClick={() => handleChangeSeason(2)}
                     disabled={loading}
-                    className={`flex-1 px-2 py-1.5 text-xs rounded-lg transition-colors ${
+                    className={`flex-1 px-4 py-3 text-base rounded-lg transition-colors ${
                       simSeason === 2
                         ? 'bg-red-500 text-white'
                         : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
@@ -1099,7 +1156,7 @@ export default function DigitalTwin() {
                   <button
                     onClick={() => handleChangeSeason(3)}
                     disabled={loading}
-                    className={`flex-1 px-2 py-1.5 text-xs rounded-lg transition-colors ${
+                    className={`flex-1 px-4 py-3 text-base rounded-lg transition-colors ${
                       simSeason === 3
                         ? 'bg-orange-500 text-white'
                         : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
@@ -1110,7 +1167,7 @@ export default function DigitalTwin() {
                   <button
                     onClick={() => handleChangeSeason(4)}
                     disabled={loading}
-                    className={`flex-1 px-2 py-1.5 text-xs rounded-lg transition-colors ${
+                    className={`flex-1 px-4 py-3 text-base rounded-lg transition-colors ${
                       simSeason === 4
                         ? 'bg-blue-500 text-white'
                         : 'bg-gray-100 text-gray-600 hover:bg-gray-200'

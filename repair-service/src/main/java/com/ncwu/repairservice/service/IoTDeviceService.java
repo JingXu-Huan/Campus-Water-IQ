@@ -16,4 +16,6 @@ public interface IoTDeviceService extends IService<IotDeviceEvent> {
     Result<Boolean> addNewEvent();
 
     com.ncwu.common.domain.vo.Result<Boolean> dissMissWarning(List<String> ids);
+
+    com.ncwu.common.domain.vo.Result<Integer> getAllWarningsNum();
 }

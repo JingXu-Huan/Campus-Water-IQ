@@ -50,6 +50,7 @@ export default function Dashboard() {
   
   // 告警数据
   const [warnings, setWarnings] = useState<{
+    id: string
     deviceCode: string
     eventDesc: string
     eventLevel: string
@@ -57,6 +58,10 @@ export default function Dashboard() {
     eventTime: string
   }[]>([])
   const [loadingWarnings, setLoadingWarnings] = useState(false)
+  
+  // 校区用水占比
+  const [campusRate, setCampusRate] = useState<{name: string; value: number}[]>([])
+  const [loadingCampusRate, setLoadingCampusRate] = useState<boolean>(true)
 
   // 设备类型中文映射
   const deviceTypeMap: Record<string, string> = {
@@ -76,11 +81,15 @@ export default function Dashboard() {
     { day: '周日', usage: 105 }
   ])
   
-  // 各校区用水量对比
-  const campusUsageData = campuses.map(c => ({
+  // 各校区用水占比 - 使用真实API数据
+  const campusUsageData = campusRate.length > 0 ? campusRate.map(c => ({
     name: c.name.replace('校区', ''),
-    usage: Math.random() * 500 + 200
-  }))
+    usage: c.value
+  })) : [
+    { name: '花园', usage: 0 },
+    { name: '龙子湖', usage: 0 },
+    { name: '江淮', usage: 0 }
+  ]
   const [loadingToday, setLoadingToday] = useState<boolean>(true)
   const [loadingMonth, setLoadingMonth] = useState<boolean>(true)
   const [loadingOffline, setLoadingOffline] = useState<boolean>(true)
@@ -252,6 +261,29 @@ export default function Dashboard() {
     } catch (err) {
       console.error('获取节水建议失败:', err)
       setWaterSuggestion(null)
+    }
+  }
+
+  // 获取校区用水占比
+  const fetchCampusRate = async () => {
+    setLoadingCampusRate(true)
+    try {
+      const res = await iotApi.getCampusRate()
+      console.log('校区占比API返回:', res)
+      // API 直接返回数据对象 {1: 0.08, 2: 0.83, 3: 0.08}
+      if (res && res[1] !== undefined) {
+        const rateData = [
+          { name: '花园校区', value: Number((res[1] * 100).toFixed(1)) },
+          { name: '龙子湖校区', value: Number((res[2] * 100).toFixed(1)) },
+          { name: '江淮校区', value: Number((res[3] * 100).toFixed(1)) }
+        ]
+        console.log('设置校区占比数据:', rateData)
+        setCampusRate(rateData)
+      }
+    } catch (err) {
+      console.error('获取校区占比失败:', err)
+    } finally {
+      setLoadingCampusRate(false)
     }
   }
 
@@ -442,10 +474,35 @@ export default function Dashboard() {
     }
   }
 
+  // 清除单个告警
+  const dismissWarning = async (id: string) => {
+    try {
+      await iotApi.dismissWarning([id])
+      setWarnings(warnings.filter(w => w.id !== id))
+      setAlertCount(Math.max(0, alertCount - 1))
+    } catch (err) {
+      console.error('清除告警失败:', err)
+    }
+  }
+
+  // 清除所有告警
+  const dismissAllWarnings = async () => {
+    if (warnings.length === 0) return
+    try {
+      const ids = warnings.map(w => w.id)
+      await iotApi.dismissWarning(ids)
+      setWarnings([])
+      setAlertCount(0)
+    } catch (err) {
+      console.error('清除所有告警失败:', err)
+    }
+  }
+
   useEffect(() => {
     fetchWaterUsageData()
     fetchBuildingStats()
     fetchWaterSuggestion()
+    fetchCampusRate()
     const campus = campuses.find(c => c.id === selectedCampus)
     if (campus) {
       fetchWeather(campus.lat, campus.lon)
@@ -876,19 +933,30 @@ export default function Dashboard() {
           <div className="glass-card rounded-2xl p-6">
             <div className="flex items-center justify-between mb-4">
               <h2 className="text-lg font-semibold text-gray-900">最近告警</h2>
-              {warnings.length > 0 && (
+              <div className="flex items-center gap-2">
+                {warnings.length > 0 && (
+                  <button
+                    onClick={dismissAllWarnings}
+                    className="px-2 py-1 text-xs text-gray-500 hover:text-red-600 hover:bg-red-50 rounded border border-gray-200"
+                  >
+                    清除所有
+                  </button>
+                )}
                 <span className="px-2 py-1 bg-yellow-100 text-yellow-700 text-xs font-medium rounded-full">
                   {warnings.length} 条
                 </span>
-              )}
+              </div>
             </div>
+            {warnings.length > 2 && (
+              <p className="text-xs text-gray-400 mb-3">仅展示最近2条告警</p>
+            )}
             <div className="space-y-3">
               {loadingWarnings ? (
                 <div className="flex items-center justify-center py-8">
                   <RefreshCw className="w-6 h-6 text-gray-400 animate-spin" />
                 </div>
               ) : warnings.length > 0 ? (
-                warnings.map((warning, idx) => (
+                warnings.slice(0, 2).map((warning, idx) => (
                   <div
                     key={idx}
                     className={`p-4 rounded-lg border-l-4 ${
@@ -930,6 +998,12 @@ export default function Dashboard() {
                       </svg>
                       {warning.eventTime ? new Date(warning.eventTime).toLocaleString('zh-CN') : ''}
                     </div>
+                    <button
+                      onClick={() => dismissWarning(warning.id)}
+                      className="ml-auto mt-2 px-2 py-1 text-xs text-gray-500 hover:text-red-600 hover:bg-red-50 rounded border border-gray-200"
+                    >
+                      清除
+                    </button>
                   </div>
                 ))
               ) : (
@@ -984,21 +1058,27 @@ export default function Dashboard() {
             </ResponsiveContainer>
           </div>
 
-          {/* 各校区用水量对比 */}
+          {/* 各校区用水占比 */}
           <div className="glass-card rounded-2xl p-6">
-            <h2 className="text-lg font-semibold text-gray-900 mb-4">各校区用水量对比</h2>
-            <ResponsiveContainer width="100%" height={280}>
-              <BarChart data={campusUsageData} layout="vertical">
-                <CartesianGrid strokeDasharray="3 3" stroke="#d1d5db" />
-                <XAxis type="number" tick={{ fontSize: 12 }} unit="m³" />
-                <YAxis dataKey="name" type="category" tick={{ fontSize: 12 }} width={60} />
-                <Tooltip 
-                  formatter={(value: number | undefined) => value !== undefined ? [`${value.toFixed(1)} m³`, '用水量'] : ['无数据', '用水量']}
-                  contentStyle={{ borderRadius: '8px', border: 'none', boxShadow: '0 2px 8px rgba(0,0,0,0.1)' }}
-                />
-                <Bar dataKey="usage" fill="#15803d" radius={[0, 4, 4, 0]} />
-              </BarChart>
-            </ResponsiveContainer>
+            <h2 className="text-lg font-semibold text-gray-900 mb-4">各校区用水占比</h2>
+            {loadingCampusRate ? (
+              <div className="h-[280px] flex items-center justify-center">
+                <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary-600"></div>
+              </div>
+            ) : (
+              <ResponsiveContainer width="100%" height={280}>
+                <BarChart data={campusUsageData} layout="vertical">
+                  <CartesianGrid strokeDasharray="3 3" stroke="#d1d5db" />
+                  <XAxis type="number" tick={{ fontSize: 12 }} unit="%" domain={[0, 100]} />
+                  <YAxis dataKey="name" type="category" tick={{ fontSize: 12 }} width={60} />
+                  <Tooltip 
+                    formatter={(value: number | undefined) => value !== undefined ? [`${value.toFixed(1)}%`, '用水占比'] : ['无数据', '用水占比']}
+                    contentStyle={{ borderRadius: '8px', border: 'none', boxShadow: '0 2px 8px rgba(0,0,0,0.1)' }}
+                  />
+                  <Bar dataKey="usage" fill="#15803d" radius={[0, 4, 4, 0]} />
+                </BarChart>
+              </ResponsiveContainer>
+            )}
           </div>
         </div>
       </main>

@@ -1,6 +1,6 @@
 import { useNavigate } from 'react-router-dom'
 import { useAuthStore } from '@/store/authStore'
-import { Droplets, LogOut, User, BarChart3, AlertTriangle, Settings, LayoutDashboard, Activity, Map, FileText, HelpCircle, Menu, X, RefreshCw, TrendingUp, TrendingDown, WifiOff, Camera, Eye, EyeOff, Check, Wrench, Sun, Lightbulb } from 'lucide-react'
+import { Droplets, LogOut, User, BarChart3, AlertTriangle, Settings, LayoutDashboard, Activity, Map, FileText, HelpCircle, Menu, X, RefreshCw, TrendingUp, TrendingDown, WifiOff, Camera, Eye, EyeOff, Check, Wrench, Sun, Lightbulb, Moon } from 'lucide-react'
 import { useState, useEffect } from 'react'
 import { iotApi, generateDeviceId } from '@/api/iot'
 import { aiApi } from '@/api/ai'
@@ -12,6 +12,9 @@ export default function Dashboard() {
   const navigate = useNavigate()
   const { clearAuth, uid, nickname, avatar, updateProfile } = useAuthStore()
   const [sidebarOpen, setSidebarOpen] = useState(true)
+  const [darkMode, setDarkMode] = useState(() => {
+    return localStorage.getItem('darkMode') === 'true'
+  })
   const [activeMenu, setActiveMenu] = useState('dashboard')
   const [selectedCampus, setSelectedCampus] = useState('longzi')
   
@@ -96,12 +99,26 @@ export default function Dashboard() {
   const [loadingPrediction, setLoadingPrediction] = useState<boolean>(false)
   const [predictedTomorrowUsage, setPredictedTomorrowUsage] = useState<number | null>(null)
   const [waterSuggestion, setWaterSuggestion] = useState<string | null>(null)
+  const [highUsageTimes, setHighUsageTimes] = useState<string[]>([])
   const [error, setError] = useState<string | null>(null)
 
   const handleLogout = () => {
     clearAuth()
     navigate('/login')
   }
+
+  // 切换夜间模式
+  const toggleDarkMode = () => {
+    const newMode = !darkMode
+    setDarkMode(newMode)
+    localStorage.setItem('darkMode', String(newMode))
+    document.documentElement.classList.toggle('dark', newMode)
+  }
+
+  // 初始化主题
+  useEffect(() => {
+    document.documentElement.classList.toggle('dark', darkMode)
+  }, [])
 
   // 手动刷新
   const handleRefresh = () => {
@@ -240,6 +257,17 @@ export default function Dashboard() {
     } catch (err) {
       console.error('获取节水建议失败:', err)
       setWaterSuggestion(null)
+    }
+  }
+
+  // 获取高峰用水时段
+  const fetchHighUsageTimes = async (schoolId: number) => {
+    try {
+      const times = await iotApi.getHighWaterUsageTime(schoolId)
+      setHighUsageTimes(times || [])
+    } catch (err) {
+      console.error('获取高峰用水时段失败:', err)
+      setHighUsageTimes([])
     }
   }
 
@@ -486,6 +514,7 @@ export default function Dashboard() {
     if (campus) {
       fetchWeather(campus.lat, campus.lon)
       fetchPrediction(campus.schoolId)
+      fetchHighUsageTimes(campus.schoolId)
     }
   }, [selectedCampus])
 
@@ -617,7 +646,7 @@ export default function Dashboard() {
       </aside>
 
       {/* Main Content */}
-      <div className="flex-1 flex flex-col bg-gray-50">
+      <div className="flex-1 flex flex-col bg-gray-50 dark:bg-gray-900">
         {/* Top Header */}
         <header className="bg-gradient-to-r from-primary-600 to-primary-800 shadow-lg">
           <div className="px-6 py-4 flex items-center justify-between">
@@ -669,6 +698,15 @@ export default function Dashboard() {
                   <span className="text-xs text-white">加载天气...</span>
                 </div>
               )}
+              
+              {/* 夜间模式切换 */}
+              <button
+                onClick={toggleDarkMode}
+                className="p-2 text-white/80 hover:text-white hover:bg-white/10 rounded-xl transition-all"
+                title={darkMode ? '切换到白天模式' : '切换到夜间模式'}
+              >
+                {darkMode ? <Sun className="w-5 h-5" /> : <Moon className="w-5 h-5" />}
+              </button>
               
               {!sidebarOpen && (
                 <>
@@ -728,14 +766,16 @@ export default function Dashboard() {
               {loadingToday ? (
                 <RefreshCw className="w-4 h-4 text-gray-400 animate-spin" />
               ) : (
-                <div className={`flex items-center gap-1 text-sm ${todayChange.isPositive ? 'text-red-600' : 'text-white'}`}>
-                  {todayChange.isPositive ? <TrendingUp className="w-4 h-4" /> : <TrendingDown className="w-4 h-4" />}
-                  <span>{todayChange.value.toFixed(1)}%</span>
-                </div>
+                todayUsage > 0 && yesterdayUsage > 0 && (
+                  <div className={`flex items-center gap-1 text-sm ${todayChange.isPositive ? 'text-red-500' : 'text-green-500'}`}>
+                    {todayChange.isPositive ? <TrendingUp className="w-4 h-4" /> : <TrendingDown className="w-4" />}
+                    <span>{todayChange.value.toFixed(1)}%</span>
+                  </div>
+                )
               )}
             </div>
-            <p className="text-sm text-gray-500">今日用水量</p>
-            <p className="text-2xl font-bold text-gray-900">
+            <p className="text-sm text-gray-500 dark:text-gray-400">今日用水量</p>
+            <p className="text-2xl font-bold text-gray-900 dark:text-white">
               {loadingToday ? (
                 <span className="text-gray-300">加载中...</span>
               ) : (
@@ -861,7 +901,7 @@ export default function Dashboard() {
           </div>
         </div>
 
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
           {/* 实时监测 */}
           <div className="glass-card rounded-2xl p-6">
             <div className="flex items-center justify-between mb-4">
@@ -906,6 +946,30 @@ export default function Dashboard() {
                 <div className="text-center py-8 text-gray-400">暂无数据</div>
               )}
             </div>
+          </div>
+
+          {/* 高峰用水时段 */}
+          <div className="glass-card rounded-2xl p-6">
+            <div className="flex items-center justify-between mb-4">
+              <h2 className="text-lg font-semibold text-gray-900">高峰用水时段</h2>
+            </div>
+            {highUsageTimes.length > 0 ? (
+              <div className="space-y-3">
+                {highUsageTimes.slice(0, 3).map((time, idx) => (
+                  <div key={idx} className="p-4 rounded-lg bg-orange-50 border-l-4 border-orange-500">
+                    <div className="flex items-center gap-2">
+                      <Activity className="w-4 h-4 text-orange-600" />
+                      <span className="font-medium text-gray-900">
+                        {new Date(time).toLocaleTimeString('zh-CN', { hour: '2-digit', minute: '2-digit' })}
+                      </span>
+                    </div>
+                    <p className="text-sm text-gray-600 mt-1">用水量较高</p>
+                  </div>
+                ))}
+              </div>
+            ) : (
+              <div className="text-center py-8 text-gray-400">暂无数据</div>
+            )}
           </div>
 
           {/* 最近告警 */}

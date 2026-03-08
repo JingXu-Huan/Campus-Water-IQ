@@ -136,6 +136,13 @@ export default function DigitalTwin() {
     fetchBuildingConfig()
     fetchSimulatorMode()
     
+    // 获取当前模拟季节
+    iotApi.getSeason().then(season => {
+      setSimSeason(season)
+    }).catch(err => {
+      console.error('获取季节失败:', err)
+    })
+    
     // 每5秒自动刷新设备状态
     const interval = setInterval(() => {
       fetchDeviceStatus()

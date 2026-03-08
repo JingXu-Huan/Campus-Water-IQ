@@ -35,6 +35,21 @@ body {
   transition: all 0.3s ease;
 }
 
+/* 暗色模式玻璃卡片 */
+.dark .glass-card {
+  background: rgba(30, 30, 30, 0.85);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.dark .glass-card:hover {
+  background: rgba(40, 40, 40, 0.95);
+}
+
+/* 暗色模式背景 */
+.dark body {
+  background: linear-gradient(135deg, #1a1a2e 0%, #16213e 50%, #1a1a2e 100%);
+}
+
 /* 渐变背景 */
 .gradient-primary {
   background: linear-gradient(135deg, #0ea5e9 0%, #06b6d4 100%);

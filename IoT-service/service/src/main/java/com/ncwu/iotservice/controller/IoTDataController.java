@@ -193,7 +193,7 @@ public class IoTDataController {
      * 获得某校区高峰用水时段
      */
     @GetMapping("highWaterUsageTime")
-    public Result<LocalDateTime> getHighWaterUsageTime(int campus) {
+    public Result<List<LocalDateTime>> getHighWaterUsageTime(int campus) {
         return ioTDataService.getHighWaterUsageTime(campus);
     }
 

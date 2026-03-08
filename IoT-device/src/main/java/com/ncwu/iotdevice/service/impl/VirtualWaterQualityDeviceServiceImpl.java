@@ -261,7 +261,7 @@ public class VirtualWaterQualityDeviceServiceImpl extends ServiceImpl<DeviceMapp
             chlorine = ThreadLocalRandom.current().nextDouble(0.3, 0.45);
         } else if (season == 2) {
             ph = ThreadLocalRandom.current().nextDouble(7.2, 7.8);
-            turbidity = ThreadLocalRandom.current().nextDouble(0.5, 0.8);
+            turbidity = ThreadLocalRandom.current().nextDouble(0.4, 0.7);
             chlorine = ThreadLocalRandom.current().nextDouble(0.4, 0.7);
         } else if (season == 3) {
             ph = ThreadLocalRandom.current().nextDouble(7.0, 7.5);

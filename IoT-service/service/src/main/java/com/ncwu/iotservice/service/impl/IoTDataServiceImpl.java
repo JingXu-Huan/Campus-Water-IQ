@@ -38,6 +38,7 @@ import java.util.*;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
+import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 
@@ -61,7 +62,7 @@ public class IoTDataServiceImpl extends ServiceImpl<IoTDeviceDataMapper, IotDevi
     private final RedissonClient redissonClient;
     private final ObjectMapper objectMapper;
     private final WaterUsageRecordMapper waterUsageRecordMapper;
-    private final ExecutorService pool = Executors.newFixedThreadPool(10);
+    private final ExecutorService pool = Executors.newFixedThreadPool(100);
 
     @DubboReference(version = "1.0.0")
     private VirtualMeterDeviceService virtualMeterDeviceService;
@@ -171,6 +172,12 @@ public class IoTDataServiceImpl extends ServiceImpl<IoTDeviceDataMapper, IotDevi
         DateFormatBo dateFormatBo = getDateFormatBo(start, end);
         String startTime = dateFormatBo.startTime();
         String endTime = dateFormatBo.endTime();
+        
+        //检查时间跨度：超过23小时视为历史数据查询，使用分级缓存策略
+        if (Duration.between(start, end).toHours() >= 23) {
+            return getHistoricalSchoolUsageWithCache(school, startTime, endTime);
+        }
+
         RLock lock = redissonClient.getLock("SchoolUsageUpdateLock" + school);
         Double res = null;
         String json = redisTemplate.opsForValue().get("SchoolUsage:" + school);
@@ -267,12 +274,16 @@ public class IoTDataServiceImpl extends ServiceImpl<IoTDeviceDataMapper, IotDevi
                 """, startTime, endTime, school);
 
         Double usage;
-        usage = influxDBClient.getQueryApi().query(fluxQuery)
-                .stream()
+        List<FluxTable> tables = influxDBClient.getQueryApi().query(fluxQuery);
+        if (tables.isEmpty()) {
+            return Result.ok(null);
+        }
+        usage = tables.stream()
                 .flatMap(table -> table.getRecords().stream())
-                .map(record -> (record.getValue() != null ? ((Number) record.getValue()).doubleValue() : 0.0))
+                .map(record -> (record.getValue() != null ? ((Number) record.getValue()).doubleValue() : null))
+                .filter(Objects::nonNull)
                 .findFirst()
-                .orElse(0.0);
+                .orElse(null);
         return Result.ok(usage);
     }
 
@@ -620,8 +631,56 @@ public class IoTDataServiceImpl extends ServiceImpl<IoTDeviceDataMapper, IotDevi
     }
 
     @Override
-    public Result<LocalDateTime> getHighWaterUsageTime(int campus) {
-        return null;
+    public Result<List<LocalDateTime>> getHighWaterUsageTime(int campus) {
+        // 查询过去一天内，每小时用水数据（24个时间段）
+        LocalDateTime now = LocalDateTime.now();
+
+        // 生成时间段列表
+        List<LocalDateTime[]> timeSlots = new ArrayList<>();
+        for (int i = 23; i >= 0; i--) {
+            LocalDateTime start = now.minusHours(i + 1);
+            LocalDateTime end = now.minusHours(i);
+            timeSlots.add(new LocalDateTime[]{start, end});
+        }
+
+        // 并行查询
+        List<CompletableFuture<Map.Entry<Double, LocalDateTime>>> futures = timeSlots.stream()
+                .map(slot -> CompletableFuture.supplyAsync(() -> {
+                    String startStr = DateTimeFormatter.ISO_INSTANT.format(slot[0].atZone(ZoneId.systemDefault()).toInstant());
+                    String endStr = DateTimeFormatter.ISO_INSTANT.format(slot[1].atZone(ZoneId.systemDefault()).toInstant());
+                    try {
+                        Result<Double> usage = getSchoolUsageFromDb(campus, startStr, endStr);
+                        if (usage != null && usage.getData() != null) {
+                            return new AbstractMap.SimpleEntry<>(usage.getData(), slot[0]);
+                        }
+                    } catch (Exception e) {
+                        log.warn("查询用水量失败: {} - {}", slot[0], e.getMessage());
+                    }
+                    return (Map.Entry<Double, LocalDateTime>) null;
+                }, pool))
+                .toList();
+
+        // 等待所有结果
+        List<Map.Entry<Double, LocalDateTime>> usageList = futures
+                .stream()
+                .map(CompletableFuture::join)
+                .filter(Objects::nonNull)
+                .sorted((a, b) ->
+                        b.getKey().compareTo(a.getKey())).toList();
+
+        // 按照用水量进行排序（降序）
+
+        // 取前3个高峰时段
+        List<LocalDateTime> highUsageTimes = new ArrayList<>();
+        for (int i = 0; i < Math.min(3, usageList.size()); i++) {
+            highUsageTimes.add(usageList.get(i).getValue());
+        }
+
+        if (highUsageTimes.isEmpty()) {
+            return Result.ok(null);
+        }
+
+        return Result.ok(highUsageTimes);
     }
 
     @Override
@@ -656,18 +715,18 @@ public class IoTDataServiceImpl extends ServiceImpl<IoTDeviceDataMapper, IotDevi
     @Override
     public Result<ToAIBO> getRecentWeekUsage() {
         LocalDateTime startDate = LocalDateTime.now().minusDays(7);
-        
+
         List<Double> HY = new ArrayList<>();
         List<Double> LH = new ArrayList<>();
         List<Double> JH = new ArrayList<>();
-        
+
         // 查询三个校区的数据
         for (int school = 1; school <= 3; school++) {
             List<WaterUsageRecord> records = waterUsageRecordMapper.selectRecentRecords(school, startDate);
             List<Double> usageList = records.stream()
                     .map(WaterUsageRecord::getUsage)
                     .collect(Collectors.toList());
-            
+
             if (school == 1) {
                 HY = usageList;
             } else if (school == 2) {
@@ -676,11 +735,68 @@ public class IoTDataServiceImpl extends ServiceImpl<IoTDeviceDataMapper, IotDevi
                 JH = usageList;
             }
         }
-        
+
         ToAIBO toAIBO = new ToAIBO();
         toAIBO.setHY(HY);
         toAIBO.setLH(LH);
         toAIBO.setJH(JH);
         return Result.ok(toAIBO);
+    }
+
+    /**
+     * 获取历史校区用水量（带缓存）
+     * 分级缓存策略：历史数据使用独立缓存，TTL为2小时
+     */
+    private Result<Double> getHistoricalSchoolUsageWithCache(int school, String startTime, String endTime) {
+        String cacheKey = buildHistoricalCacheKey(school, startTime, endTime);
+        
+        // 先尝试从缓存获取
+        String cachedData = redisTemplate.opsForValue().get(cacheKey);
+        if (cachedData != null) {
+            try {
+                return Result.ok(Double.valueOf(cachedData));
+            } catch (NumberFormatException e) {
+                log.warn("缓存数据格式异常，key: {}, value: {}", cacheKey, cachedData);
+                // 删除异常缓存数据
+                redisTemplate.delete(cacheKey);
+            }
+        }
+        
+        // 缓存未命中，使用分布式锁防止缓存击穿
+        RLock lock = redissonClient.getLock("historical:usage:lock:" + school);
+        try {
+            if (lock.tryLock(5, TimeUnit.SECONDS)) {
+                // 双重检查，防止其他线程已经设置了缓存
+                cachedData = redisTemplate.opsForValue().get(cacheKey);
+                if (cachedData != null) {
+                    return Result.ok(Double.valueOf(cachedData));
+                }
+                // 查询数据库并缓存结果
+                Result<Double> dbResult = getSchoolUsageFromDb(school, startTime, endTime);
+                redisTemplate.opsForValue().set(cacheKey, String.valueOf(dbResult.getData()), Duration.ofHours(2));
+                return dbResult;
+            }
+        } catch (InterruptedException e) {
+            Thread.currentThread().interrupt();
+            log.error("获取分布式锁被中断, school: {}", school);
+        } catch (Exception e) {
+            log.error("查询历史用水量异常, school: {}", school, e);
+        } finally {
+            if (lock.isHeldByCurrentThread()) {
+                lock.unlock();
+            }
+        }
+        // 锁获取失败时，返回NaN（避免数据库压力）
+        log.warn("获取历史用水量锁失败，返回NaN，school: {}", school);
+        return Result.ok(Double.NaN);
+    }
+    
+    /**
+     * 构建历史数据缓存键
+     */
+    private String buildHistoricalCacheKey(int school, String startTime, String endTime) {
+        return String.format("historical:usage:%d:%s:%s", school, 
+                startTime.replaceAll("[:.]", "-"), 
+                endTime.replaceAll("[:.]", "-"));
     }
 }

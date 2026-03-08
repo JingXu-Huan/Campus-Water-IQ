@@ -316,11 +316,12 @@ export const iotApi = {
     // 获取本月用水量
     getMonthUsage: async (school: number): Promise<UsageResponse> => {
         const now = new Date()
-        const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1)
-
+        // 使用 UTC 获取本月开始，避免时区问题
+        const startOfMonth = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), 1))
+        
         // 获取上月同期数据
-        const lastMonthStart = new Date(now.getFullYear(), now.getMonth() - 1, 1)
-        const lastMonthNow = new Date(now.getFullYear(), now.getMonth() - 1, now.getDate(), now.getHours(), now.getMinutes())
+        const lastMonthStart = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth() - 1, 1))
+        const lastMonthNow = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth() - 1, now.getUTCDate(), now.getUTCHours(), now.getUTCMinutes()))
 
         try {
             const [monthRes, lastMonthRes] = await Promise.all([
@@ -329,19 +330,19 @@ export const iotApi = {
                 }),
                 iotDataApi.get<number>('/Data/schoolUsage', {
                     params: {school, start: formatDate(lastMonthStart), end: formatDate(lastMonthNow)}
-                }).catch(() => ({data: 0}))
+                }).catch(() => ({data: null}))
             ])
 
-            const monthValue = monthRes?.data ?? monthRes ?? 0
-            const lastMonthValue = lastMonthRes?.data ?? lastMonthRes ?? 0
+            const monthValue = monthRes?.data ?? monthRes ?? null
+            const lastMonthValue = lastMonthRes?.data ?? lastMonthRes ?? null
 
             return {
-                data: Number(monthValue),
-                lastMonthSameDay: Number(lastMonthValue)
+                data: monthValue != null ? Number(monthValue) : null,
+                lastMonthSameDay: lastMonthValue != null ? Number(lastMonthValue) : null
             }
         } catch (error) {
             console.error('获取本月用水量失败:', error)
-            return {data: 0, lastMonthSameDay: 0}
+            return {data: null, lastMonthSameDay: null}
         }
     },
 
@@ -999,5 +1000,19 @@ export const iotApi = {
     dismissWarning: async (ids: string[]) => {
         const res = await iotEventApi.delete('/iot-event/dissMissWarning', { data: ids })
         return res.data
+    },
+
+    // 获取模拟季节 (1=春, 2=夏, 3=秋, 4=冬)
+    getSeason: async (): Promise<number> => {
+        const res = await iotDeviceApi.get('/device/getSeason')
+        return res?.data ?? 1
+    },
+
+    // 获取某校区高峰用水时段
+    getHighWaterUsageTime: async (campus: number): Promise<string[]> => {
+        const res = await iotDataApi.get('/Data/highWaterUsageTime', {
+            params: { campus }
+        })
+        return res?.data ?? []
     }
 }

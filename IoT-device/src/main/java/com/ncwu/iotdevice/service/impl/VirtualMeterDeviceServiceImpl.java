@@ -370,7 +370,7 @@ public class VirtualMeterDeviceServiceImpl extends ServiceImpl<DeviceMapper, Vir
     }
 
     /**
-     * 查看设备运行状态
+     * 查看设备运行状态，三级缓存
      */
     @Override
     public Result<Map<String, String>> checkDeviceStatus(List<String> ids) {
@@ -570,13 +570,12 @@ public class VirtualMeterDeviceServiceImpl extends ServiceImpl<DeviceMapper, Vir
             if (!runningDevices.contains(deviceId)) {
                 return;
             }
-            
+
             // 使用当前时间作为心跳时间戳，确保心跳的时效性
             // 如果距离上次上报超过15秒，说明设备可能有问题，但仍使用当前时间保持心跳
-            long heartbeatTimestamp = now;
             try {
                 // 发送心跳信息
-                dataSender.getObject().heartBeat(deviceId, heartbeatTimestamp);
+                dataSender.getObject().heartBeat(deviceId, now);
             } catch (Exception e) {
                 log.error("心跳发送异常: {}", e.getMessage(), e);
             }
@@ -844,7 +843,7 @@ public class VirtualMeterDeviceServiceImpl extends ServiceImpl<DeviceMapper, Vir
                         .map(Object::toString)
                         .filter(id -> id.startsWith("1"))
                         .filter(id -> Integer.parseInt(id.substring(2, 4)) > firstIndex)
-                        .collect(Collectors.toMap(id -> id, id -> 15));
+                        .collect(Collectors.toMap(id -> id, id -> 30));
             }
         }
         return null;

@@ -237,6 +237,15 @@ public class DeviceController {
     }
 
     /**
+     * 得到模拟季节
+     */
+    @GetMapping("/getSeason")
+    public Result<Integer> getSeason() {
+        String season = stringRedisTemplate.opsForValue().get("Season");
+        return Result.ok(season == null ? 1 : Integer.parseInt(season));
+    }
+
+    /**
      * 楼宇配置 VO
      */
     @Data

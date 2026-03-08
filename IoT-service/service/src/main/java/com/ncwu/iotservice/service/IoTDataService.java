@@ -58,7 +58,7 @@ public interface IoTDataService extends IService<IotDeviceData> {
 
     Result<Double> getRate(int region, int campus);
 
-    Result<LocalDateTime> getHighWaterUsageTime(int campus);
+    Result<List<LocalDateTime>> getHighWaterUsageTime(int campus);
 
     Result<Map<Integer, Double>> getCampusRate();
 

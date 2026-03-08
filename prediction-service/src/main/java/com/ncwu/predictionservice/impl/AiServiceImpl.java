@@ -85,16 +85,57 @@ public class AiServiceImpl implements AiService {
 
     @Override
     public Result<String> suggestionOfWater(int score, double ph, double ch, double th) {
-        String res = chatLanguageModel
-                .chat("请根据我给你提供的水质信息，作出评价并且给出建议(50字)：分数：" + score + "ph" + ph + "浊度" + th + "含氯量" + ch);
-        return Result.ok(res);
+        String cacheKey = "water_suggestion";
+        String lockKey = "lock:" + cacheKey;
+
+        // 先尝试从缓存获取
+        String cachedResult = redisTemplate.opsForValue().get(cacheKey);
+        if (cachedResult != null) {
+            return Result.ok(cachedResult);
+        }
+
+        // 获取分布式锁
+        RLock lock = redissonClient.getLock(lockKey);
+        try {
+            if (lock.tryLock(3, 10, TimeUnit.SECONDS)) {
+                try {
+                    // 双重检查，防止其他线程已经设置了缓存
+                    cachedResult = redisTemplate.opsForValue().get(cacheKey);
+                    if (cachedResult != null) {
+                        return Result.ok(cachedResult);
+                    }
+                    // 调用AI API
+                    String res = chatLanguageModel
+                            .chat("请根据我给你提供的水质信息，作出评价并且给出建议(50字)" +
+                                    "：分数：" + score + "ph" + ph + "浊度" + th + "含氯量" + ch);
+                    // 缓存结果，设置10分钟过期
+                    redisTemplate.opsForValue().set(cacheKey, res, 10, TimeUnit.MINUTES);
+                    return Result.ok(res);
+                } finally {
+                    if (lock.isHeldByCurrentThread()) {
+                        lock.unlock();
+                    }
+                }
+            } else {
+                // 获取锁失败，返回默认建议或错误信息
+                return Result.fail(null, "系统繁忙，请稍后再试");
+            }
+        } catch (InterruptedException e) {
+            Thread.currentThread().interrupt();
+            log.error("获取锁时被中断: {}", e.getMessage());
+            return Result.fail(null, "系统错误，请稍后再试");
+        } catch (Exception e) {
+            log.error("水质建议生成失败: {}", e.getMessage());
+            return Result.fail(null, "服务暂时不可用，请稍后再试");
+        }
     }
 
     private double getRes(List<Double> usage) {
         try {
             String response = chatLanguageModel.chat(
                     "Predict the next water usage value based on this data: " + usage.toString() +
-                            ". Return ONLY a single number without any explanation, text, or formatting. Example response: 209.25"
+                            ". Return ONLY a single number without any explanation, text, or formatting. " +
+                            "Example response: 209.25"
             );
             return Double.parseDouble(response.trim());
         } catch (NumberFormatException e) {
@@ -108,7 +149,7 @@ public class AiServiceImpl implements AiService {
 
     private Result<UsageVO> generateAndCachePrediction(List<Double> usage, int campus) {
         double predictedValue = getRes(usage);
-        UsageBO usageBO = new UsageBO(predictedValue, LocalDateTime.now().plusMinutes(300));
+        UsageBO usageBO = new UsageBO(predictedValue, LocalDateTime.now().plusMinutes(5));
 
         try {
             redisTemplate.opsForValue().set(keyPrefix + campus, objectMapper.writeValueAsString(usageBO));

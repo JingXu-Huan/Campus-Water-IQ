@@ -63,6 +63,7 @@ public class ChangeTheData {
             MeterDataBo modifiedData = preLeakingProcessor(pjp);
             return pjp.proceed(new Object[]{modifiedData});
         }
+        //演示
         if ("shows".equals(mode)) {
             MeterDataBo modifiedData = preShowsProcessor(pjp);
             return pjp.proceed(new Object[]{modifiedData});
@@ -76,7 +77,7 @@ public class ChangeTheData {
      */
     private MeterDataBo preShowsProcessor(ProceedingJoinPoint pjp) {
         MeterDataBo meterDataBo = getMeterDataBo(pjp);
-        meterDataBo.setFlow(keep3(0.15 + ThreadLocalRandom.current().nextDouble(0.07)));
+        meterDataBo.setFlow(keep3(0.02 + ThreadLocalRandom.current().nextDouble(0.07)));
         return meterDataBo;
     }
 

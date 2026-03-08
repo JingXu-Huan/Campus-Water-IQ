@@ -1,6 +1,6 @@
 import { useNavigate } from 'react-router-dom'
 import { useAuthStore } from '@/store/authStore'
-import { Droplets, LogOut, User, BarChart3, AlertTriangle, Settings, LayoutDashboard, Activity, Map, FileText, HelpCircle, Menu, X, RefreshCw, TrendingUp, TrendingDown, WifiOff, Camera, Eye, EyeOff, Check, Wrench, Sun, Lightbulb, Moon } from 'lucide-react'
+import { Droplets, LogOut, User, BarChart3, AlertTriangle, Settings, LayoutDashboard, Activity, Map, FileText, HelpCircle, Menu, X, RefreshCw, TrendingUp, TrendingDown, WifiOff, Camera, Eye, EyeOff, Check, Wrench, Sun, Lightbulb } from 'lucide-react'
 import { useState, useEffect } from 'react'
 import { iotApi, generateDeviceId } from '@/api/iot'
 import { aiApi } from '@/api/ai'
@@ -12,9 +12,6 @@ export default function Dashboard() {
   const navigate = useNavigate()
   const { clearAuth, uid, nickname, avatar, updateProfile } = useAuthStore()
   const [sidebarOpen, setSidebarOpen] = useState(true)
-  const [darkMode, setDarkMode] = useState(() => {
-    return localStorage.getItem('darkMode') === 'true'
-  })
   const [activeMenu, setActiveMenu] = useState('dashboard')
   const [selectedCampus, setSelectedCampus] = useState('longzi')
   
@@ -106,19 +103,6 @@ export default function Dashboard() {
     clearAuth()
     navigate('/login')
   }
-
-  // 切换夜间模式
-  const toggleDarkMode = () => {
-    const newMode = !darkMode
-    setDarkMode(newMode)
-    localStorage.setItem('darkMode', String(newMode))
-    document.documentElement.classList.toggle('dark', newMode)
-  }
-
-  // 初始化主题
-  useEffect(() => {
-    document.documentElement.classList.toggle('dark', darkMode)
-  }, [])
 
   // 手动刷新
   const handleRefresh = () => {
@@ -539,7 +523,7 @@ export default function Dashboard() {
   return (
     <div className="h-screen bg-gray-50 flex overflow-hidden">
       {/* Sidebar */}
-      <aside className={`${sidebarOpen ? 'w-64' : 'w-20'} bg-gradient-to-b from-primary-600 to-primary-800 shadow-xl transition-all duration-300 flex flex-col h-screen`}>
+      <aside className={`${sidebarOpen ? 'w-64' : 'w-20'} bg-gradient-to-b from-primary-600 to-primary-800 shadow-xl transition-all duration-300 ease-in-out flex flex-col h-screen`}>
         {/* Sidebar Header */}
         <div className="p-4 border-b border-white/10">
           <div className="flex items-center gap-3">
@@ -561,10 +545,10 @@ export default function Dashboard() {
                 <li key={item.id}>
                   <button
                     onClick={() => handleMenuClick(item)}
-                    className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl transition-all duration-200 ${
+                    className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl transition-all duration-200 ease-out ${
                       activeMenu === item.id
                         ? 'bg-white/20 text-white border border-white/30 shadow-lg'
-                        : 'text-white hover:bg-white/10 hover:text-white'
+                        : 'text-white hover:bg-white/10 active:scale-95 hover:text-white'
                     }`}
                   >
                     <Icon className="w-5 h-5 flex-shrink-0" />
@@ -586,10 +570,10 @@ export default function Dashboard() {
                   <button
                     key={campus.id}
                     onClick={() => setSelectedCampus(campus.id)}
-                    className={`w-full flex items-center gap-2 px-3 py-2 rounded-lg transition-all duration-200 ${
+                    className={`w-full flex items-center gap-2 px-3 py-2 rounded-lg transition-all duration-200 ease-out ${
                       selectedCampus === campus.id
                         ? 'bg-white/20 text-white border border-white/30'
-                        : 'text-white hover:bg-white/10 hover:text-white border border-transparent'
+                        : 'text-white hover:bg-white/10 active:scale-95 hover:text-white border border-transparent'
                     }`}
                   >
                     <div className={`w-2 h-2 rounded-full ${selectedCampus === campus.id ? 'bg-white' : 'bg-white/40'}`}></div>
@@ -606,7 +590,7 @@ export default function Dashboard() {
 
         {/* Sidebar Footer */}
         <div className="p-2 border-t border-white/10 flex-shrink-0">
-          <div className="flex items-center gap-3 px-4 py-3 rounded-xl hover:bg-white/10 transition-all cursor-pointer">
+          <div className="flex items-center gap-3 px-4 py-3 rounded-xl hover:bg-white/10 active:scale-95 transition-all cursor-pointer">
             {avatar ? (
               <img src={avatar} alt="头像" className="w-9 h-9 rounded-full object-cover ring-2 ring-white/30" />
             ) : (
@@ -629,14 +613,14 @@ export default function Dashboard() {
             <div className="flex gap-2 mt-2">
               <button
                 onClick={openProfileModal}
-                className="flex-1 flex items-center justify-center gap-2 px-4 py-2 text-white hover:bg-white/10 hover:text-white rounded-xl transition-all duration-200"
+                className="flex-1 flex items-center justify-center gap-2 px-4 py-2 text-white hover:bg-white/10 active:scale-95 hover:text-white rounded-xl transition-all duration-200 ease-out"
               >
                 <User className="w-4 h-4" />
                 <span className="text-sm font-medium">个人中心</span>
               </button>
               <button
                 onClick={handleLogout}
-                className="flex items-center justify-center px-3 text-white hover:text-red-400 hover:bg-red-500/20 rounded-xl transition-all duration-200"
+                className="flex items-center justify-center px-3 text-white hover:text-red-400 hover:bg-red-500/20 rounded-xl transition-all duration-200 ease-out"
               >
                 <LogOut className="w-4 h-4" />
               </button>
@@ -653,7 +637,7 @@ export default function Dashboard() {
             <div className="flex items-center gap-4">
               <button
                 onClick={() => setSidebarOpen(!sidebarOpen)}
-                className="p-2 text-white/80 hover:text-white hover:bg-white/10 rounded-xl transition-all"
+                className="p-2 text-white/80 hover:text-white hover:bg-white/10 active:scale-95 rounded-xl transition-all"
               >
                 {sidebarOpen ? <X className="w-5 h-5" /> : <Menu className="w-5 h-5" />}
               </button>
@@ -699,15 +683,6 @@ export default function Dashboard() {
                 </div>
               )}
               
-              {/* 夜间模式切换 */}
-              <button
-                onClick={toggleDarkMode}
-                className="p-2 text-white/80 hover:text-white hover:bg-white/10 rounded-xl transition-all"
-                title={darkMode ? '切换到白天模式' : '切换到夜间模式'}
-              >
-                {darkMode ? <Sun className="w-5 h-5" /> : <Moon className="w-5 h-5" />}
-              </button>
-              
               {!sidebarOpen && (
                 <>
                   <div className="flex items-center gap-2 text-sm text-white">
@@ -716,7 +691,7 @@ export default function Dashboard() {
                   </div>
                   <button
                     onClick={handleLogout}
-                    className="flex items-center gap-2 px-3 py-1.5 text-white/70 hover:text-white hover:bg-white/10 rounded-xl transition-colors"
+                    className="flex items-center gap-2 px-3 py-1.5 text-white/70 hover:text-white hover:bg-white/10 active:scale-95 rounded-xl transition-all duration-200"
                   >
                     <LogOut className="w-4 h-4" />
                   </button>
@@ -737,7 +712,7 @@ export default function Dashboard() {
               </div>
               <button
                 onClick={handleRefresh}
-                className="px-3 py-1 text-sm text-red-700 hover:bg-red-100 rounded transition-colors"
+                className="px-3 py-1 text-sm text-red-700 hover:bg-red-100 rounded transition-all duration-200"
               >
                 重试
               </button>
@@ -749,7 +724,7 @@ export default function Dashboard() {
             <button
               onClick={handleRefresh}
               disabled={loading}
-              className="flex items-center gap-2 px-4 py-2 text-gray-600 hover:bg-gray-100 rounded-lg transition-colors disabled:opacity-50"
+              className="flex items-center gap-2 px-4 py-2 text-gray-600 hover:bg-gray-100 active:scale-95 rounded-lg transition-all duration-200 disabled:opacity-50"
             >
               <RefreshCw className={`w-4 h-4 ${loading ? 'animate-spin' : ''}`} />
               <span className="text-sm">刷新数据</span>
@@ -758,7 +733,7 @@ export default function Dashboard() {
           
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-6 gap-6 mb-8">
           {/* 今日用水量 */}
-          <div className="glass-card rounded-2xl p-6">
+          <div className="glass-card rounded-2xl p-6 animate-slide-up" style={{animationDelay: '0ms'}}>
             <div className="flex items-center justify-between mb-4">
               <div className="p-3 bg-blue-600 rounded-xl">
                 <Droplets className="w-6 h-6 text-white" />
@@ -788,7 +763,7 @@ export default function Dashboard() {
           </div>
 
           {/* 本月用水量 */}
-          <div className="glass-card rounded-2xl p-6">
+          <div className="glass-card rounded-2xl p-6 animate-slide-up" style={{animationDelay: '0ms'}}>
             <div className="flex items-center justify-between mb-4">
               <div className="p-3 bg-purple-600 rounded-xl">
                 <BarChart3 className="w-6 h-6 text-white" />
@@ -816,7 +791,7 @@ export default function Dashboard() {
           </div>
 
           {/* 明日用水量预测 */}
-          <div className="glass-card rounded-2xl p-6">
+          <div className="glass-card rounded-2xl p-6 animate-slide-up" style={{animationDelay: '0ms'}}>
             <div className="flex items-center justify-between mb-4">
               <div className="p-3 bg-orange-500 rounded-xl">
                 <TrendingUp className="w-6 h-6 text-white" />
@@ -845,7 +820,7 @@ export default function Dashboard() {
           </div>
 
           {/* 异常告警 */}
-          <div className="glass-card rounded-2xl p-6">
+          <div className="glass-card rounded-2xl p-6 animate-slide-up" style={{animationDelay: '0ms'}}>
             <div className="flex items-center justify-between mb-4">
               <div className="p-3 bg-yellow-500 rounded-xl">
                 <AlertTriangle className="w-6 h-6 text-white" />
@@ -859,7 +834,7 @@ export default function Dashboard() {
           </div>
 
           {/* 在线设备 */}
-          <div className="glass-card rounded-2xl p-6">
+          <div className="glass-card rounded-2xl p-6 animate-slide-up" style={{animationDelay: '0ms'}}>
             <div className="flex items-center justify-between mb-4">
               <div className="p-3 bg-green-600 rounded-xl">
                 <User className="w-6 h-6 text-white" />
@@ -887,7 +862,7 @@ export default function Dashboard() {
           </div>
 
           {/* 健康评分 */}
-          <div className="glass-card rounded-2xl p-6">
+          <div className="glass-card rounded-2xl p-6 animate-slide-up" style={{animationDelay: '0ms'}}>
             <div className="flex items-center justify-between mb-4">
               <div className="p-3 bg-emerald-600 rounded-xl">
                 <Activity className="w-6 h-6 text-white" />
@@ -903,7 +878,7 @@ export default function Dashboard() {
 
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
           {/* 实时监测 */}
-          <div className="glass-card rounded-2xl p-6">
+          <div className="glass-card rounded-2xl p-6 animate-slide-up" style={{animationDelay: '0ms'}}>
             <div className="flex items-center justify-between mb-4">
               <h2 className="text-lg font-semibold text-gray-900">实时监测</h2>
             </div>
@@ -949,7 +924,7 @@ export default function Dashboard() {
           </div>
 
           {/* 高峰用水时段 */}
-          <div className="glass-card rounded-2xl p-6">
+          <div className="glass-card rounded-2xl p-6 animate-slide-up" style={{animationDelay: '0ms'}}>
             <div className="flex items-center justify-between mb-4">
               <h2 className="text-lg font-semibold text-gray-900">高峰用水时段</h2>
             </div>
@@ -973,7 +948,7 @@ export default function Dashboard() {
           </div>
 
           {/* 最近告警 */}
-          <div className="glass-card rounded-2xl p-6">
+          <div className="glass-card rounded-2xl p-6 animate-slide-up" style={{animationDelay: '0ms'}}>
             <div className="flex items-center justify-between mb-4">
               <h2 className="text-lg font-semibold text-gray-900">最近告警</h2>
               <div className="flex items-center gap-2">
@@ -1085,7 +1060,7 @@ export default function Dashboard() {
         {/* 图表区域 */}
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mt-6">
           {/* 用水趋势图 */}
-          <div className="glass-card rounded-2xl p-6">
+          <div className="glass-card rounded-2xl p-6 animate-slide-up" style={{animationDelay: '0ms'}}>
             <h2 className="text-lg font-semibold text-gray-900 mb-4">本周用水趋势</h2>
             <ResponsiveContainer width="100%" height={280}>
               <LineChart data={weeklyUsageData}>
@@ -1102,7 +1077,7 @@ export default function Dashboard() {
           </div>
 
           {/* 各校区用水占比 */}
-          <div className="glass-card rounded-2xl p-6">
+          <div className="glass-card rounded-2xl p-6 animate-slide-up" style={{animationDelay: '0ms'}}>
             <h2 className="text-lg font-semibold text-gray-900 mb-4">各校区用水占比</h2>
             {loadingCampusRate ? (
               <div className="h-[280px] flex items-center justify-center">
@@ -1134,7 +1109,7 @@ export default function Dashboard() {
               <h2 className="text-xl font-semibold text-gray-900">个人中心</h2>
               <button
                 onClick={() => setShowProfileModal(false)}
-                className="p-2 hover:bg-gray-100 rounded-lg"
+                className="p-2 hover:bg-gray-100 active:scale-95 rounded-lg"
               >
                 <X className="w-5 h-5 text-gray-500" />
               </button>

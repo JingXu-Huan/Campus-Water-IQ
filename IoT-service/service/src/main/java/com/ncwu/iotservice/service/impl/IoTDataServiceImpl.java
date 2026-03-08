@@ -284,6 +284,10 @@ public class IoTDataServiceImpl extends ServiceImpl<IoTDeviceDataMapper, IotDevi
                 .filter(Objects::nonNull)
                 .findFirst()
                 .orElse(null);
+        // 负数说明数据异常，返回null
+        if (usage != null && usage < 0) {
+            return Result.ok(null);
+        }
         return Result.ok(usage);
     }
 

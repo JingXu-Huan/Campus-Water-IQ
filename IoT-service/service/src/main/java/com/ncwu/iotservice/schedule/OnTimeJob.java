@@ -70,14 +70,13 @@ public class OnTimeJob {
 
         if (result != null && "200".equals(result.getCode()) && result.getData() != null) {
             Double usage = result.getData();
-
             WaterUsageRecord record = new WaterUsageRecord();
             record.setSchool(school);
             record.setUsage(usage);
             waterUsageRecordMapper.insert(record);
             log.info("校区 {} 用水量保存成功: {} m³, 日期: {}", school, usage, start.toLocalDate());
         } else {
-            log.warn("获取校区 {} 用水量失败, result: {}", school, result);
+            log.warn("校区 {} 日期 {} 无有效用水数据，跳过保存", school, start.toLocalDate());
         }
     }
 

@@ -12,9 +12,12 @@ import com.ncwu.common.enums.ErrorCode;
 import com.ncwu.common.enums.SuccessCode;
 import com.ncwu.common.domain.vo.Result;
 import com.ncwu.iotservice.entity.BO.SchoolUsageBO;
+import com.ncwu.common.domain.bo.ToAIBO;
 import com.ncwu.iotservice.entity.IotDeviceData;
+import com.ncwu.iotservice.entity.WaterUsageRecord;
 import com.ncwu.iotservice.exception.QueryFailedException;
 import com.ncwu.iotservice.mapper.IoTDeviceDataMapper;
+import com.ncwu.iotservice.mapper.WaterUsageRecordMapper;
 import com.ncwu.iotservice.service.IoTDataService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -57,6 +60,7 @@ public class IoTDataServiceImpl extends ServiceImpl<IoTDeviceDataMapper, IotDevi
     private final IoTDeviceDataMapper ioTDeviceDataMapper;
     private final RedissonClient redissonClient;
     private final ObjectMapper objectMapper;
+    private final WaterUsageRecordMapper waterUsageRecordMapper;
     private final ExecutorService pool = Executors.newFixedThreadPool(10);
 
     @DubboReference(version = "1.0.0")
@@ -641,12 +645,42 @@ public class IoTDataServiceImpl extends ServiceImpl<IoTDeviceDataMapper, IotDevi
         for (int i = 1; i <= 3; i++) {
             if (sum == 0) {
                 map.put(i, Double.NaN);
-            }
-            else{
+            } else {
                 map.put(i, res[i] / sum);
             }
 
         }
         return Result.ok(map);
+    }
+
+    @Override
+    public Result<ToAIBO> getRecentWeekUsage() {
+        LocalDateTime startDate = LocalDateTime.now().minusDays(7);
+        
+        List<Double> HY = new ArrayList<>();
+        List<Double> LH = new ArrayList<>();
+        List<Double> JH = new ArrayList<>();
+        
+        // 查询三个校区的数据
+        for (int school = 1; school <= 3; school++) {
+            List<WaterUsageRecord> records = waterUsageRecordMapper.selectRecentRecords(school, startDate);
+            List<Double> usageList = records.stream()
+                    .map(WaterUsageRecord::getUsage)
+                    .collect(Collectors.toList());
+            
+            if (school == 1) {
+                HY = usageList;
+            } else if (school == 2) {
+                LH = usageList;
+            } else {
+                JH = usageList;
+            }
+        }
+        
+        ToAIBO toAIBO = new ToAIBO();
+        toAIBO.setHY(HY);
+        toAIBO.setLH(LH);
+        toAIBO.setJH(JH);
+        return Result.ok(toAIBO);
     }
 }

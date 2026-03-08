@@ -2,6 +2,8 @@ dubbo:
   application:
     name: warning-service
     qos-port: 22225
+  protocol:
+    port: 20882
   registry:
     address: nacos://101.42.157.163:8848
     username: nacos

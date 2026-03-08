@@ -13,4 +13,6 @@ public interface AiService {
     Result<UsageVO> predictTomorrowWaterUsage(List<Double> usage, int campus);
 
     Result<String> suggestionOfWaterUsage();
+
+    Result<String> suggestionOfWater(int score, double ph, double ch, double th);
 }

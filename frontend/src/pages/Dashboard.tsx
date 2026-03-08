@@ -221,29 +221,8 @@ export default function Dashboard() {
   const fetchPrediction = async (schoolId: number) => {
     setLoadingPrediction(true)
     try {
-      // Mock 数据测试 - 实际使用时替换为真实 API 调用
-      // const usageData: number[] = []
-      // for (let i = 6; i >= 0; i--) {
-      //   const date = new Date()
-      //   date.setDate(date.getDate() - i)
-      //   const startOfDay = new Date(date.getFullYear(), date.getMonth(), date.getDate())
-      //   const endOfDay = new Date(date.getFullYear(), date.getMonth(), date.getDate(), 23, 59, 59)
-      //   
-      //   try {
-      //     const res = await iotDataApi.get<number>('/Data/schoolUsage', {
-      //       params: { school: schoolId, start: formatDate(startOfDay), end: formatDate(endOfDay) }
-      //     })
-      //     usageData.push(res?.data ?? res ?? 0)
-      //   } catch {
-      //     usageData.push(0)
-      //   }
-      // }
-      
-      // Mock 数据
-      const usageData = [120.5, 135.2, 128.0, 142.3, 130.1, 118.9, 140.0]
-      
-      // 调用预测接口
-      const result = await aiApi.predictTomorrowWaterUsage(usageData, schoolId)
+      // 调用预测接口（自动从 IoT-service 获取近七天数据）
+      const result = await aiApi.predictTomorrowWaterUsage(schoolId)
       setPredictedTomorrowUsage(result?.usage ?? 0)
     } catch (err) {
       console.error('获取预测数据失败:', err)

@@ -38,15 +38,28 @@ export interface UsageVO {
 
 export const aiApi = {
     /**
-     * 预测某校区明天的用水量
-     * @param usage 历史用水量数据列表
+     * 预测某校区明天的用水量（自动获取近七天数据）
      * @param campus 校区 (1=花园, 2=龙子湖, 3=江淮)
      */
-    predictTomorrowWaterUsage: async (usage: number[], campus: number): Promise<UsageVO> => {
-        const res = await aiApiClient.post<any>('/ai/predictTomorrowWaterUsage', usage, {
+    predictTomorrowWaterUsage: async (campus: number): Promise<UsageVO> => {
+        const res = await aiApiClient.post<any>('/ai/predictTomorrowWaterUsage', null, {
             params: { campus }
         })
         // 后端返回 Result<UsageVO>，data 字段才是 UsageVO
+        return res.data
+    },
+
+    /**
+     * 获取水质建议
+     * @param score 水质分数
+     * @param ph 酸碱度
+     * @param ch 含氯量
+     * @param th 浊度
+     */
+    getWaterQualitySuggestion: async (score: number, ph: number, ch: number, th: number): Promise<string> => {
+        const res = await aiApiClient.post<any>('/ai/suggestionOfWater', null, {
+            params: { score, ph, ch, th }
+        })
         return res.data
     },
 

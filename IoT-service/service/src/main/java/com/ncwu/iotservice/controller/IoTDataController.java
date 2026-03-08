@@ -6,6 +6,7 @@ import cn.hutool.core.date.DateUtil;
 import com.ncwu.common.domain.dto.IdsDTO;
 import com.ncwu.common.enums.ErrorCode;
 import com.ncwu.common.domain.vo.Result;
+import com.ncwu.common.domain.bo.ToAIBO;
 import com.ncwu.iotservice.service.IoTDataService;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.Max;
@@ -267,5 +268,13 @@ public class IoTDataController {
     @GetMapping("/getAnCampusOnLineDeviceNums")
     public Result<Long> getOnLineNum(@Min(1) @Max(3) int campus) {
         return ioTDataService.getCampusOnLineNum(campus);
+    }
+
+    /**
+     * 获取近七天的用水历史数据（三个校区）
+     */
+    @GetMapping("/getRecentWeekUsage")
+    public Result<ToAIBO> getRecentWeekUsage() {
+        return ioTDataService.getRecentWeekUsage();
     }
 }

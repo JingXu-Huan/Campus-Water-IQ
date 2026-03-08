@@ -2,7 +2,9 @@ package com.ncwu.iotservice.service;
 
 import com.baomidou.mybatisplus.extension.service.IService;
 import com.ncwu.common.domain.vo.Result;
+import com.ncwu.common.domain.bo.ToAIBO;
 import com.ncwu.iotservice.entity.IotDeviceData;
+import com.ncwu.iotservice.entity.WaterUsageRecord;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.Max;
 import jakarta.validation.constraints.Min;
@@ -59,4 +61,9 @@ public interface IoTDataService extends IService<IotDeviceData> {
     Result<LocalDateTime> getHighWaterUsageTime(int campus);
 
     Result<Map<Integer, Double>> getCampusRate();
+
+    /**
+     * 获取近七天的用水历史数据（三个校区）
+     */
+    Result<ToAIBO> getRecentWeekUsage();
 }

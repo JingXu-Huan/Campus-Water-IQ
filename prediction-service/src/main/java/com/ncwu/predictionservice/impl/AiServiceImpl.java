@@ -37,32 +37,33 @@ public class AiServiceImpl implements AiService {
     private final StringRedisTemplate redisTemplate;
     private final ObjectMapper objectMapper;
     String keyPrefix = "WaterPredictionUsage:";
+
     @Override
     public Result<UsageVO> predictTomorrowWaterUsage(List<Double> usage, int campus) {
         String json = redisTemplate.opsForValue().get(keyPrefix + campus);
-        
+
         if (json == null || json.isEmpty()) {
             return generateAndCachePrediction(usage, campus);
         }
-        
+
         UsageBO usageBO = parseCachedUsage(json);
-        
+
         if (usageBO != null && !isCacheExpired(usageBO)) {
             return Result.ok(new UsageVO(campus, usageBO.getUsage()));
         }
-        
+
         if (usageBO != null) {
             regeneratePredictionAsync(campus, usage);
             return Result.ok(new UsageVO(campus, usageBO.getUsage()));
         }
-        
+
         return generateAndCachePrediction(usage, campus);
     }
 
     @Override
     public Result<String> suggestionOfWaterUsage() {
         String suggestion = redisTemplate.opsForValue().get("suggestion");
-        if (suggestion==null){
+        if (suggestion == null) {
             RLock lock = redissonClient.getLock("suggestions");
             String response;
             try {
@@ -70,8 +71,7 @@ public class AiServiceImpl implements AiService {
                     response = chatLanguageModel
                             .chat("请使用中文生成一个20字左右的节水建议。Example response: 刷牙的时候记得把水龙头关掉哦");
                     redisTemplate.opsForValue().set("suggestion", response, 30, TimeUnit.MINUTES);
-                }
-                else return Result.ok("刷牙的时候记得把水龙头关掉哦");
+                } else return Result.ok("刷牙的时候记得把水龙头关掉哦");
             } catch (Exception e) {
                 throw new RuntimeException(e);
             } finally {
@@ -80,15 +80,21 @@ public class AiServiceImpl implements AiService {
                 }
             }
             return Result.ok(response);
-        }
-        else return Result.ok(suggestion);
+        } else return Result.ok(suggestion);
+    }
+
+    @Override
+    public Result<String> suggestionOfWater(int score, double ph, double ch, double th) {
+        String res = chatLanguageModel
+                .chat("请根据我给你提供的水质信息，作出评价并且给出建议(50字)：分数：" + score + "ph" + ph + "浊度" + th + "含氯量" + ch);
+        return Result.ok(res);
     }
 
     private double getRes(List<Double> usage) {
         try {
             String response = chatLanguageModel.chat(
-                "Predict the next water usage value based on this data: " + usage.toString() +
-                ". Return ONLY a single number without any explanation, text, or formatting. Example response: 209.25"
+                    "Predict the next water usage value based on this data: " + usage.toString() +
+                            ". Return ONLY a single number without any explanation, text, or formatting. Example response: 209.25"
             );
             return Double.parseDouble(response.trim());
         } catch (NumberFormatException e) {
@@ -103,16 +109,16 @@ public class AiServiceImpl implements AiService {
     private Result<UsageVO> generateAndCachePrediction(List<Double> usage, int campus) {
         double predictedValue = getRes(usage);
         UsageBO usageBO = new UsageBO(predictedValue, LocalDateTime.now().plusMinutes(300));
-        
+
         try {
             redisTemplate.opsForValue().set(keyPrefix + campus, objectMapper.writeValueAsString(usageBO));
         } catch (JsonProcessingException e) {
             log.error("Failed to cache prediction for campus {}: {}", campus, e.getMessage());
         }
-        
+
         return Result.ok(new UsageVO(campus, predictedValue));
     }
-    
+
     private UsageBO parseCachedUsage(String json) {
         try {
             return objectMapper.readValue(json, UsageBO.class);
@@ -121,11 +127,11 @@ public class AiServiceImpl implements AiService {
             return null;
         }
     }
-    
+
     private boolean isCacheExpired(UsageBO usageBO) {
         return usageBO.getExpireTime().isBefore(LocalDateTime.now());
     }
-    
+
     @Async
     public void regeneratePredictionAsync(int campus, List<Double> usage) {
         String lockKey = "WaterUsage:" + campus;

@@ -2,6 +2,7 @@ import { useState, useEffect, useCallback } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useAuthStore } from '@/store/authStore'
 import { iotApi, generateDeviceId, generateWaterQualitySensorId, parseDeviceCode, BuildingInfo, BuildingType, DeviceFlowData, WaterQualityData, getBuildingConfig, getBuildingType } from '@/api/iot'
+import { aiApi } from '@/api/ai'
 import { Droplets, User, Menu, X, Activity, Building2, Building, Home, RefreshCw, XCircle, LayoutDashboard, Waves, FlaskConical, Gauge, Wifi, WifiOff } from 'lucide-react'
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts'
 
@@ -101,6 +102,7 @@ export default function Monitoring() {
   const [buildingConfig, setBuildingConfig] = useState({ floors: 6, rooms: 10 })
   const [loadingBuildings, setLoadingBuildings] = useState(true)
   const [waterQualityScore, setWaterQualityScore] = useState<number>(0)
+  const [waterQualitySuggestion, setWaterQualitySuggestion] = useState<string>('')
   
   // 切换校区时加载楼宇配置
   useEffect(() => {
@@ -162,6 +164,22 @@ export default function Monitoring() {
       const validScores = waterQualityScores.filter(s => s > 0)
       const avgScore = validScores.length > 0 ? validScores.reduce((a, b) => a + b, 0) / validScores.length : 0
       setWaterQualityScore(avgScore)
+      
+      // 获取水质建议
+      if (waterQualityData.length > 0 && validScores.length > 0) {
+        try {
+          const firstWq = waterQualityData[0]
+          const suggestion = await aiApi.getWaterQualitySuggestion(
+            avgScore,
+            firstWq.ph || 7.0,
+            firstWq.chlorine || 0.5,
+            firstWq.turbidity || 1.0
+          )
+          setWaterQualitySuggestion(suggestion || '')
+        } catch (err) {
+          console.error('获取水质建议失败:', err)
+        }
+      }
       
       setLastUpdate(new Date())
     } catch (error) {
@@ -347,6 +365,12 @@ export default function Monitoring() {
               </div>
             </div>
             <div className="flex items-center gap-4">
+              {waterQualitySuggestion && (
+                <div className="flex items-center gap-2 px-3 py-1.5 bg-white/10 backdrop-blur-sm rounded-xl">
+                  <Waves className="w-4 h-4 text-cyan-300" />
+                  <span className="text-sm text-white">{waterQualitySuggestion}</span>
+                </div>
+              )}
               <span className="text-sm text-gray-500">
                 最后更新: {lastUpdate.toLocaleTimeString()}
               </span>

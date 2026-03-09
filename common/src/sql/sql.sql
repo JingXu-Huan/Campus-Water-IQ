@@ -142,3 +142,13 @@ create table water.virtual_device
 create index idx_sn_code
     on water.virtual_device (sn_code);
 
+create table water.water_usage_record
+(
+    id          bigint auto_increment
+        primary key,
+    school      int                      not null,
+    `usage`     double                   not null,
+    record_date datetime default (now()) null
+)
+    comment '日用水记录表，用于AI预测';
+

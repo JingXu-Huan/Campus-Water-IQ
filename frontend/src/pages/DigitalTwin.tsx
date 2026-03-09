@@ -770,7 +770,7 @@ export default function DigitalTwin() {
                     })
                   }}
                   disabled={loading || !isInitialized}
-                  className="px-3 py-1.5 text-xs bg-gradient-to-r from-red-500 to-red-600 text-white rounded-lg hover:from-red-600 hover:to-red-700 disabled:opacity-50 disabled:cursor-not-allowed shadow-sm"
+                  className="px-3 py-1.5 text-xs bg-gradient-to-r from-orange-500 to-orange-600 text-white rounded-lg hover:from-orange-600 hover:to-orange-700 disabled:opacity-50 disabled:cursor-not-allowed shadow-sm"
                 >
                   下线
                 </button>
@@ -901,7 +901,7 @@ export default function DigitalTwin() {
                     })
                   }}
                   disabled={loading || !isInitialized}
-                  className="px-3 py-1.5 text-xs bg-gradient-to-r from-red-500 to-red-600 text-white rounded-lg hover:from-red-600 hover:to-red-700 disabled:opacity-50 disabled:cursor-not-allowed shadow-sm"
+                  className="px-3 py-1.5 text-xs bg-gradient-to-r from-orange-500 to-orange-600 text-white rounded-lg hover:from-orange-600 hover:to-orange-700 disabled:opacity-50 disabled:cursor-not-allowed shadow-sm"
                 >
                   下线
                 </button>

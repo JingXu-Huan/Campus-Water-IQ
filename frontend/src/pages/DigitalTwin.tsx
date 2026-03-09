@@ -710,11 +710,11 @@ export default function DigitalTwin() {
               <button
                 onClick={handleReset}
                 disabled={loading || !isInitialized || isAnyTaskRunning}
-                className="flex flex-col items-center gap-2 p-5 bg-gradient-to-br from-red-50 to-red-100 hover:from-red-100 hover:to-red-200 rounded-2xl transition-all disabled:opacity-50 disabled:cursor-not-allowed border border-red-200"
+                className="flex flex-col items-center gap-2 p-5 bg-gradient-to-br from-orange-50 to-orange-100 hover:from-orange-100 hover:to-orange-200 rounded-2xl transition-all disabled:opacity-50 disabled:cursor-not-allowed border border-orange-200"
               >
-                <RotateCcw className="w-8 h-8 text-red-600" />
-                <span className="font-medium text-red-700">重置设备</span>
-                <span className="text-xs text-red-500">{isAnyTaskRunning ? '请先停止设备' : '清除所有数据'}</span>
+                <RotateCcw className="w-8 h-8 text-orange-600" />
+                <span className="font-medium text-orange-700">重置设备</span>
+                <span className="text-xs text-orange-500">{isAnyTaskRunning ? '请先停止设备' : '清除所有数据'}</span>
               </button>
             </div>
           </div>
@@ -1040,7 +1040,7 @@ export default function DigitalTwin() {
                 disabled={loading}
                 className={`px-4 py-2.5 rounded-lg font-medium transition-colors ${
                   simMode === 'burstPipe'
-                    ? 'bg-red-500 text-white'
+                    ? 'bg-orange-500 text-white'
                     : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
                 }`}
               >

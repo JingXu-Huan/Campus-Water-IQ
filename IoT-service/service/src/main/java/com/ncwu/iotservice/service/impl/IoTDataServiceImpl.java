@@ -2,6 +2,7 @@ package com.ncwu.iotservice.service.impl;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.google.common.util.concurrent.AtomicDouble;
 import com.ncwu.common.apis.iot_device.VirtualMeterDeviceService;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import com.influxdb.client.InfluxDBClient;
@@ -39,6 +40,7 @@ import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
+
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 
@@ -172,7 +174,7 @@ public class IoTDataServiceImpl extends ServiceImpl<IoTDeviceDataMapper, IotDevi
         DateFormatBo dateFormatBo = getDateFormatBo(start, end);
         String startTime = dateFormatBo.startTime();
         String endTime = dateFormatBo.endTime();
-        
+
         //检查时间跨度：超过23小时视为历史数据查询，使用分级缓存策略
         if (Duration.between(start, end).toHours() >= 23) {
             return getHistoricalSchoolUsageWithCache(school, startTime, endTime);
@@ -630,8 +632,38 @@ public class IoTDataServiceImpl extends ServiceImpl<IoTDeviceDataMapper, IotDevi
 
     @Override
     public Result<Double> getRate(int region, int campus) {
+        //1 教学区
+        //2 试验区
+        //3 宿舍区
+        AtomicDouble resOfEdu = new AtomicDouble(0.0);
+        AtomicDouble resOfExp = new AtomicDouble(0.0);
+        AtomicDouble resOfDom = new AtomicDouble(0.0);
+        final int lastIndexOfEduBuilding = Integer.parseInt(Objects.requireNonNull(redisTemplate.opsForValue()
+                .get("device:educationBuildings")));
 
-        return null;
+        final int lastIndexOfExpBuilding = Integer.parseInt(Objects.requireNonNull(redisTemplate.opsForValue()
+                .get("device:experimentBuildings")));
+
+        redisTemplate.opsForHash().entries("meter:total_usage").forEach((k, v) -> {
+            int index = Integer.parseInt(k.toString().substring(2, 4));
+            if (index <= lastIndexOfEduBuilding) {
+                resOfEdu.addAndGet(Double.parseDouble(v.toString()));
+            } else if (index <= lastIndexOfExpBuilding) {
+                resOfExp.addAndGet(Double.parseDouble(v.toString()));
+            } else {
+                resOfDom.addAndGet(Double.parseDouble(v.toString()));
+            }
+        });
+
+        double sum = resOfEdu.get() + resOfExp.get() + resOfDom.get();
+        if (region == 1) {
+            return Result.ok(resOfEdu.get() / sum);
+        } else if (region == 2) {
+            return Result.ok(resOfExp.get() / sum);
+        } else {
+            return Result.ok(resOfDom.get() / sum);
+        }
+
     }
 
     @Override
@@ -753,7 +785,7 @@ public class IoTDataServiceImpl extends ServiceImpl<IoTDeviceDataMapper, IotDevi
      */
     private Result<Double> getHistoricalSchoolUsageWithCache(int school, String startTime, String endTime) {
         String cacheKey = buildHistoricalCacheKey(school, startTime, endTime);
-        
+
         // 先尝试从缓存获取
         String cachedData = redisTemplate.opsForValue().get(cacheKey);
         if (cachedData != null) {
@@ -765,7 +797,7 @@ public class IoTDataServiceImpl extends ServiceImpl<IoTDeviceDataMapper, IotDevi
                 redisTemplate.delete(cacheKey);
             }
         }
-        
+
         // 缓存未命中，使用分布式锁防止缓存击穿
         RLock lock = redissonClient.getLock("historical:usage:lock:" + school);
         try {
@@ -794,13 +826,13 @@ public class IoTDataServiceImpl extends ServiceImpl<IoTDeviceDataMapper, IotDevi
         log.warn("获取历史用水量锁失败，返回NaN，school: {}", school);
         return Result.ok(Double.NaN);
     }
-    
+
     /**
      * 构建历史数据缓存键
      */
     private String buildHistoricalCacheKey(int school, String startTime, String endTime) {
-        return String.format("historical:usage:%d:%s:%s", school, 
-                startTime.replaceAll("[:.]", "-"), 
+        return String.format("historical:usage:%d:%s:%s", school,
+                startTime.replaceAll("[:.]", "-"),
                 endTime.replaceAll("[:.]", "-"));
     }
 }

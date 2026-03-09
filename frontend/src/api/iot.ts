@@ -1014,5 +1014,13 @@ export const iotApi = {
             params: { campus }
         })
         return res?.data ?? []
+    },
+
+    // 获取某区域在校园中的用水占比
+    getUsageRateInCampus: async (region: number, campus: number): Promise<number> => {
+        const res = await iotDataApi.get<number>('/Data/getUsageRateInCampus', {
+            params: { region, campus }
+        })
+        return res?.data ?? res ?? 0
     }
 }

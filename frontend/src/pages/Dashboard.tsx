@@ -63,6 +63,10 @@ export default function Dashboard() {
   const [campusRate, setCampusRate] = useState<{name: string; value: number}[]>([])
   const [loadingCampusRate, setLoadingCampusRate] = useState<boolean>(true)
 
+  // 区域用水占比（宿舍、教学、实验）
+  const [regionRate, setRegionRate] = useState<{name: string; value: number}[]>([])
+  const [loadingRegionRate, setLoadingRegionRate] = useState<boolean>(true)
+
   // 设备类型中文映射
   const deviceTypeMap: Record<string, string> = {
     'METER': '水表告警',
@@ -110,6 +114,7 @@ export default function Dashboard() {
     fetchBuildingStats()
     if (currentCampus) {
       fetchPrediction(currentCampus.schoolId)
+      fetchRegionRate()
     }
   }
 
@@ -275,6 +280,42 @@ export default function Dashboard() {
       console.error('获取校区占比失败:', err)
     } finally {
       setLoadingCampusRate(false)
+    }
+  }
+
+  // 获取区域用水占比（宿舍、教学、实验）
+  const fetchRegionRate = async () => {
+    if (!currentCampus) return
+    setLoadingRegionRate(true)
+    try {
+      // 区域: 1=教学楼, 2=实验楼, 3=宿舍楼
+      const regions = [
+        { id: 1, name: '教学楼' },
+        { id: 2, name: '实验楼' },
+        { id: 3, name: '宿舍楼' }
+      ]
+      
+      const ratePromises = regions.map(async (region) => {
+        const rate = await iotApi.getUsageRateInCampus(region.id, currentCampus.schoolId)
+        return {
+          name: region.name,
+          value: Number((rate * 100).toFixed(1))
+        }
+      })
+      
+      const rateData = await Promise.all(ratePromises)
+      console.log('区域占比数据:', rateData)
+      setRegionRate(rateData)
+    } catch (err) {
+      console.error('获取区域占比失败:', err)
+      // 设置默认值
+      setRegionRate([
+        { name: '宿舍楼', value: 0 },
+        { name: '教学楼', value: 0 },
+        { name: '实验楼', value: 0 }
+      ])
+    } finally {
+      setLoadingRegionRate(false)
     }
   }
 
@@ -499,6 +540,7 @@ export default function Dashboard() {
       fetchWeather(campus.lat, campus.lon)
       fetchPrediction(campus.schoolId)
       fetchHighUsageTimes(campus.schoolId)
+      fetchRegionRate()
     }
   }, [selectedCampus])
 
@@ -1058,7 +1100,7 @@ export default function Dashboard() {
         )}
 
         {/* 图表区域 */}
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mt-6">
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mt-6">
           {/* 用水趋势图 */}
           <div className="glass-card rounded-2xl p-6 animate-slide-up" style={{animationDelay: '0ms'}}>
             <h2 className="text-lg font-semibold text-gray-900 mb-4">本周用水趋势</h2>
@@ -1094,6 +1136,29 @@ export default function Dashboard() {
                     contentStyle={{ borderRadius: '8px', border: 'none', boxShadow: '0 2px 8px rgba(0,0,0,0.1)' }}
                   />
                   <Bar dataKey="usage" fill="#15803d" radius={[0, 4, 4, 0]} />
+                </BarChart>
+              </ResponsiveContainer>
+            )}
+          </div>
+
+          {/* 各区域用水占比 */}
+          <div className="glass-card rounded-2xl p-6 animate-slide-up" style={{animationDelay: '0ms'}}>
+            <h2 className="text-lg font-semibold text-gray-900 mb-4">各区域用水占比</h2>
+            {loadingRegionRate ? (
+              <div className="h-[280px] flex items-center justify-center">
+                <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary-600"></div>
+              </div>
+            ) : (
+              <ResponsiveContainer width="100%" height={280}>
+                <BarChart data={regionRate} layout="vertical">
+                  <CartesianGrid strokeDasharray="3 3" stroke="#d1d5db" />
+                  <XAxis type="number" tick={{ fontSize: 12 }} unit="%" domain={[0, 100]} />
+                  <YAxis dataKey="name" type="category" tick={{ fontSize: 12 }} width={60} />
+                  <Tooltip 
+                    formatter={(value: number | undefined) => value !== undefined ? [`${value.toFixed(1)}%`, '用水占比'] : ['无数据', '用水占比']}
+                    contentStyle={{ borderRadius: '8px', border: 'none', boxShadow: '0 2px 8px rgba(0,0,0,0.1)' }}
+                  />
+                  <Bar dataKey="value" fill="#7c3aed" radius={[0, 4, 4, 0]} />
                 </BarChart>
               </ResponsiveContainer>
             )}

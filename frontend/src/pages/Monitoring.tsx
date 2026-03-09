@@ -101,6 +101,7 @@ export default function Monitoring() {
   const [buildings, setBuildings] = useState<BuildingInfo[]>([])
   const [buildingConfig, setBuildingConfig] = useState({ floors: 6, rooms: 10 })
   const [loadingBuildings, setLoadingBuildings] = useState(true)
+  const [expandedTypes, setExpandedTypes] = useState<Set<BuildingType>>(new Set(['education', 'experiment', 'dormitory'])) // 默认全部展开
   const [waterQualityScore, setWaterQualityScore] = useState<number>(0)
   const [waterQualitySuggestion, setWaterQualitySuggestion] = useState<string>('')
   
@@ -294,7 +295,7 @@ export default function Monitoring() {
             ))}
           </div>
           
-          {/* 楼宇列表 */}
+          {/* 楼宇列表 - 按类型分组 */}
           <p className="px-4 mb-2 text-xs font-medium text-white/40 uppercase">楼宇列表</p>
           {loadingBuildings ? (
             <div className="px-4 py-8 text-center">
@@ -303,27 +304,82 @@ export default function Monitoring() {
             </div>
           ) : (
             <div className="space-y-1">
-              {buildings.map((building) => {
-              const config = BUILDING_TYPE_CONFIG[building.type]
-              const Icon = config.icon
-              return (
-                <button
-                  key={building.id}
-                  onClick={() => setSelectedBuilding(building)}
-                  className={`w-full flex items-center gap-3 px-4 py-2.5 rounded-xl transition-all ${
-                    selectedBuilding?.id === building.id
-                      ? 'bg-white/20 text-white border border-white/30'
-                      : 'text-white/70 hover:bg-white/10 hover:text-white border border-transparent'
-                  }`}
-                >
-                  <Icon className={`w-4 h-4`} />
-                  {sidebarOpen && (
-                    <span className="text-sm truncate">{building.name}</span>
-                  )}
-                </button>
-              )
-            })}
-          </div>
+              {(['education', 'experiment', 'dormitory'] as BuildingType[]).map((type) => {
+                const typeBuildings = buildings.filter(b => b.type === type)
+                if (typeBuildings.length === 0) return null
+                
+                const config = BUILDING_TYPE_CONFIG[type]
+                const Icon = config.icon
+                const isExpanded = expandedTypes.has(type)
+                
+                return (
+                  <div key={type}>
+                    {/* 类型标题 - 可点击展开/折叠 */}
+                    <button
+                      onClick={() => {
+                        setExpandedTypes(prev => {
+                          const newSet = new Set(prev)
+                          if (newSet.has(type)) {
+                            newSet.delete(type)
+                          } else {
+                            newSet.add(type)
+                          }
+                          return newSet
+                        })
+                      }}
+                      className={`w-full flex items-center gap-3 px-4 py-2.5 rounded-xl transition-all duration-200 ${
+                        selectedBuilding?.type === type
+                          ? 'bg-white/20 text-white border border-white/30'
+                          : 'text-white/90 hover:bg-white/10 hover:text-white border border-transparent'
+                      }`}
+                    >
+                      <Icon className={`w-4 h-4 flex-shrink-0 ${config.color === 'blue' ? 'text-blue-300' : config.color === 'purple' ? 'text-purple-300' : 'text-green-300'}`} />
+                      {sidebarOpen && (
+                        <>
+                          <span className="text-sm font-medium flex-1 text-left">{config.name}</span>
+                          <span className="text-xs text-white/50">({typeBuildings.length})</span>
+                          <svg 
+                            className={`w-4 h-4 transition-transform duration-200 ease-out ${isExpanded ? 'rotate-180' : ''}`} 
+                            fill="none" viewBox="0 0 24 24" stroke="currentColor"
+                          >
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                          </svg>
+                        </>
+                      )}
+                    </button>
+                    
+                    {/* 该类型下的楼宇列表 - 带动画 */}
+                    <div 
+                      className={`overflow-hidden transition-all duration-200 ease-out ${
+                        isExpanded ? 'max-h-[500px] opacity-100' : 'max-h-0 opacity-0'
+                      }`}
+                    >
+                      <div className="ml-4 mt-1 space-y-1">
+                        {typeBuildings.map((building, index) => (
+                          <button
+                            key={building.id}
+                            onClick={() => setSelectedBuilding(building)}
+                            style={{ 
+                              animationDelay: `${index * 50}ms`,
+                              transitionDelay: `${index * 30}ms`
+                            }}
+                            className={`w-full flex items-center gap-3 px-4 py-2 rounded-xl transition-all duration-200 ${
+                              selectedBuilding?.id === building.id
+                                ? 'bg-white/20 text-white border border-white/30'
+                                : 'text-white/70 hover:bg-white/10 hover:text-white border border-transparent'
+                            }`}
+                          >
+                            {sidebarOpen && (
+                              <span className="text-sm truncate pl-6">{building.name}</span>
+                            )}
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+                  </div>
+                )
+              })}
+            </div>
           )}
         </nav>
 

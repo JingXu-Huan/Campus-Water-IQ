@@ -238,64 +238,66 @@ export default function Repair() {
         <main className="flex-1 overflow-auto p-6">
           {/* 统计卡片 */}
           <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
-            <div className="glass-card rounded-2xl p-5">
-              <div className="flex items-center gap-3 mb-2">
-                <div className="p-2.5 bg-red-100 rounded-xl">
-                  <AlertTriangle className="w-5 h-5 text-red-600" />
+            <div className="glass-card rounded-2xl p-5 hover:shadow-lg transition-shadow">
+              <div className="flex items-center justify-between mb-3">
+                <div className="p-2.5 bg-gradient-to-br from-red-400 to-red-600 rounded-xl shadow-lg">
+                  <AlertTriangle className="w-5 h-5 text-white" />
                 </div>
-                <span className="text-sm font-medium text-gray-700">待确认</span>
               </div>
-              <p className="text-2xl font-bold text-gray-900">{unclosedCount}</p>
+              <p className="text-3xl font-bold text-gray-900">{unclosedCount}</p>
+              <p className="text-sm text-gray-500 mt-1">待确认报修</p>
             </div>
-            <div className="glass-card rounded-2xl p-5">
-              <div className="flex items-center gap-3 mb-2">
-                <div className="p-2.5 bg-blue-100 rounded-xl">
-                  <Clock className="w-5 h-5 text-blue-600" />
+            <div className="glass-card rounded-2xl p-5 hover:shadow-lg transition-shadow">
+              <div className="flex items-center justify-between mb-3">
+                <div className="p-2.5 bg-gradient-to-br from-blue-400 to-blue-600 rounded-xl shadow-lg">
+                  <Clock className="w-5 h-5 text-white" />
                 </div>
-                <span className="text-sm font-medium text-gray-700">已确认</span>
               </div>
-              <p className="text-2xl font-bold text-gray-900">
+              <p className="text-3xl font-bold text-gray-900">
                 {repairOrders.filter(o => o.status === 'CONFIRMED').length}
               </p>
+              <p className="text-sm text-gray-500 mt-1">已确认待处理</p>
             </div>
-            <div className="glass-card rounded-2xl p-5">
-              <div className="flex items-center gap-3 mb-2">
-                <div className="p-2.5 bg-yellow-100 rounded-xl">
-                  <Activity className="w-5 h-5 text-yellow-600" />
+            <div className="glass-card rounded-2xl p-5 hover:shadow-lg transition-shadow">
+              <div className="flex items-center justify-between mb-3">
+                <div className="p-2.5 bg-gradient-to-br from-yellow-400 to-yellow-600 rounded-xl shadow-lg">
+                  <Activity className="w-5 h-5 text-white" />
                 </div>
-                <span className="text-sm font-medium text-gray-700">待确认</span>
               </div>
-              <p className="text-2xl font-bold text-gray-900">
+              <p className="text-3xl font-bold text-gray-900">
                 {repairOrders.filter(o => o.status === 'PROCESSING').length}
               </p>
+              <p className="text-sm text-gray-500 mt-1">正在处理</p>
             </div>
-            <div className="glass-card rounded-2xl p-5">
-              <div className="flex items-center gap-3 mb-2">
-                <div className="p-2.5 bg-green-100 rounded-xl">
-                  <CheckCircle className="w-5 h-5 text-green-600" />
+            <div className="glass-card rounded-2xl p-5 hover:shadow-lg transition-shadow">
+              <div className="flex items-center justify-between mb-3">
+                <div className="p-2.5 bg-gradient-to-br from-green-400 to-green-600 rounded-xl shadow-lg">
+                  <CheckCircle className="w-5 h-5 text-white" />
                 </div>
-                <span className="text-sm font-medium text-gray-700">已完成</span>
               </div>
-              <p className="text-2xl font-bold text-gray-900">
+              <p className="text-3xl font-bold text-gray-900">
                 {repairOrders.filter(o => o.status === 'DONE').length}
               </p>
+              <p className="text-sm text-gray-500 mt-1">已完成</p>
             </div>
           </div>
 
           {/* 筛选 */}
           <div className="glass-card rounded-2xl p-4 mb-6">
-            <div className="flex items-center gap-4">
-              <div className="flex items-center gap-2">
-                <Filter className="w-4 h-4 text-gray-500" />
-                <span className="text-sm text-gray-600">状态筛选:</span>
+            <div className="flex items-center justify-between flex-wrap gap-4">
+              <div className="flex items-center gap-3">
+                <div className="p-2 bg-gradient-to-br from-primary-400 to-primary-600 rounded-xl">
+                  <Filter className="w-4 h-4 text-white" />
+                </div>
+                <span className="text-sm font-medium text-gray-700">状态筛选</span>
               </div>
               <div className="flex flex-wrap gap-2">
                 <button
                   onClick={() => setSelectedStatus('ALL')}
-                  className={`px-3 py-1.5 rounded-lg text-sm font-medium transition-colors ${
+                  className={`px-4 py-2 rounded-xl text-sm font-medium transition-all duration-200 shadow-sm ${
                     selectedStatus === 'ALL'
-                      ? 'bg-primary-600 text-white'
-                      : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+                      ? 'bg-gradient-to-r from-primary-500 to-primary-600 text-white shadow-primary-300'
+                      : 'bg-gray-100 text-gray-600 hover:bg-gray-200 hover:shadow-md'
                   }`}
                 >
                   全部
@@ -304,10 +306,10 @@ export default function Repair() {
                   <button
                     key={option.value}
                     onClick={() => setSelectedStatus(option.value)}
-                    className={`px-3 py-1.5 rounded-lg text-sm font-medium transition-colors ${
+                    className={`px-4 py-2 rounded-xl text-sm font-medium transition-all duration-200 shadow-sm ${
                       selectedStatus === option.value
-                        ? 'bg-primary-600 text-white'
-                        : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+                        ? 'bg-gradient-to-r from-primary-500 to-primary-600 text-white shadow-primary-300'
+                        : 'bg-gray-100 text-gray-600 hover:bg-gray-200 hover:shadow-md'
                     }`}
                   >
                     {option.label}
@@ -318,70 +320,126 @@ export default function Repair() {
           </div>
 
           {/* 报修单列表 */}
-          <div className="bg-white rounded-xl shadow-sm overflow-hidden">
+          <div className="bg-white rounded-2xl shadow-sm overflow-hidden border border-gray-100">
             {loading ? (
-              <div className="p-8 text-center text-gray-500">
-                <RefreshCw className="w-6 h-6 animate-spin mx-auto mb-2" />
-                加载中...
+              <div className="p-12 text-center">
+                <div className="relative">
+                  <div className="w-12 h-12 border-4 border-primary-100 border-t-primary-600 rounded-full animate-spin mx-auto"></div>
+                </div>
+                <p className="text-gray-500 mt-4">正在加载报修数据...</p>
               </div>
             ) : repairOrders.length === 0 ? (
-              <div className="p-12 text-center">
-                <div className="flex justify-center mb-4">
-                  <div className="p-4 bg-green-100 rounded-full">
-                    <CheckCircle className="w-12 h-12 text-green-600" />
+              <div className="p-16 text-center">
+                <div className="relative inline-block mb-6">
+                  <div className="p-6 bg-gradient-to-br from-green-100 to-green-200 rounded-full">
+                    <CheckCircle className="w-16 h-16 text-green-600" />
+                  </div>
+                  <div className="absolute -top-2 -right-2 w-8 h-8 bg-green-400 rounded-full flex items-center justify-center animate-bounce">
+                    <Zap className="w-4 h-4 text-white" />
                   </div>
                 </div>
-                <h3 className="text-lg font-semibold text-gray-900 mb-2">一切正常运行中！</h3>
-                <p className="text-gray-500 mb-4">目前没有待处理的报修单，设备运行状态良好</p>
-                <div className="flex justify-center gap-2 text-sm text-gray-400">
-                  <Zap className="w-4 h-4" />
-                  <span>保持这个状态，继续加油！</span>
-                  <Smile className="w-4 h-4" />
+                <h3 className="text-xl font-bold text-gray-900 mb-2">一切正常运行中！</h3>
+                <p className="text-gray-500 mb-6 max-w-sm mx-auto">目前没有待处理的报修单，设备运行状态良好，继续保持！</p>
+                <div className="inline-flex items-center gap-2 px-4 py-2 bg-green-50 rounded-full">
+                  <Smile className="w-5 h-5 text-green-600" />
+                  <span className="text-sm font-medium text-green-700">设备运行良好</span>
                 </div>
               </div>
             ) : (
               <div className="overflow-x-auto">
                 <table className="w-full">
-                  <thead className="bg-gray-50 border-b border-gray-200">
+                  <thead className="bg-gradient-to-r from-gray-50 to-gray-100 border-b border-gray-200">
                     <tr>
-                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">设备编号</th>
-                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">报修人</th>
-                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">联系方式</th>
-                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">故障描述</th>
-                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">严重程度</th>
-                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">状态</th>
-                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">创建时间</th>
-                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">操作</th>
+                      <th className="px-6 py-4 text-left text-xs font-bold text-gray-600 uppercase tracking-wider">
+                        <div className="flex items-center gap-2">
+                          <div className="w-1.5 h-1.5 bg-primary-500 rounded-full"></div>
+                          设备编号
+                        </div>
+                      </th>
+                      <th className="px-6 py-4 text-left text-xs font-bold text-gray-600 uppercase tracking-wider">
+                        <div className="flex items-center gap-2">
+                          <div className="w-1.5 h-1.5 bg-blue-500 rounded-full"></div>
+                          报修人
+                        </div>
+                      </th>
+                      <th className="px-6 py-4 text-left text-xs font-bold text-gray-600 uppercase tracking-wider">
+                        <div className="flex items-center gap-2">
+                          <div className="w-1.5 h-1.5 bg-purple-500 rounded-full"></div>
+                          联系方式
+                        </div>
+                      </th>
+                      <th className="px-6 py-4 text-left text-xs font-bold text-gray-600 uppercase tracking-wider">
+                        <div className="flex items-center gap-2">
+                          <div className="w-1.5 h-1.5 bg-yellow-500 rounded-full"></div>
+                          故障描述
+                        </div>
+                      </th>
+                      <th className="px-6 py-4 text-left text-xs font-bold text-gray-600 uppercase tracking-wider">
+                        <div className="flex items-center gap-2">
+                          <div className="w-1.5 h-1.5 bg-red-500 rounded-full"></div>
+                          严重程度
+                        </div>
+                      </th>
+                      <th className="px-6 py-4 text-left text-xs font-bold text-gray-600 uppercase tracking-wider">
+                        <div className="flex items-center gap-2">
+                          <div className="w-1.5 h-1.5 bg-green-500 rounded-full"></div>
+                          状态
+                        </div>
+                      </th>
+                      <th className="px-6 py-4 text-left text-xs font-bold text-gray-600 uppercase tracking-wider">
+                        <div className="flex items-center gap-2">
+                          <div className="w-1.5 h-1.5 bg-cyan-500 rounded-full"></div>
+                          创建时间
+                        </div>
+                      </th>
+                      <th className="px-6 py-4 text-left text-xs font-bold text-gray-600 uppercase tracking-wider">操作</th>
                     </tr>
                   </thead>
-                  <tbody className="divide-y divide-gray-200">
-                    {repairOrders.map((order) => (
-                      <tr key={order.id} className="hover:bg-gray-50">
-                        <td className="px-6 py-4 text-sm text-gray-900 font-mono">{order.deviceCode}</td>
-                        <td className="px-6 py-4 text-sm text-gray-900">{order.reportName}</td>
-                        <td className="px-6 py-4 text-sm text-gray-600">{order.contactInfo}</td>
-                        <td className="px-6 py-4 text-sm text-gray-600 max-w-xs truncate" title={order.desc}>
-                          {order.desc}
+                  <tbody className="divide-y divide-gray-100">
+                    {repairOrders.map((order, index) => (
+                      <tr key={order.id} className="hover:bg-gradient-to-r hover:from-primary-50/50 hover:to-transparent transition-all duration-200 group">
+                        <td className="px-6 py-4">
+                          <span className="inline-flex items-center px-3 py-1.5 rounded-lg bg-gray-100 text-gray-800 font-mono text-sm group-hover:bg-primary-100 group-hover:text-primary-700 transition-colors">
+                            {order.deviceCode}
+                          </span>
                         </td>
                         <td className="px-6 py-4">
-                          <span className={`inline-flex px-2 py-1 text-xs font-medium rounded-full ${
+                          <div className="flex items-center gap-3">
+                            <div className="w-8 h-8 rounded-full bg-gradient-to-br from-primary-400 to-primary-600 flex items-center justify-center text-white text-sm font-medium">
+                              {order.reportName?.charAt(0) || '?'}
+                            </div>
+                            <span className="text-sm font-medium text-gray-900">{order.reportName}</span>
+                          </div>
+                        </td>
+                        <td className="px-6 py-4">
+                          <span className="text-sm text-gray-600">{order.contactInfo}</span>
+                        </td>
+                        <td className="px-6 py-4">
+                          <span className="text-sm text-gray-600 max-w-[200px] truncate block" title={order.desc}>
+                            {order.desc}
+                          </span>
+                        </td>
+                        <td className="px-6 py-4">
+                          <span className={`inline-flex items-center px-3 py-1.5 text-xs font-bold rounded-full shadow-sm ${
                             severityColors[order.severity]?.bg || 'bg-gray-100'
                           } ${severityColors[order.severity]?.text || 'text-gray-600'}`}>
                             {severityLabels[order.severity] || '未知'}
                           </span>
                         </td>
                         <td className="px-6 py-4">
-                          <span className={`inline-flex px-2 py-1 text-xs font-medium rounded-full ${getStatusColor(order.status as RepairStatus)}`}>
+                          <span className={`inline-flex items-center px-3 py-1.5 text-xs font-bold rounded-full shadow-sm ${getStatusColor(order.status as RepairStatus)}`}>
                             {statusLabels[order.status as RepairStatus] || order.status}
                           </span>
                         </td>
-                        <td className="px-6 py-4 text-sm text-gray-600">
-                          {order.createdAt ? new Date(order.createdAt).toLocaleString('zh-CN') : '-'}
+                        <td className="px-6 py-4">
+                          <span className="text-sm text-gray-500">
+                            {order.createdAt ? new Date(order.createdAt).toLocaleString('zh-CN') : '-'}
+                          </span>
                         </td>
                         <td className="px-6 py-4">
                           <button
                             onClick={() => handleOpenStatusModal(order)}
-                            className="text-primary-600 hover:text-primary-800 text-sm font-medium"
+                            className="inline-flex items-center gap-1.5 px-4 py-2 bg-gradient-to-r from-primary-500 to-primary-600 text-white rounded-lg text-sm font-medium shadow-sm hover:shadow-lg hover:shadow-primary-300/50 transition-all duration-200 hover:-translate-y-0.5"
                           >
                             修改状态
                           </button>
@@ -398,31 +456,58 @@ export default function Repair() {
 
       {/* 修改状态弹窗 */}
       {showStatusModal && (
-        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
-          <div className="bg-white rounded-2xl shadow-xl w-full max-w-md mx-4">
-            <div className="px-6 py-4 border-b border-gray-200">
-              <h3 className="text-lg font-semibold text-gray-900">修改报修单状态</h3>
+        <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 animate-fade-in">
+          <div className="bg-white rounded-3xl shadow-2xl w-full max-w-md mx-4 overflow-hidden animate-scale-in">
+            {/* 弹窗头部 */}
+            <div className="px-6 py-5 bg-gradient-to-r from-primary-500 to-primary-600">
+              <div className="flex items-center justify-between">
+                <h3 className="text-lg font-bold text-white">修改报修单状态</h3>
+                <button
+                  onClick={() => setShowStatusModal(false)}
+                  className="p-1.5 rounded-lg bg-white/20 hover:bg-white/30 transition-colors"
+                >
+                  <X className="w-5 h-5 text-white" />
+                </button>
+              </div>
             </div>
+            
             <div className="p-6">
-              <div className="mb-4">
-                <label className="block text-sm font-medium text-gray-700 mb-2">设备编号</label>
-                <p className="text-gray-900 font-mono">{selectedOrder?.deviceCode}</p>
+              {/* 设备信息卡片 */}
+              <div className="bg-gradient-to-br from-gray-50 to-gray-100 rounded-2xl p-4 mb-5">
+                <div className="flex items-center gap-3 mb-3">
+                  <div className="p-2 bg-gradient-to-br from-primary-400 to-primary-600 rounded-xl">
+                    <Droplets className="w-4 h-4 text-white" />
+                  </div>
+                  <span className="text-sm font-medium text-gray-600">设备信息</span>
+                </div>
+                <p className="text-gray-900 font-mono text-lg font-bold ml-11">{selectedOrder?.deviceCode}</p>
               </div>
-              <div className="mb-4">
-                <label className="block text-sm font-medium text-gray-700 mb-2">故障描述</label>
-                <p className="text-gray-600 text-sm">{selectedOrder?.desc}</p>
+              
+              {/* 故障描述 */}
+              <div className="mb-5">
+                <label className="block text-sm font-medium text-gray-600 mb-2">故障描述</label>
+                <div className="bg-amber-50 border border-amber-100 rounded-xl p-3">
+                  <p className="text-gray-700 text-sm">{selectedOrder?.desc}</p>
+                </div>
               </div>
-              <div className="mb-4">
-                <label className="block text-sm font-medium text-gray-700 mb-2">选择新状态</label>
-                <div className="grid grid-cols-2 gap-2">
+              
+              {/* 状态选择 */}
+              <div className="mb-2">
+                <label className="block text-sm font-medium text-gray-600 mb-3">
+                  <span className="flex items-center gap-2">
+                    <span className="w-1.5 h-1.5 bg-primary-500 rounded-full"></span>
+                    选择新状态
+                  </span>
+                </label>
+                <div className="grid grid-cols-2 gap-3">
                   {STATUS_OPTIONS.map((option) => (
                     <button
                       key={option.value}
                       onClick={() => setNewStatus(option.value)}
-                      className={`px-3 py-2 rounded-lg text-sm font-medium transition-colors ${
+                      className={`px-4 py-3 rounded-xl text-sm font-medium transition-all duration-200 shadow-sm ${
                         newStatus === option.value
-                          ? 'bg-primary-600 text-white'
-                          : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+                          ? 'bg-gradient-to-r from-primary-500 to-primary-600 text-white shadow-lg shadow-primary-300/50 -translate-y-0.5'
+                          : 'bg-gray-100 text-gray-600 hover:bg-gray-200 hover:shadow-md'
                       }`}
                     >
                       {option.label}
@@ -431,19 +516,25 @@ export default function Repair() {
                 </div>
               </div>
             </div>
-            <div className="px-6 py-4 border-t border-gray-200 flex justify-end gap-3">
+            
+            <div className="px-6 py-4 bg-gray-50 border-t border-gray-100 flex justify-end gap-3">
               <button
                 onClick={() => setShowStatusModal(false)}
-                className="px-4 py-2 text-gray-600 hover:bg-gray-100 rounded-lg transition-colors"
+                className="px-5 py-2.5 text-gray-600 hover:bg-gray-200 rounded-xl transition-colors font-medium"
               >
                 取消
               </button>
               <button
                 onClick={handleChangeStatus}
                 disabled={updating || newStatus === selectedOrder?.status}
-                className="px-4 py-2 bg-primary-600 text-white rounded-lg hover:bg-primary-700 transition-colors disabled:opacity-50"
+                className="px-5 py-2.5 bg-gradient-to-r from-primary-500 to-primary-600 text-white rounded-xl hover:shadow-lg hover:shadow-primary-300/50 transition-all duration-200 font-medium disabled:opacity-50 disabled:hover:shadow-none"
               >
-                {updating ? '提交中...' : '确认'}
+                {updating ? (
+                  <span className="flex items-center gap-2">
+                    <RefreshCw className="w-4 h-4 animate-spin" />
+                    提交中...
+                  </span>
+                ) : '确认修改'}
               </button>
             </div>
           </div>

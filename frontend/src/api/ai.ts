@@ -69,5 +69,13 @@ export const aiApi = {
     getWaterSavingSuggestions: async (): Promise<string> => {
         const res = await aiApiClient.post<any>('/ai/suggestions')
         return res.data
+    },
+
+    /**
+     * 获取设备水质合格率评价
+     */
+    getDeviceQualitySuggestion: async (): Promise<string> => {
+        const res = await aiApiClient.get<any>('/ai/suggestionOfDevice')
+        return res.data
     }
 }

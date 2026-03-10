@@ -105,6 +105,7 @@ export default function Monitoring() {
   const [waterQualityScore, setWaterQualityScore] = useState<number>(0)
   const [waterQualitySuggestion, setWaterQualitySuggestion] = useState<string>('')
   const [waterQualityRate, setWaterQualityRate] = useState<number>(0)
+  const [deviceQualitySuggestion, setDeviceQualitySuggestion] = useState<string>('')
   
   // 切换校区时加载楼宇配置
   useEffect(() => {
@@ -187,6 +188,14 @@ export default function Monitoring() {
       try {
         const qualityRate = await iotApi.getQualityRate()
         setWaterQualityRate(qualityRate)
+        
+        // 获取设备水质合格率评价
+        try {
+          const suggestion = await aiApi.getDeviceQualitySuggestion()
+          setDeviceQualitySuggestion(suggestion || '')
+        } catch (err) {
+          console.error('获取设备水质评价失败:', err)
+        }
       } catch (err) {
         console.error('获取水质合格率失败:', err)
       }
@@ -548,6 +557,11 @@ export default function Monitoring() {
                         'text-red-600'
                       }`}>{(waterQualityRate * 100).toFixed(1)} <span className="text-sm font-normal text-gray-400">%</span></p>
                     </div>
+                    {deviceQualitySuggestion && (
+                      <div className="mt-2 pt-2 border-t border-gray-100">
+                        <p className="text-xs text-gray-500 line-clamp-2">{deviceQualitySuggestion}</p>
+                      </div>
+                    )}
                   </div>
                 </div>
 

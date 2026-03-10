@@ -288,6 +288,7 @@ public class IoTDataController {
     public Result<ToAIBO> getRecentWeekUsage() {
         return ioTDataService.getRecentWeekUsage();
     }
+
     //=================================================报表==========================================================
 
     /**

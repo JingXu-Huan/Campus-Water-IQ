@@ -288,4 +288,11 @@ public class IoTDataController {
     public Result<ToAIBO> getRecentWeekUsage() {
         return ioTDataService.getRecentWeekUsage();
     }
+    //=================================================报表==========================================================
+
+    /**导出设备原始数据表*/
+    @PostMapping("/getDeviceData")
+    public Result getDeviceData(){
+        return null;
+    }
 }

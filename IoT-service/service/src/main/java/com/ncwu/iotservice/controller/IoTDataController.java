@@ -290,9 +290,11 @@ public class IoTDataController {
     }
     //=================================================报表==========================================================
 
-    /**导出设备原始数据表*/
+    /**
+     * 导出设备原始数据表
+     */
     @PostMapping("/getDeviceData")
-    public Result getDeviceData(){
+    public Result getDeviceData() {
         return null;
     }
 }

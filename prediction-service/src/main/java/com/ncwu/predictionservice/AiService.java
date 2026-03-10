@@ -15,4 +15,6 @@ public interface AiService {
     Result<String> suggestionOfWaterUsage();
 
     Result<String> suggestionOfWater(int score, double ph, double ch, double th);
+
+    Result<String> suggestionOfDevice(Double data);
 }

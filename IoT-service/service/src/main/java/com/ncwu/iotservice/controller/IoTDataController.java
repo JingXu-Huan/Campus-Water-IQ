@@ -241,9 +241,20 @@ public class IoTDataController {
         return ioTDataService.getChlorine(deviceId);
     }
 
+    /**
+     * 设备健康评分
+     */
     @GetMapping("/healthyScoreOfDevices")
     public Result<Double> getHealthyScoreOfDevices() {
         return ioTDataService.getHealthyScoreOfDevices();
+    }
+
+    /**
+     * 水质合格率
+     */
+    @GetMapping("/waterQualityRate")
+    public Result<Double> getQualityRate() {
+        return ioTDataService.getQualityRate();
     }
 
     /**

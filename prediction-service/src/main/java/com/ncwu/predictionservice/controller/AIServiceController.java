@@ -2,6 +2,7 @@ package com.ncwu.predictionservice.controller;
 
 
 import com.ncwu.common.apis.IoTDataServiceApi;
+import com.ncwu.common.apis.iot_service.IotDataService;
 import com.ncwu.common.domain.bo.ToAIBO;
 import com.ncwu.common.domain.vo.Result;
 import com.ncwu.predictionservice.AiService;
@@ -11,10 +12,7 @@ import jakarta.validation.constraints.Min;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.dubbo.config.annotation.DubboReference;
-import org.springframework.web.bind.annotation.PostMapping;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RequestParam;
-import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
 
@@ -30,8 +28,11 @@ import java.util.List;
 public class AIServiceController {
     private final AiService aiService;
 
-    @DubboReference(version = "1.0.0", interfaceClass = IoTDataServiceApi.class)
+    @DubboReference(version = "1.0.0", interfaceClass = IoTDataServiceApi.class,timeout = 10000)
     private IoTDataServiceApi ioTDataServiceApi;
+
+    @DubboReference(version = "1.0.0",interfaceClass = IotDataService.class,timeout = 10000)
+    private IotDataService iotDataService;
 
     /**
      * 预测某校区明天的用水量（自动获取近七天数据）
@@ -87,6 +88,14 @@ public class AIServiceController {
     @PostMapping("/suggestions")
     public Result<String> giveSuggestions() {
         return aiService.suggestionOfWaterUsage();
+    }
+
+    /**给出一条设备水质合格率的评价*/
+    @GetMapping("/suggestionOfDevice")
+    public Result<String> suggestionOfDevice(){
+        Result<Double> qualityRate = iotDataService.getQualityRate();
+        Double data = qualityRate.getData();
+        return aiService.suggestionOfDevice(data);
     }
 
 

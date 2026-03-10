@@ -115,6 +115,10 @@ public class Utils {
     public static void clearRedisAndDbData(StringRedisTemplate redisTemplate, DeviceMapper deviceMapper) {
         String prefix = "device:";
         try {
+            redisTemplate.delete("WaterQualityScore:*" );
+            redisTemplate.delete("historical:*");
+            redisTemplate.delete("SchoolUsage:*");
+            redisTemplate.delete("WaterPredictionUsage:*");
             redisTemplate.opsForValue().set("isInit", "0");
             redisTemplate.delete("allDeviceNums");
             redisTemplate.delete(prefix + "meter");

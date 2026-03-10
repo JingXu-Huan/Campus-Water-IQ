@@ -130,6 +130,13 @@ public class AiServiceImpl implements AiService {
         }
     }
 
+    @Override
+    public Result<String> suggestionOfDevice(Double data) {
+        String chat = chatLanguageModel
+                .chat("我给你一个我们系统水质合格率的数据，你来写一句带有情绪价值的评语，不超过20字。水质合格率：" + data * 100 + "%");
+        return Result.ok(chat);
+    }
+
     private double getRes(List<Double> usage) {
         try {
             String response = chatLanguageModel.chat(

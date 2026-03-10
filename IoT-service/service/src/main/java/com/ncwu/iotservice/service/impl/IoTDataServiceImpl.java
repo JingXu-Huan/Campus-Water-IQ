@@ -9,6 +9,7 @@ import com.influxdb.client.InfluxDBClient;
 import com.influxdb.client.QueryApi;
 import com.influxdb.query.FluxRecord;
 import com.influxdb.query.FluxTable;
+import com.ncwu.common.apis.iot_service.IotDataService;
 import com.ncwu.common.enums.ErrorCode;
 import com.ncwu.common.enums.SuccessCode;
 import com.ncwu.common.domain.vo.Result;
@@ -23,6 +24,7 @@ import com.ncwu.iotservice.service.IoTDataService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.dubbo.config.annotation.DubboReference;
+import org.apache.dubbo.config.annotation.DubboService;
 import org.jspecify.annotations.NonNull;
 import org.redisson.api.RLock;
 import org.redisson.api.RedissonClient;
@@ -36,11 +38,9 @@ import java.io.InputStreamReader;
 import java.time.*;
 import java.time.format.DateTimeFormatter;
 import java.util.*;
-import java.util.concurrent.CompletableFuture;
-import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
-import java.util.concurrent.TimeUnit;
+import java.util.concurrent.*;
 
+import java.util.concurrent.atomic.AtomicInteger;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 
@@ -56,7 +56,8 @@ import static com.ncwu.common.utils.Utils.keep2;
 @Slf4j
 @Service
 @RequiredArgsConstructor
-public class IoTDataServiceImpl extends ServiceImpl<IoTDeviceDataMapper, IotDeviceData> implements IoTDataService {
+@DubboService(version = "1.0.0",interfaceClass = IotDataService.class)
+public class IoTDataServiceImpl extends ServiceImpl<IoTDeviceDataMapper, IotDeviceData> implements IoTDataService, IotDataService {
 
     private final InfluxDBClient influxDBClient;
     private final StringRedisTemplate redisTemplate;
@@ -329,76 +330,81 @@ public class IoTDataServiceImpl extends ServiceImpl<IoTDeviceDataMapper, IotDevi
 
     @Override
     public Result<Double> getWaterQualityScore(String deviceId) {
-        //todo redis缓存分数，TTL 不超过1h
-        Result<Double> turbidity = getTurbidity(deviceId);
-        Result<Double> ph = getPh(deviceId);
-        Result<Double> chlorine = getChlorine(deviceId);
-
-        Double chlorineData = chlorine.getData();
-        Double phData = ph.getData();
-        Double turbidityData = turbidity.getData();
-
-        if (chlorineData == null || phData == null || turbidityData == null) {
-            return Result.fail(Double.NaN, ErrorCode.QUERY_FAILED_ERROR.code(), ErrorCode.QUERY_FAILED_ERROR.message());
-        } else if (chlorineData.isNaN() || phData.isNaN() || turbidityData.isNaN()) {
-            return Result.ok(Double.NaN);
+        String score = redisTemplate.opsForValue().get("WaterQualityScore:" + deviceId);
+        if (score != null) {
+            return Result.ok(Double.parseDouble(score));
         } else {
-            if (turbidityData > 1.0 || (phData < 6.5 || phData > 8.5)
-                    || (chlorineData < 0.05 || chlorineData > 0.85)) {
-                //不合格
-                return Result.ok(0.0);
+            Result<Double> turbidity = getTurbidity(deviceId);
+            Result<Double> ph = getPh(deviceId);
+            Result<Double> chlorine = getChlorine(deviceId);
+            Double chlorineData = chlorine.getData();
+            Double phData = ph.getData();
+            Double turbidityData = turbidity.getData();
+            if (chlorineData == null || phData == null || turbidityData == null) {
+                return Result.fail(Double.NaN, ErrorCode.QUERY_FAILED_ERROR.code(), ErrorCode.QUERY_FAILED_ERROR.message());
+            } else if (chlorineData.isNaN() || phData.isNaN() || turbidityData.isNaN()) {
+                return Result.ok(Double.NaN);
             } else {
-                String pythonExecutable = "python3";
-                String pythonScriptPath = Objects.requireNonNull(getClass().getClassLoader()
-                        .getResource("water_quality.py")).getPath();
-                if (System.getProperty("os.name").toLowerCase().contains("windows")) {
-                    // 处理Windows路径中的URL编码
-                    pythonScriptPath = pythonScriptPath.replace("/", "\\");
-                    if (pythonScriptPath.startsWith("\\")) {
-                        pythonScriptPath = pythonScriptPath.substring(1);
+                if (turbidityData > 1.0 || (phData < 6.5 || phData > 8.5) || (chlorineData < 0.05 || chlorineData > 0.85)) {
+                    //不合格
+                    return Result.ok(0.0);
+                } else {
+                    String pythonExecutable = "python3";
+                    String pythonScriptPath = Objects.requireNonNull(getClass().getClassLoader()
+                            .getResource("water_quality.py")).getPath();
+                    if (System.getProperty("os.name").toLowerCase().contains("windows")) {
+                        // 处理Windows路径中的URL编码
+                        pythonScriptPath = pythonScriptPath.replace("/", "\\");
+                        if (pythonScriptPath.startsWith("\\")) {
+                            pythonScriptPath = pythonScriptPath.substring(1);
+                        }
                     }
-                }
-                String[] cmd = {
-                        pythonExecutable,
-                        pythonScriptPath,
-                        String.valueOf(turbidityData),
-                        String.valueOf(phData),
-                        String.valueOf(chlorineData)
-                };
-                System.out.println("Python命令: " + String.join(" ", cmd));
-                ProcessBuilder processBuilder = new ProcessBuilder(cmd);
-                try {
-                    Process pr = processBuilder.start();
-                    BufferedReader reader = new BufferedReader(new InputStreamReader(pr.getInputStream()));
-                    BufferedReader errorReader = new BufferedReader(new InputStreamReader(pr.getErrorStream()));
-                    String line;
-                    StringBuilder output = new StringBuilder();
-                    StringBuilder errorOutput = new StringBuilder();
-                    // 读取标准输出
-                    while ((line = reader.readLine()) != null) {
-                        output.append(line);
-                    }
-                    // 读取错误输出
-                    while ((line = errorReader.readLine()) != null) {
-                        errorOutput.append(line).append("\n");
-                    }
-                    if (!errorOutput.isEmpty()) {
-                        log.error("Python 错误输出: {}", errorOutput);
-                    }
-                    pr.waitFor();
-                    String resultStr = output.toString().trim();
+                    String[] cmd = {
+                            pythonExecutable,
+                            pythonScriptPath,
+                            String.valueOf(turbidityData),
+                            String.valueOf(phData),
+                            String.valueOf(chlorineData)
+                    };
+//                    System.out.println("Python命令: " + String.join(" ", cmd));
+                    ProcessBuilder processBuilder = new ProcessBuilder(cmd);
                     try {
-                        double result = keep2(Double.parseDouble(resultStr)) * 100;
-                        return Result.ok(result);
-                    } catch (NumberFormatException e) {
-                        log.error("无法解析Python输出为数字: {}", resultStr);
-                        return Result.fail(Double.NaN, ErrorCode.QUERY_FAILED_ERROR.code(), "Cannot parse Python output: " + resultStr);
+                        Process pr = processBuilder.start();
+                        BufferedReader reader = new BufferedReader(new InputStreamReader(pr.getInputStream()));
+//                        BufferedReader errorReader = new BufferedReader(new InputStreamReader(pr.getErrorStream()));
+                        String line;
+                        StringBuilder output = new StringBuilder();
+//                        StringBuilder errorOutput = new StringBuilder();
+                        // 读取标准输出
+                        while ((line = reader.readLine()) != null) {
+                            output.append(line);
+                        }
+//                        // 读取错误输出
+//                        while ((line = errorReader.readLine()) != null) {
+//                            errorOutput.append(line).append("\n");
+//                        }
+//                        if (!errorOutput.isEmpty()) {
+//                            log.error("Python 错误输出: {}", errorOutput);
+//                        }
+                        pr.waitFor();
+                        String resultStr = output.toString().trim();
+                        try {
+                            double result = keep2(Double.parseDouble(resultStr)) * 100;
+                            redisTemplate.opsForValue().set("WaterQualityScore:" + deviceId, String.valueOf(result)
+                                    , 60 + ThreadLocalRandom.current().nextInt(10), TimeUnit.SECONDS);
+                            return Result.ok(result);
+                        } catch (NumberFormatException e) {
+                            log.error("无法解析Python输出为数字: {}", resultStr);
+                            return Result.fail(Double.NaN, ErrorCode.QUERY_FAILED_ERROR.code(),
+                                    "Cannot parse Python output: " + resultStr);
+                        }
+                    } catch (IOException | InterruptedException e) {
+                        return Result.fail(Double.NaN, ErrorCode.QUERY_FAILED_ERROR.code(), ErrorCode.QUERY_FAILED_ERROR.message());
                     }
-                } catch (IOException | InterruptedException e) {
-                    return Result.fail(Double.NaN, ErrorCode.QUERY_FAILED_ERROR.code(), ErrorCode.QUERY_FAILED_ERROR.message());
                 }
             }
         }
+
     }
 
     @Override
@@ -777,6 +783,24 @@ public class IoTDataServiceImpl extends ServiceImpl<IoTDeviceDataMapper, IotDevi
         toAIBO.setLH(LH);
         toAIBO.setJH(JH);
         return Result.ok(toAIBO);
+    }
+
+    @Override
+    public Result<Double> getQualityRate() {
+        Set<String> members = redisTemplate.opsForSet().members("device:sensor");
+        AtomicInteger cnt = new AtomicInteger(0);
+        assert members != null;
+        double n = members.size();
+        members.forEach(id -> {
+            if (getWaterQualityScore(id).getData() <= 60) {
+                cnt.getAndAdd(1);
+            }
+        });
+        if (cnt.get() == 0) {
+            return Result.ok(1.0);
+        } else {
+            return Result.ok(1 - cnt.get() / n);
+        }
     }
 
     /**

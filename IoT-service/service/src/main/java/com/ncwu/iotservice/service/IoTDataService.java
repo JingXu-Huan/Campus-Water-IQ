@@ -66,4 +66,6 @@ public interface IoTDataService extends IService<IotDeviceData> {
      * 获取近七天的用水历史数据（三个校区）
      */
     Result<ToAIBO> getRecentWeekUsage();
+
+    Result<Double> getQualityRate();
 }

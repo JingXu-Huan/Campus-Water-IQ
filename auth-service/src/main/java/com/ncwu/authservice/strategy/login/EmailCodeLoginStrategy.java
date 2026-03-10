@@ -91,7 +91,7 @@ public class EmailCodeLoginStrategy implements LoginStrategy, CodeSender {
             //查询数据库
             User user = userMapper.selectOne(new LambdaQueryWrapper<User>()
                     .eq(User::getEmail, email)
-                    .eq(User::getGithubId, null)
+                    .isNull(User::getGithubId)
                     .select(User::getUid, User::getNickName, User::getUserType, User::getStatus, User::getAvatar)
             );
             if (user == null) {
@@ -120,7 +120,7 @@ public class EmailCodeLoginStrategy implements LoginStrategy, CodeSender {
             String uid = user.getUid();
             Integer status = user.getStatus();
             String avatar = user.getAvatar();
-            return check(status, email, code, uid, nickName, userType,avatar);
+            return check(status, email, code, uid, nickName, userType, avatar);
         }
     }
 
@@ -134,7 +134,7 @@ public class EmailCodeLoginStrategy implements LoginStrategy, CodeSender {
         }
         if (code.equals(validCode)) {
             String token = tokenHelper.genToken(uid, nickName, userType);
-            return new AuthResult(true, uid, token, nickName,avatar);
+            return new AuthResult(true, uid, token, nickName, avatar);
         } else {
             return new AuthResult(false);
         }

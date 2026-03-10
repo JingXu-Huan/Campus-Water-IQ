@@ -84,7 +84,6 @@ create table water.iot_device_event
 
 create index idx_event_device_time
     on water.iot_device_event (device_code, event_time);
-
 create table water.user
 (
     id                bigint auto_increment
@@ -102,7 +101,8 @@ create table water.user
     deleted           tinyint  default 0                 not null comment '逻辑删除',
     status            tinyint  default 1                 not null comment '1正常 0禁用 2冻结',
     github_id         varchar(100)                       null comment 'GitHub用户ID，用于OAuth登录绑定',
-    wechat_open_id    varchar(100)                       null
+    wechat_open_id    varchar(100)                       null,
+    avatar            varchar(100)                       null
 );
 
 create index idx_user_github_id

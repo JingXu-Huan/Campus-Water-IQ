@@ -1,10 +1,10 @@
-package com.ncwu.predictionservice.impl;
+package com.ncwu.predictionservice.service.impl;
 
 
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.ncwu.common.domain.vo.Result;
-import com.ncwu.predictionservice.AiService;
+import com.ncwu.predictionservice.service.AiService;
 import com.ncwu.predictionservice.domain.UsageBO;
 import com.ncwu.predictionservice.domain.vo.UsageVO;
 import dev.langchain4j.model.chat.ChatLanguageModel;
@@ -18,9 +18,9 @@ import org.springframework.stereotype.Service;
 
 import java.time.LocalDateTime;
 import java.util.List;
-import java.util.Objects;
-import java.util.concurrent.ExecutorService;
 import java.util.concurrent.TimeUnit;
+
+import static com.ncwu.predictionservice.system.Prompt.waterUseSuggestion;
 
 /**
  * @author jingxu
@@ -68,8 +68,7 @@ public class AiServiceImpl implements AiService {
             String response;
             try {
                 if (lock.tryLock()) {
-                    response = chatLanguageModel
-                            .chat("请使用中文生成一个20字左右的节水建议。Example response: 刷牙的时候记得把水龙头关掉哦");
+                    response = chatLanguageModel.chat(waterUseSuggestion);
                     redisTemplate.opsForValue().set("suggestion", response, 30, TimeUnit.MINUTES);
                 } else return Result.ok("刷牙的时候记得把水龙头关掉哦");
             } catch (Exception e) {
@@ -132,9 +131,17 @@ public class AiServiceImpl implements AiService {
 
     @Override
     public Result<String> suggestionOfDevice(Double data) {
-        String chat = chatLanguageModel
-                .chat("我给你一个我们系统水质合格率的数据，你来写一句带有情绪价值的评语，不超过20字。水质合格率：" + data * 100 + "%");
-        return Result.ok(chat);
+        String suggestion = redisTemplate.opsForValue().get("suggestionOfDeviceData");
+        if (suggestion != null) {
+            return Result.ok(suggestion);
+        } else {
+            String res = chatLanguageModel
+                    .chat("我给你一个我们系统水质合格率的数据，你来写一句带有情绪价值的评语，不超过20字。水质合格率："
+                            + data * 100 + "%");
+            redisTemplate.opsForValue().set("suggestionOfDeviceData", res, 60, TimeUnit.SECONDS);
+            return Result.ok(res);
+        }
+
     }
 
     private double getRes(List<Double> usage) {

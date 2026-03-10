@@ -1,4 +1,4 @@
-package com.ncwu.predictionservice;
+package com.ncwu.predictionservice.service;
 
 import com.ncwu.common.domain.vo.Result;
 import com.ncwu.predictionservice.domain.vo.UsageVO;

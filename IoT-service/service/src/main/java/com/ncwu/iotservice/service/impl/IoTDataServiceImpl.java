@@ -674,14 +674,14 @@ public class IoTDataServiceImpl extends ServiceImpl<IoTDeviceDataMapper, IotDevi
 
     @Override
     public Result<List<LocalDateTime>> getHighWaterUsageTime(int campus) {
-        // 查询过去一天内，每小时用水数据（24个时间段）
+        // 查询过去一天内，每30分钟用水数据（48个时间段）
         LocalDateTime now = LocalDateTime.now();
 
         // 生成时间段列表
         List<LocalDateTime[]> timeSlots = new ArrayList<>();
-        for (int i = 23; i >= 0; i--) {
-            LocalDateTime start = now.minusHours(i + 1);
-            LocalDateTime end = now.minusHours(i);
+        for (int i = 95; i >= 0; i--) {
+            LocalDateTime start = now.minusMinutes((i + 1) * 15L);
+            LocalDateTime end = now.minusMinutes(i * 30L);
             timeSlots.add(new LocalDateTime[]{start, end});
         }
 

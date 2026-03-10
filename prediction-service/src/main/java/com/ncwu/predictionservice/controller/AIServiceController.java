@@ -5,7 +5,7 @@ import com.ncwu.common.apis.IoTDataServiceApi;
 import com.ncwu.common.apis.iot_service.IotDataService;
 import com.ncwu.common.domain.bo.ToAIBO;
 import com.ncwu.common.domain.vo.Result;
-import com.ncwu.predictionservice.AiService;
+import com.ncwu.predictionservice.service.AiService;
 import com.ncwu.predictionservice.domain.vo.UsageVO;
 import jakarta.validation.constraints.Max;
 import jakarta.validation.constraints.Min;

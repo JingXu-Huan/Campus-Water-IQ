@@ -583,6 +583,19 @@ export const iotApi = {
         }
     },
 
+    // 获取水质合格率
+    getQualityRate: async (): Promise<number> => {
+        try {
+            const res = await iotDataApi.get<number>('/Data/waterQualityRate')
+            // 处理响应可能是 { data: number } 或直接 number
+            const value = res?.data ?? res ?? 0
+            return typeof value === 'number' ? value : Number(value) || 0
+        } catch (error) {
+            console.error('获取水质合格率失败:', error)
+            return 0
+        }
+    },
+
     // ==================== 数字孪生相关API (IoT-device) ====================
 
     // 初始化设备

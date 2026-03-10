@@ -104,6 +104,7 @@ export default function Monitoring() {
   const [expandedTypes, setExpandedTypes] = useState<Set<BuildingType>>(new Set(['education', 'experiment', 'dormitory'])) // 默认全部展开
   const [waterQualityScore, setWaterQualityScore] = useState<number>(0)
   const [waterQualitySuggestion, setWaterQualitySuggestion] = useState<string>('')
+  const [waterQualityRate, setWaterQualityRate] = useState<number>(0)
   
   // 切换校区时加载楼宇配置
   useEffect(() => {
@@ -180,6 +181,14 @@ export default function Monitoring() {
         } catch (err) {
           console.error('获取水质建议失败:', err)
         }
+      }
+      
+      // 获取水质合格率
+      try {
+        const qualityRate = await iotApi.getQualityRate()
+        setWaterQualityRate(qualityRate)
+      } catch (err) {
+        console.error('获取水质合格率失败:', err)
       }
       
       setLastUpdate(new Date())
@@ -453,7 +462,7 @@ export default function Monitoring() {
           ) : (
             <div className="space-y-6">
               {/* 六个监测卡片 */}
-              <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4 mb-4">
+              <div className="grid grid-cols-2 md:grid-cols-3 xl:grid-cols-6 gap-4 mb-4">
                 {/* 总流量 */}
                 <div className="glass-card rounded-2xl p-5">
                   <div className="flex items-center gap-3 mb-3">
@@ -510,7 +519,7 @@ export default function Monitoring() {
                   </div>
                 </div>
 
-                {/* 水质分数 */}
+                {/* 水质状况 */}
                 <div className="glass-card rounded-2xl p-5">
                   <div className="flex items-center gap-3 mb-3">
                     <div className={`p-2.5 rounded-xl ${
@@ -520,19 +529,25 @@ export default function Monitoring() {
                     }`}>
                       <Waves className="w-5 h-5 text-white" />
                     </div>
-                    <span className="text-sm font-medium text-gray-700">水质分数</span>
+                    <span className="text-sm font-medium text-gray-700">水质状况</span>
                   </div>
-                  <p className={`text-2xl font-bold ${
-                    waterQualityScore >= 90 ? 'text-green-600' :
-                    waterQualityScore >= 70 ? 'text-yellow-600' :
-                    'text-red-600'
-                  }`}>{waterQualityScore.toFixed(0)} <span className="text-sm font-normal text-gray-400">分</span></p>
-                  <div className="mt-2">
-                    <GaugeMeter value={waterQualityScore} max={100} size={60} color={
-                      waterQualityScore >= 90 ? '#22c55e' :
-                      waterQualityScore >= 70 ? '#eab308' :
-                      '#ef4444'
-                    } />
+                  <div className="space-y-3">
+                    <div className="flex items-baseline gap-2">
+                      <span className="text-sm text-gray-500">分数</span>
+                      <p className={`text-2xl font-bold ${
+                        waterQualityScore >= 90 ? 'text-green-600' :
+                        waterQualityScore >= 70 ? 'text-yellow-600' :
+                        'text-red-600'
+                      }`}>{waterQualityScore.toFixed(0)} <span className="text-sm font-normal text-gray-400">分</span></p>
+                    </div>
+                    <div className="flex items-baseline gap-2">
+                      <span className="text-sm text-gray-500">合格率</span>
+                      <p className={`text-2xl font-bold ${
+                        waterQualityRate >= 0.9 ? 'text-green-600' :
+                        waterQualityRate >= 0.7 ? 'text-yellow-600' :
+                        'text-red-600'
+                      }`}>{(waterQualityRate * 100).toFixed(1)} <span className="text-sm font-normal text-gray-400">%</span></p>
+                    </div>
                   </div>
                 </div>
 

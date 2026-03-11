@@ -4,7 +4,6 @@ import com.baomidou.mybatisplus.extension.service.IService;
 import com.ncwu.common.domain.vo.Result;
 import com.ncwu.common.domain.bo.ToAIBO;
 import com.ncwu.iotservice.entity.IotDeviceData;
-import com.ncwu.iotservice.entity.WaterUsageRecord;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.Max;
 import jakarta.validation.constraints.Min;
@@ -68,4 +67,6 @@ public interface IoTDataService extends IService<IotDeviceData> {
     Result<ToAIBO> getRecentWeekUsage();
 
     Result<Double> getQualityRate();
+
+    Result<Map<String, Double>> getSwings();
 }

@@ -349,7 +349,7 @@ public class IoTDataServiceImpl extends ServiceImpl<IoTDeviceDataMapper, IotDevi
                     //不合格
                     return Result.ok(0.0);
                 } else {
-                    String pythonExecutable = "python3";
+                    String pythonExecutable = "python3.12";
                     String pythonScriptPath = Objects.requireNonNull(getClass().getClassLoader()
                             .getResource("water_quality.py")).getPath();
                     if (System.getProperty("os.name").toLowerCase().contains("windows")) {
@@ -801,6 +801,38 @@ public class IoTDataServiceImpl extends ServiceImpl<IoTDeviceDataMapper, IotDevi
         } else {
             return Result.ok(1 - cnt.get() / n);
         }
+    }
+
+    @Override
+    public Result<Map<String, Double>> getSwings() {
+        LocalDateTime now = LocalDateTime.now();
+        Map<String, Double> result = new HashMap<>();
+
+        for (int i = 1; i <= 3; i++) {
+            Double x3 = getSchoolUsage(i, now.minusHours(3), now.minusHours(2)).getData();
+            Double x2 = getSchoolUsage(i, now.minusHours(2), now.minusHours(1)).getData();
+            Double x1 = getSchoolUsage(i, now.minusHours(1), now).getData();
+            double index = calcFluctuationIndex(x3, x2, x1);
+            result.put("school_" + i, index);
+        }
+        return Result.ok(result);
+    }
+
+    /**
+     * 环比波动均值
+     * index = mean(|x[t] - x[t-1]| / x[t-1]) * 100
+     */
+    private double calcFluctuationIndex(Double... values) {
+        double sum = 0.0;
+        int count = 0;
+        for (int i = 1; i < values.length; i++) {
+            Double prev = values[i - 1];
+            Double curr = values[i];
+            if (prev == null || curr == null || prev == 0) continue;
+            sum += Math.abs(curr - prev) / prev;
+            count++;
+        }
+        return count == 0 ? 0.0 : (sum / count) * 100;
     }
 
     /**

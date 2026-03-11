@@ -205,6 +205,14 @@ public class IoTDataController {
         return ioTDataService.getCampusRate();
     }
 
+    /**
+     * 得到用水波动指数
+     */
+    @GetMapping("/waterSwings")
+    public Result<Map<String, Double>> getWaterUsageSwings(){
+        return ioTDataService.getSwings();
+    }
+
 
 
     /*===============================================水质传感器=======================================================*/

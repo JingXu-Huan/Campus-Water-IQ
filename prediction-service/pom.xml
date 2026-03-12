@@ -71,6 +71,19 @@
             <version>0.12.5</version>
             <scope>runtime</scope>
         </dependency>
+        <!-- 核心包，AiServices/SystemMessage/UserMessage/MemoryId 都在这里 -->
+        <dependency>
+            <groupId>dev.langchain4j</groupId>
+            <artifactId>langchain4j</artifactId>
+            <version>1.0.0-beta3</version>
+        </dependency>
+
+        <!-- 对话记忆，MessageWindowChatMemory 在这里 -->
+        <dependency>
+            <groupId>dev.langchain4j</groupId>
+            <artifactId>langchain4j-core</artifactId>
+            <version>1.0.0-beta3</version>
+        </dependency>
     </dependencies>
 
 </project>

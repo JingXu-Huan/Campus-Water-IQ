@@ -28,10 +28,10 @@ import java.util.List;
 public class AIServiceController {
     private final AiService aiService;
 
-    @DubboReference(version = "1.0.0", interfaceClass = IoTDataServiceApi.class,timeout = 10000)
+    @DubboReference(version = "1.0.0", interfaceClass = IoTDataServiceApi.class, timeout = 10000)
     private IoTDataServiceApi ioTDataServiceApi;
 
-    @DubboReference(version = "1.0.0",interfaceClass = IotDataService.class,timeout = 10000)
+    @DubboReference(version = "1.0.0", interfaceClass = IotDataService.class, timeout = 10000)
     private IotDataService iotDataService;
 
     /**
@@ -90,12 +90,25 @@ public class AIServiceController {
         return aiService.suggestionOfWaterUsage();
     }
 
-    /**给出一条设备水质合格率的评价*/
+    /**
+     * 给出一条设备水质合格率的评价
+     */
     @GetMapping("/suggestionOfDevice")
-    public Result<String> suggestionOfDevice(){
+    public Result<String> suggestionOfDevice() {
         Result<Double> qualityRate = iotDataService.getQualityRate();
         Double data = qualityRate.getData();
         return aiService.suggestionOfDevice(data);
+    }
+
+    /**
+     * 用户与ai进行交互
+     * @param input 用户输入
+     */
+    @PostMapping("/chatWithAgent")
+    public Result<String> chat(@RequestParam String input) {
+        //用户输入内容例如：我想知道某校区某类型楼宇的某用水单元的某项数据。
+        //Agent 要知道调用哪些接口，返回什么数据
+        return aiService.chatWithAgent(input);
     }
 
 

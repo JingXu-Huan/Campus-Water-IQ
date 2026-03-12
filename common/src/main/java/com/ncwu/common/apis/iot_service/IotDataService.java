@@ -3,6 +3,9 @@ package com.ncwu.common.apis.iot_service;
 import com.ncwu.common.domain.bo.ToAIBO;
 import com.ncwu.common.domain.vo.Result;
 
+import java.time.LocalDateTime;
+import java.util.Map;
+
 /**
  * @author jingxu
  * @version 1.0.0
@@ -25,4 +28,14 @@ public interface IotDataService {
      * 获得所有设备的离线率
      */
     Result<Double> getOfflineRate();
+
+    /**
+     * 获得校区用水波动
+     */
+    Result<Map<String, Double>> getSwings();
+
+    /**
+     * 得到某校区某段时间的用水量
+     */
+    Result<Double> getSchoolUsage(int school, LocalDateTime start, LocalDateTime end);
 }

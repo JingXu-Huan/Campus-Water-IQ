@@ -4,18 +4,20 @@ package com.ncwu.predictionservice.service.impl;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.ncwu.common.domain.vo.Result;
+import com.ncwu.common.apis.iot_service.IotDataService;
+import com.ncwu.predictionservice.agent.WaterAgent;
 import com.ncwu.predictionservice.service.AiService;
 import com.ncwu.predictionservice.domain.UsageBO;
 import com.ncwu.predictionservice.domain.vo.UsageVO;
 import dev.langchain4j.model.chat.ChatLanguageModel;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.apache.dubbo.config.annotation.DubboReference;
 import org.redisson.api.RLock;
 import org.redisson.api.RedissonClient;
 import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Service;
-
 import java.time.LocalDateTime;
 import java.util.List;
 import java.util.concurrent.TimeUnit;
@@ -33,9 +35,14 @@ import static com.ncwu.predictionservice.system.Prompt.waterUseSuggestion;
 public class AiServiceImpl implements AiService {
 
     private final ChatLanguageModel chatLanguageModel;
+    private final WaterAgent waterAgent;
     private final RedissonClient redissonClient;
     private final StringRedisTemplate redisTemplate;
     private final ObjectMapper objectMapper;
+
+    @DubboReference(version = "1.0.0", timeout = 10000)
+    private IotDataService iotDataService;
+
     String keyPrefix = "WaterPredictionUsage:";
 
     @Override
@@ -142,6 +149,14 @@ public class AiServiceImpl implements AiService {
             return Result.ok(res);
         }
 
+    }
+
+    @Override
+    public Result<String> chatWithAgent(String input) {
+        //todo  Function Calling
+        String chat = waterAgent.chat(input);
+        System.out.println(chat);
+        return null;
     }
 
     private double getRes(List<Double> usage) {

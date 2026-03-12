@@ -14,7 +14,7 @@ export default function Dashboard() {
   const [sidebarOpen, setSidebarOpen] = useState(true)
   const [activeMenu, setActiveMenu] = useState('dashboard')
   const [selectedCampus, setSelectedCampus] = useState('longzi')
-  
+
   // Profile modal state
   const [showProfileModal, setShowProfileModal] = useState(false)
   const [profileTab, setProfileTab] = useState<'info' | 'password' | 'avatar'>('info')
@@ -47,7 +47,7 @@ export default function Dashboard() {
   const [offlineRate, setOfflineRate] = useState<number>(0)
   const [healthyScore, setHealthyScore] = useState<number>(0)
   const [loading, setLoading] = useState<boolean>(true)
-  
+
   // 告警数据
   const [warnings, setWarnings] = useState<{
     id: string
@@ -58,7 +58,7 @@ export default function Dashboard() {
     eventTime: string
   }[]>([])
   const [loadingWarnings, setLoadingWarnings] = useState(false)
-  
+
   // 校区用水占比
   const [campusRate, setCampusRate] = useState<{name: string; value: number}[]>([])
   const [loadingCampusRate, setLoadingCampusRate] = useState<boolean>(true)
@@ -71,13 +71,35 @@ export default function Dashboard() {
   const [waterSwings, setWaterSwings] = useState<{ school_1: number | null; school_2: number | null; school_3: number | null } | null>(null)
   const [loadingWaterSwings, setLoadingWaterSwings] = useState<boolean>(true)
 
+  // 卡片提示信息
+  const [activeTooltip, setActiveTooltip] = useState<string | null>(null)
+  const cardTooltips: Record<string, string> = {
+    'todayUsage': '统计当日00:00至当前时间的总用水量',
+    'monthUsage': '统计当月1日00:00至当前时间的总用水量',
+    'prediction': '基于历史用水数据，使用AI模型预测明日用水量',
+    'waterSwings': '反映各校区用水量的波动程度。数值越大表示用水变化越剧烈，可用于检测异常用水情况',
+    'alerts': '显示设备告警信息，包括水表异常、传感器故障等',
+    'devices': '显示当前在线的IoT设备数量及离线率',
+    'healthScore': '综合评估所有设备的运行状态，满分100分'
+  }
+
+  // 渲染卡片提示图标（带点击提示）
+  const CardTooltipIcon = ({ id }: { id: string }) => (
+    <span
+      className="cursor-help text-gray-400 hover:text-blue-500"
+      onClick={(e) => { e.stopPropagation(); setActiveTooltip(activeTooltip === id ? null : id) }}
+    >
+      <HelpCircle className="w-3 h-3" />
+    </span>
+  )
+
   // 设备类型中文映射
   const deviceTypeMap: Record<string, string> = {
     'METER': '水表告警',
     '1': '水表',
     '2': '水质传感器'
   }
-  
+
   // 图表数据 - 模拟近7天用水趋势
   const [weeklyUsageData] = useState([
     { day: '周一', usage: 120 },
@@ -88,7 +110,7 @@ export default function Dashboard() {
     { day: '周六', usage: 98 },
     { day: '周日', usage: 105 }
   ])
-  
+
   // 各校区用水占比 - 使用真实API数据
   const campusUsageData = campusRate.length > 0 ? campusRate.map(c => ({
     name: c.name.replace('校区', ''),
@@ -145,17 +167,17 @@ export default function Dashboard() {
   // 获取当前校区的用水量数据
   const fetchWaterUsageData = async () => {
     if (!currentCampus) return
-    
+
     setLoading(true)
     setLoadingToday(true)
     setLoadingMonth(true)
     setLoadingWarnings(true)
     setError(null)
-    
+
     try {
       // 使用 Promise.all 并行获取数据
       const { todayUsage: todayData, monthUsage: monthData } = await iotApi.getWaterUsage(currentCampus.schoolId)
-      
+
       setTodayUsage(todayData.data ?? 0)
       setYesterdayUsage(todayData.yesterday || 0)
       setMonthUsage(monthData.data ?? 0)
@@ -167,7 +189,7 @@ export default function Dashboard() {
       setLoadingToday(false)
       setLoadingMonth(false)
       setLoading(false)
-      
+
       // 从 iot-service 获取在线设备数量
       try {
         const onlineCount = await iotApi.getCampusOnlineDeviceCount(currentCampus.schoolId)
@@ -211,7 +233,7 @@ export default function Dashboard() {
     // 获取离线设备列表
     const fetchOfflineDevices = async () => {
       if (!currentCampus) return
-      
+
       setLoadingOffline(true)
       try {
         const offlineList = await iotApi.getOfflineDeviceList(currentCampus.schoolId)
@@ -298,7 +320,7 @@ export default function Dashboard() {
         { id: 2, name: '实验楼' },
         { id: 3, name: '宿舍楼' }
       ]
-      
+
       const ratePromises = regions.map(async (region) => {
         const rate = await iotApi.getUsageRateInCampus(region.id, currentCampus.schoolId)
         return {
@@ -306,7 +328,7 @@ export default function Dashboard() {
           value: Number((rate * 100).toFixed(1))
         }
       })
-      
+
       const rateData = await Promise.all(ratePromises)
       console.log('区域占比数据:', rateData)
       setRegionRate(rateData)
@@ -392,7 +414,7 @@ export default function Dashboard() {
   const handleAvatarChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0]
     if (!file) return
-    
+
     setProfileLoading(true)
     setProfileMessage(null)
     try {
@@ -420,7 +442,7 @@ export default function Dashboard() {
         `https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lon}&current=temperature_2m,relative_humidity_2m,weather_code,wind_speed_10m&timezone=Asia/Shanghai`
       )
       const data = await res.json()
-      
+
       if (data.current) {
         const c = data.current
         // WMO 天气代码转换
@@ -434,7 +456,7 @@ export default function Dashboard() {
           80: '阵雨', 81: '阵雨', 82: '强阵雨',
           95: '雷暴', 96: '雷暴+冰雹', 99: '强雷暴'
         }
-        
+
         setWeather({
           temp: Math.round(c.temperature_2m),
           condition: conditions[weatherCode] || '未知',
@@ -460,9 +482,9 @@ export default function Dashboard() {
         { name: '教学楼', type: 2, buildings: 2 },
         { name: '实验楼', type: 3, buildings: 1 }
       ]
-      
+
       const stats: typeof buildingStats = []
-      
+
       for (const building of buildingTypes) {
         try {
           let totalFlow = 0
@@ -470,17 +492,17 @@ export default function Dashboard() {
           let totalOnline = 0
           let totalDevices = 0
           let validBuildings = 0
-          
+
           for (let b = 1; b <= building.buildings; b++) {
             const deviceIds = [
               generateDeviceId(currentCampus.schoolId, b, 1, 1),
               generateDeviceId(currentCampus.schoolId, b, 2, 1),
               generateDeviceId(currentCampus.schoolId, b, 3, 1),
             ]
-            
+
             const status = await iotApi.getDeviceStatus(deviceIds)
             const onlineIds = Object.entries(status).filter(([, v]) => v).map(([k]) => k)
-            
+
             if (onlineIds.length > 0) {
               const data = await iotApi.getBatchFlow(onlineIds)
               const onlineData = data.filter(d => d.status === 'online')
@@ -496,7 +518,7 @@ export default function Dashboard() {
             }
             totalDevices += deviceIds.length
           }
-          
+
           if (validBuildings > 0) {
             stats.push({
               name: building.name,
@@ -514,7 +536,7 @@ export default function Dashboard() {
           stats.push({ name: building.name, flow: 0, pressure: 0, status: '离线', onlineCount: 0, totalCount: 9 })
         }
       }
-      
+
       setBuildingStats(stats)
     } catch (err) {
       console.error('获取楼宇数据失败:', err)
@@ -704,13 +726,13 @@ export default function Dashboard() {
               <h2 className="text-xl font-bold text-white">
                 {menuItems.find(item => item.id === activeMenu)?.label || '仪表盘'}
               </h2>
-              
+
               {/* Current Campus Indicator */}
               <div className="flex items-center gap-2 px-3 py-1.5 bg-white/10 backdrop-blur-sm rounded-xl">
                 <div className="w-2 h-2 bg-white rounded-full"></div>
                 <span className="text-sm text-white/80">{currentCampus?.name}</span>
               </div>
-              
+
               {/* 节水建议 */}
               {waterSuggestion && (
                 <div className="flex items-center gap-2 px-3 py-1.5 bg-white/10 backdrop-blur-sm rounded-xl">
@@ -719,7 +741,7 @@ export default function Dashboard() {
                 </div>
               )}
             </div>
-            
+
             <div className="flex items-center gap-4">
               {/* Weather Info */}
               {weather && (
@@ -742,7 +764,7 @@ export default function Dashboard() {
                   <span className="text-xs text-white">加载天气...</span>
                 </div>
               )}
-              
+
               {!sidebarOpen && (
                 <>
                   <div className="flex items-center gap-2 text-sm text-white">
@@ -790,7 +812,21 @@ export default function Dashboard() {
               <span className="text-sm">刷新数据</span>
             </button>
           </div>
-          
+
+        {/* 卡片提示框 */}
+        {activeTooltip && (
+          <div className="mb-4 p-3 bg-blue-50 border border-blue-200 rounded-lg text-sm text-blue-700 flex items-start gap-2">
+            <HelpCircle className="w-4 h-4 flex-shrink-0 mt-0.5" />
+            <span>{cardTooltips[activeTooltip]}</span>
+            <button 
+              onClick={() => setActiveTooltip(null)}
+              className="ml-auto text-blue-400 hover:text-blue-600"
+            >
+              <X className="w-4 h-4" />
+            </button>
+          </div>
+        )}
+
         <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-7 gap-4 mb-8">
           {/* 今日用水量 */}
           <div className="glass-card rounded-2xl p-4 animate-slide-up" style={{animationDelay: '0ms'}}>
@@ -809,7 +845,10 @@ export default function Dashboard() {
                 )
               )}
             </div>
-            <p className="text-xs text-gray-500 dark:text-gray-400">今日用水量</p>
+            <p className="text-xs text-gray-500 dark:text-gray-400 flex items-center gap-1">
+              今日用水量
+              <CardTooltipIcon id="todayUsage" />
+            </p>
             <p className="text-xl font-bold text-gray-900 dark:text-white">
               {loadingToday ? (
                 <span className="text-gray-300">加载中...</span>
@@ -837,7 +876,10 @@ export default function Dashboard() {
                 </div>
               )}
             </div>
-            <p className="text-xs text-gray-500">本月用水量</p>
+            <p className="text-xs text-gray-500 flex items-center gap-1">
+              本月用水量
+              <CardTooltipIcon id="monthUsage" />
+            </p>
             <p className="text-xl font-bold text-gray-900">
               {loadingMonth ? (
                 <span className="text-gray-300">加载中...</span>
@@ -864,7 +906,10 @@ export default function Dashboard() {
                 </span>
               ) : null}
             </div>
-            <p className="text-xs text-gray-500">明日用水预测</p>
+            <p className="text-xs text-gray-500 flex items-center gap-1">
+              明日用水预测
+              <CardTooltipIcon id="prediction" />
+            </p>
             <p className="text-lg font-bold text-gray-900">
               {loadingPrediction ? (
                 <span className="text-gray-300">预测中...</span>
@@ -893,7 +938,10 @@ export default function Dashboard() {
                 </span>
               )}
             </div>
-            <p className="text-xs text-gray-500">校区用水波动</p>
+            <p className="text-xs text-gray-500 flex items-center gap-1">
+              校区用水波动
+              <CardTooltipIcon id="waterSwings" />
+            </p>
             <div className="mt-1 space-y-0.5">
               {loadingWaterSwings ? (
                 <span className="text-gray-300 text-xs">加载中...</span>
@@ -917,7 +965,10 @@ export default function Dashboard() {
               </div>
               <span className="text-sm text-red-600">+{alertCount}</span>
             </div>
-            <p className="text-xs text-gray-500">异常告警</p>
+            <p className="text-xs text-gray-500 flex items-center gap-1">
+              异常告警
+              <CardTooltipIcon id="alerts" />
+            </p>
             <p className="text-xl font-bold text-gray-900">
               {loading ? '加载中...' : `${alertCount} 条`}
             </p>
@@ -935,7 +986,10 @@ export default function Dashboard() {
                 </span>
               )}
             </div>
-            <p className="text-xs text-gray-500">在线设备</p>
+            <p className="text-xs text-gray-500 flex items-center gap-1">
+              在线设备
+              <CardTooltipIcon id="devices" />
+            </p>
             <p className="text-xl font-bold text-gray-900">
               {loading ? '加载中...' : `${deviceCount} 台`}
             </p>
@@ -958,7 +1012,10 @@ export default function Dashboard() {
                 <Activity className="w-4 h-4 text-white" />
               </div>
             </div>
-            <p className="text-xs text-gray-500">设备健康评分</p>
+            <p className="text-xs text-gray-500 flex items-center gap-1">
+              设备健康评分
+              <CardTooltipIcon id="healthScore" />
+            </p>
             <p className="text-xl font-bold text-gray-900">
               {loading ? '加载中...' : `${healthyScore.toFixed(1)}`}
             </p>
@@ -1157,7 +1214,7 @@ export default function Dashboard() {
                 <CartesianGrid strokeDasharray="3 3" stroke="#d1d5db" />
                 <XAxis dataKey="day" tick={{ fontSize: 12 }} />
                 <YAxis tick={{ fontSize: 12 }} unit="m³" />
-                <Tooltip 
+                <Tooltip
                   formatter={(value: number | undefined) => value !== undefined ? [`${value} m³`, '用水量'] : ['无数据', '用水量']}
                   contentStyle={{ borderRadius: '8px', border: 'none', boxShadow: '0 2px 8px rgba(0,0,0,0.1)' }}
                 />
@@ -1179,7 +1236,7 @@ export default function Dashboard() {
                   <CartesianGrid strokeDasharray="3 3" stroke="#d1d5db" />
                   <XAxis type="number" tick={{ fontSize: 12 }} unit="%" domain={[0, 100]} />
                   <YAxis dataKey="name" type="category" tick={{ fontSize: 12 }} width={60} />
-                  <Tooltip 
+                  <Tooltip
                     formatter={(value: number | undefined) => value !== undefined ? [`${value.toFixed(1)}%`, '用水占比'] : ['无数据', '用水占比']}
                     contentStyle={{ borderRadius: '8px', border: 'none', boxShadow: '0 2px 8px rgba(0,0,0,0.1)' }}
                   />
@@ -1202,7 +1259,7 @@ export default function Dashboard() {
                   <CartesianGrid strokeDasharray="3 3" stroke="#d1d5db" />
                   <XAxis type="number" tick={{ fontSize: 12 }} unit="%" domain={[0, 100]} />
                   <YAxis dataKey="name" type="category" tick={{ fontSize: 12 }} width={60} />
-                  <Tooltip 
+                  <Tooltip
                     formatter={(value: number | undefined) => value !== undefined ? [`${value.toFixed(1)}%`, '用水占比'] : ['无数据', '用水占比']}
                     contentStyle={{ borderRadius: '8px', border: 'none', boxShadow: '0 2px 8px rgba(0,0,0,0.1)' }}
                   />

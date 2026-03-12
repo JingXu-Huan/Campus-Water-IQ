@@ -77,7 +77,7 @@ public class ChangeTheData {
      */
     private MeterDataBo preShowsProcessor(ProceedingJoinPoint pjp) {
         MeterDataBo meterDataBo = getMeterDataBo(pjp);
-        meterDataBo.setFlow(keep3(0.02 + ThreadLocalRandom.current().nextDouble(0.05)));
+        meterDataBo.setFlow(keep3(0.04 + ThreadLocalRandom.current().nextDouble(0.05)));
         return meterDataBo;
     }
 
@@ -111,7 +111,6 @@ public class ChangeTheData {
         //重新设置流速
         double v = ThreadLocalRandom.current().nextDouble(0.05);
         double flow = 0.1 + v;
-
         dataBo.setFlow(flow);
         dataBo.setPressure(waterPressureGenerate(flow, serverConfig));
         return dataBo;

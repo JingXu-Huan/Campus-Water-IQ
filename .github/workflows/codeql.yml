@@ -12,6 +12,7 @@ jobs:
   analyze:
     name: Analyze (${{ matrix.language }})
     runs-on: ubuntu-latest
+    timeout-minutes: 300  # ⭐ 防止卡死无限跑
 
     permissions:
       security-events: write
@@ -23,11 +24,9 @@ jobs:
       fail-fast: false
       matrix:
         include:
-          # 扫描 GitHub Actions，本身没问题
           - language: actions
             build-mode: none
 
-          # ⭐ Java 才是重点
           - language: java-kotlin
             build-mode: manual
 
@@ -35,32 +34,34 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v4
 
-      # 初始化 CodeQL
-      - name: Initialize CodeQL
-        uses: github/codeql-action/init@v4
-        with:
-          languages: ${{ matrix.language }}
-          build-mode: ${{ matrix.build-mode }}
-          # ⭐ 打开更严格的规则
-          queries: security-extended,security-and-quality
-
-      # ⭐ Java 扫描先安装 JDK 21
+      # ⭐ JDK 安装提前到 CodeQL 初始化之前
+      # 确保初始化时 Java 环境已就绪，避免潜在的工具链识别问题
       - name: Set up JDK 21
         if: matrix.language == 'java-kotlin'
         uses: actions/setup-java@v4
         with:
           distribution: 'temurin'
           java-version: '21'
+          cache: 'maven'  # ⭐ 缓存 Maven 依赖，显著加快后续构建
 
-      # ⭐ 构建 Java 项目
+      - name: Initialize CodeQL
+        uses: github/codeql-action/init@v4
+        with:
+          languages: ${{ matrix.language }}
+          build-mode: ${{ matrix.build-mode }}
+          queries: security-extended,security-and-quality
+
       - name: Build Java project
         if: matrix.language == 'java-kotlin'
         shell: bash
         run: |
-          mvn clean compile -DskipTests
+          # ⭐ --no-transfer-progress 去掉下载进度条，日志更干净
+          # ⭐ -T 1C 并行编译，每个 CPU 核心一个线程
+          mvn clean compile -DskipTests --no-transfer-progress -T 1C
 
-      # 执行 CodeQL 分析
       - name: Perform CodeQL Analysis
         uses: github/codeql-action/analyze@v4
         with:
           category: "/language:${{ matrix.language }}"
+          # ⭐ 上传 SARIF 结果到 GitHub Security 面板
+          upload: always

@@ -115,37 +115,41 @@ public class Utils {
     public static void clearRedisAndDbData(StringRedisTemplate redisTemplate, DeviceMapper deviceMapper) {
         String prefix = "device:";
         try {
-            redisTemplate.delete("WaterQualityScore:*" );
-            redisTemplate.delete("historical:*");
-            redisTemplate.delete("SchoolUsage:*");
-            redisTemplate.delete("WaterPredictionUsage:*");
-            redisTemplate.opsForValue().set("isInit", "0");
-            redisTemplate.delete("allDeviceNums");
-            redisTemplate.delete(prefix + "meter");
-            redisTemplate.delete(prefix + "sensor");
-            redisTemplate.delete("meter:total_usage");
-            redisTemplate.delete("OnLineMap");
-            redisTemplate.delete("Time");
-            redisTemplate.delete("Season");
-            redisTemplate.delete("WaterQualityChecked");
-            redisTemplate.delete("MeterChecked");
-            redisTemplate.delete(prefix + "DormitoryBuildings");
-            redisTemplate.delete(prefix + "educationBuildings");
-            redisTemplate.delete(prefix + "experimentBuildings");
-            redisTemplate.delete("{device:bloom}:config");
-            redisTemplate.delete("{Email:bloomfilter}:config");
-            redisTemplate.delete("{Phone:bloomfilter}:config");
-            redisTemplate.delete("{Uid:bloomfilter}:config");
-            redisTemplate.delete("device:bloom");
-            redisTemplate.delete("Phone:bloomfilter");
-            redisTemplate.delete("Uid:bloomfilter");
-            redisTemplate.delete("isInit");
-            redisTemplate.delete("mode");
+            delRedisData(redisTemplate, prefix);
             redisScanDel("device:OffLine:*", 1000, redisTemplate);
             deviceMapper.delete(null);
         } catch (Exception e) {
             throw new DeviceRegisterException("移除设备失败");
         }
+    }
+
+    private static void delRedisData(StringRedisTemplate redisTemplate, String prefix) {
+        redisTemplate.delete("WaterQualityScore:*" );
+        redisTemplate.delete("historical:*");
+        redisTemplate.delete("SchoolUsage:*");
+        redisTemplate.delete("WaterPredictionUsage:*");
+        redisTemplate.opsForValue().set("isInit", "0");
+        redisTemplate.delete("allDeviceNums");
+        redisTemplate.delete(prefix + "meter");
+        redisTemplate.delete(prefix + "sensor");
+        redisTemplate.delete("meter:total_usage");
+        redisTemplate.delete("OnLineMap");
+        redisTemplate.delete("Time");
+        redisTemplate.delete("Season");
+        redisTemplate.delete("WaterQualityChecked");
+        redisTemplate.delete("MeterChecked");
+        redisTemplate.delete(prefix + "DormitoryBuildings");
+        redisTemplate.delete(prefix + "educationBuildings");
+        redisTemplate.delete(prefix + "experimentBuildings");
+        redisTemplate.delete("{device:bloom}:config");
+        redisTemplate.delete("{Email:bloomfilter}:config");
+        redisTemplate.delete("{Phone:bloomfilter}:config");
+        redisTemplate.delete("{Uid:bloomfilter}:config");
+        redisTemplate.delete("device:bloom");
+        redisTemplate.delete("Phone:bloomfilter");
+        redisTemplate.delete("Uid:bloomfilter");
+        redisTemplate.delete("isInit");
+        redisTemplate.delete("mode");
     }
 
     /**

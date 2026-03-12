@@ -67,6 +67,10 @@ export default function Dashboard() {
   const [regionRate, setRegionRate] = useState<{name: string; value: number}[]>([])
   const [loadingRegionRate, setLoadingRegionRate] = useState<boolean>(true)
 
+  // 用水波动指数
+  const [waterSwings, setWaterSwings] = useState<{ school_1: number | null; school_2: number | null; school_3: number | null } | null>(null)
+  const [loadingWaterSwings, setLoadingWaterSwings] = useState<boolean>(true)
+
   // 设备类型中文映射
   const deviceTypeMap: Record<string, string> = {
     'METER': '水表告警',
@@ -152,10 +156,10 @@ export default function Dashboard() {
       // 使用 Promise.all 并行获取数据
       const { todayUsage: todayData, monthUsage: monthData } = await iotApi.getWaterUsage(currentCampus.schoolId)
       
-      setTodayUsage(todayData.data)
+      setTodayUsage(todayData.data ?? 0)
       setYesterdayUsage(todayData.yesterday || 0)
-      setMonthUsage(monthData.data)
-      setLastMonthSameDay(monthData.lastMonthSameDay || 0)
+      setMonthUsage(monthData.data ?? 0)
+      setLastMonthSameDay(monthData.lastMonthSameDay ?? 0)
     } catch (err) {
       console.error('获取用水量数据失败:', err)
       setError('获取用水量数据失败')
@@ -316,6 +320,19 @@ export default function Dashboard() {
       ])
     } finally {
       setLoadingRegionRate(false)
+    }
+  }
+
+  // 获取用水波动指数
+  const fetchWaterSwings = async () => {
+    setLoadingWaterSwings(true)
+    try {
+      const data = await iotApi.getWaterSwings()
+      setWaterSwings(data)
+    } catch (err) {
+      console.error('获取用水波动指数失败:', err)
+    } finally {
+      setLoadingWaterSwings(false)
     }
   }
 
@@ -535,6 +552,7 @@ export default function Dashboard() {
     fetchBuildingStats()
     fetchWaterSuggestion()
     fetchCampusRate()
+    fetchWaterSwings()
     const campus = campuses.find(c => c.id === selectedCampus)
     if (campus) {
       fetchWeather(campus.lat, campus.lon)
@@ -773,12 +791,12 @@ export default function Dashboard() {
             </button>
           </div>
           
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-6 gap-6 mb-8">
+        <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-7 gap-4 mb-8">
           {/* 今日用水量 */}
-          <div className="glass-card rounded-2xl p-6 animate-slide-up" style={{animationDelay: '0ms'}}>
-            <div className="flex items-center justify-between mb-4">
-              <div className="p-3 bg-blue-600 rounded-xl">
-                <Droplets className="w-6 h-6 text-white" />
+          <div className="glass-card rounded-2xl p-4 animate-slide-up" style={{animationDelay: '0ms'}}>
+            <div className="flex items-center justify-between mb-2">
+              <div className="p-2 bg-blue-600 rounded-lg">
+                <Droplets className="w-4 h-4 text-white" />
               </div>
               {loadingToday ? (
                 <RefreshCw className="w-4 h-4 text-gray-400 animate-spin" />
@@ -791,8 +809,8 @@ export default function Dashboard() {
                 )
               )}
             </div>
-            <p className="text-sm text-gray-500 dark:text-gray-400">今日用水量</p>
-            <p className="text-2xl font-bold text-gray-900 dark:text-white">
+            <p className="text-xs text-gray-500 dark:text-gray-400">今日用水量</p>
+            <p className="text-xl font-bold text-gray-900 dark:text-white">
               {loadingToday ? (
                 <span className="text-gray-300">加载中...</span>
               ) : (
@@ -805,10 +823,10 @@ export default function Dashboard() {
           </div>
 
           {/* 本月用水量 */}
-          <div className="glass-card rounded-2xl p-6 animate-slide-up" style={{animationDelay: '0ms'}}>
-            <div className="flex items-center justify-between mb-4">
-              <div className="p-3 bg-purple-600 rounded-xl">
-                <BarChart3 className="w-6 h-6 text-white" />
+          <div className="glass-card rounded-2xl p-4 animate-slide-up" style={{animationDelay: '0ms'}}>
+            <div className="flex items-center justify-between mb-2">
+              <div className="p-2 bg-purple-600 rounded-lg">
+                <BarChart3 className="w-4 h-4 text-white" />
               </div>
               {loadingMonth ? (
                 <RefreshCw className="w-4 h-4 text-gray-400 animate-spin" />
@@ -819,8 +837,8 @@ export default function Dashboard() {
                 </div>
               )}
             </div>
-            <p className="text-sm text-gray-500">本月用水量</p>
-            <p className="text-2xl font-bold text-gray-900">
+            <p className="text-xs text-gray-500">本月用水量</p>
+            <p className="text-xl font-bold text-gray-900">
               {loadingMonth ? (
                 <span className="text-gray-300">加载中...</span>
               ) : (
@@ -833,10 +851,10 @@ export default function Dashboard() {
           </div>
 
           {/* 明日用水量预测 */}
-          <div className="glass-card rounded-2xl p-6 animate-slide-up" style={{animationDelay: '0ms'}}>
-            <div className="flex items-center justify-between mb-4">
-              <div className="p-3 bg-orange-500 rounded-xl">
-                <TrendingUp className="w-6 h-6 text-white" />
+          <div className="glass-card rounded-2xl p-4 animate-slide-up" style={{animationDelay: '0ms'}}>
+            <div className="flex items-center justify-between mb-2">
+              <div className="p-2 bg-orange-500 rounded-lg">
+                <TrendingUp className="w-4 h-4 text-white" />
               </div>
               {loadingPrediction ? (
                 <RefreshCw className="w-4 h-4 text-gray-400 animate-spin" />
@@ -846,14 +864,14 @@ export default function Dashboard() {
                 </span>
               ) : null}
             </div>
-            <p className="text-sm text-gray-500">明日用水预测</p>
-            <p className="text-2xl font-bold text-gray-900">
+            <p className="text-xs text-gray-500">明日用水预测</p>
+            <p className="text-lg font-bold text-gray-900">
               {loadingPrediction ? (
                 <span className="text-gray-300">预测中...</span>
               ) : predictedTomorrowUsage !== null ? (
                 <span>{formatUsage(predictedTomorrowUsage)} m³</span>
               ) : (
-                <span className="text-gray-400 text-lg">暂无数据</span>
+                <span className="text-gray-400 text-sm">暂无数据</span>
               )}
             </p>
             {!loadingPrediction && predictedTomorrowUsage !== null && (
@@ -861,25 +879,55 @@ export default function Dashboard() {
             )}
           </div>
 
+          {/* 用水波动指数 */}
+          <div className="glass-card rounded-2xl p-4 animate-slide-up" style={{animationDelay: '0ms'}}>
+            <div className="flex items-center justify-between mb-2">
+              <div className="p-2 bg-cyan-500 rounded-lg">
+                <Activity className="w-4 h-4 text-white" />
+              </div>
+              {loadingWaterSwings ? (
+                <RefreshCw className="w-4 h-4 text-gray-400 animate-spin" />
+              ) : (
+                <span className="px-2 py-1 bg-cyan-100 text-cyan-700 text-xs font-medium rounded-full">
+                  波动指数
+                </span>
+              )}
+            </div>
+            <p className="text-xs text-gray-500">校区用水波动</p>
+            <div className="mt-1 space-y-0.5">
+              {loadingWaterSwings ? (
+                <span className="text-gray-300 text-xs">加载中...</span>
+              ) : waterSwings === null ? (
+                <p className="text-xs text-gray-400">设备开启时间较短<br/>暂无法分析</p>
+              ) : (
+                <>
+                  <p className="text-xs font-medium text-gray-900">花园: <span className="text-cyan-600">{waterSwings.school_1?.toFixed(1) ?? '--'}</span></p>
+                  <p className="text-xs font-medium text-gray-900">龙子湖: <span className="text-cyan-600">{waterSwings.school_2?.toFixed(1) ?? '--'}</span></p>
+                  <p className="text-xs font-medium text-gray-900">江淮: <span className="text-cyan-600">{waterSwings.school_3?.toFixed(1) ?? '--'}</span></p>
+                </>
+              )}
+            </div>
+          </div>
+
           {/* 异常告警 */}
-          <div className="glass-card rounded-2xl p-6 animate-slide-up" style={{animationDelay: '0ms'}}>
-            <div className="flex items-center justify-between mb-4">
-              <div className="p-3 bg-yellow-500 rounded-xl">
-                <AlertTriangle className="w-6 h-6 text-white" />
+          <div className="glass-card rounded-2xl p-4 animate-slide-up" style={{animationDelay: '0ms'}}>
+            <div className="flex items-center justify-between mb-2">
+              <div className="p-2 bg-yellow-500 rounded-lg">
+                <AlertTriangle className="w-4 h-4 text-white" />
               </div>
               <span className="text-sm text-red-600">+{alertCount}</span>
             </div>
-            <p className="text-sm text-gray-500">异常告警</p>
-            <p className="text-2xl font-bold text-gray-900">
+            <p className="text-xs text-gray-500">异常告警</p>
+            <p className="text-xl font-bold text-gray-900">
               {loading ? '加载中...' : `${alertCount} 条`}
             </p>
           </div>
 
           {/* 在线设备 */}
-          <div className="glass-card rounded-2xl p-6 animate-slide-up" style={{animationDelay: '0ms'}}>
-            <div className="flex items-center justify-between mb-4">
-              <div className="p-3 bg-green-600 rounded-xl">
-                <User className="w-6 h-6 text-white" />
+          <div className="glass-card rounded-2xl p-4 animate-slide-up" style={{animationDelay: '0ms'}}>
+            <div className="flex items-center justify-between mb-2">
+              <div className="p-2 bg-green-600 rounded-lg">
+                <User className="w-4 h-4 text-white" />
               </div>
               {offlineRate > 0 && (
                 <span className="px-2 py-1 bg-red-100 text-red-700 text-xs font-medium rounded-full">
@@ -887,8 +935,8 @@ export default function Dashboard() {
                 </span>
               )}
             </div>
-            <p className="text-sm text-gray-500">在线设备</p>
-            <p className="text-2xl font-bold text-gray-900">
+            <p className="text-xs text-gray-500">在线设备</p>
+            <p className="text-xl font-bold text-gray-900">
               {loading ? '加载中...' : `${deviceCount} 台`}
             </p>
             {loadingOffline ? (
@@ -904,14 +952,14 @@ export default function Dashboard() {
           </div>
 
           {/* 健康评分 */}
-          <div className="glass-card rounded-2xl p-6 animate-slide-up" style={{animationDelay: '0ms'}}>
-            <div className="flex items-center justify-between mb-4">
-              <div className="p-3 bg-emerald-600 rounded-xl">
-                <Activity className="w-6 h-6 text-white" />
+          <div className="glass-card rounded-2xl p-4 animate-slide-up" style={{animationDelay: '0ms'}}>
+            <div className="flex items-center justify-between mb-2">
+              <div className="p-2 bg-emerald-600 rounded-lg">
+                <Activity className="w-4 h-4 text-white" />
               </div>
             </div>
-            <p className="text-sm text-gray-500">设备健康评分</p>
-            <p className="text-2xl font-bold text-gray-900">
+            <p className="text-xs text-gray-500">设备健康评分</p>
+            <p className="text-xl font-bold text-gray-900">
               {loading ? '加载中...' : `${healthyScore.toFixed(1)}`}
             </p>
             <p className="text-xs text-gray-400 mt-1">满分: 100</p>
@@ -920,7 +968,7 @@ export default function Dashboard() {
 
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
           {/* 实时监测 */}
-          <div className="glass-card rounded-2xl p-6 animate-slide-up" style={{animationDelay: '0ms'}}>
+          <div className="glass-card rounded-2xl p-4 animate-slide-up" style={{animationDelay: '0ms'}}>
             <div className="flex items-center justify-between mb-4">
               <h2 className="text-lg font-semibold text-gray-900">实时监测</h2>
             </div>
@@ -966,7 +1014,7 @@ export default function Dashboard() {
           </div>
 
           {/* 高峰用水时段 */}
-          <div className="glass-card rounded-2xl p-6 animate-slide-up" style={{animationDelay: '0ms'}}>
+          <div className="glass-card rounded-2xl p-4 animate-slide-up" style={{animationDelay: '0ms'}}>
             <div className="flex items-center justify-between mb-4">
               <h2 className="text-lg font-semibold text-gray-900">高峰用水时段</h2>
             </div>
@@ -990,7 +1038,7 @@ export default function Dashboard() {
           </div>
 
           {/* 最近告警 */}
-          <div className="glass-card rounded-2xl p-6 animate-slide-up" style={{animationDelay: '0ms'}}>
+          <div className="glass-card rounded-2xl p-4 animate-slide-up" style={{animationDelay: '0ms'}}>
             <div className="flex items-center justify-between mb-4">
               <h2 className="text-lg font-semibold text-gray-900">最近告警</h2>
               <div className="flex items-center gap-2">
@@ -1102,7 +1150,7 @@ export default function Dashboard() {
         {/* 图表区域 */}
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mt-6">
           {/* 用水趋势图 */}
-          <div className="glass-card rounded-2xl p-6 animate-slide-up" style={{animationDelay: '0ms'}}>
+          <div className="glass-card rounded-2xl p-4 animate-slide-up" style={{animationDelay: '0ms'}}>
             <h2 className="text-lg font-semibold text-gray-900 mb-4">本周用水趋势</h2>
             <ResponsiveContainer width="100%" height={280}>
               <LineChart data={weeklyUsageData}>
@@ -1119,7 +1167,7 @@ export default function Dashboard() {
           </div>
 
           {/* 各校区用水占比 */}
-          <div className="glass-card rounded-2xl p-6 animate-slide-up" style={{animationDelay: '0ms'}}>
+          <div className="glass-card rounded-2xl p-4 animate-slide-up" style={{animationDelay: '0ms'}}>
             <h2 className="text-lg font-semibold text-gray-900 mb-4">各校区用水占比</h2>
             {loadingCampusRate ? (
               <div className="h-[280px] flex items-center justify-center">
@@ -1142,7 +1190,7 @@ export default function Dashboard() {
           </div>
 
           {/* 各区域用水占比 */}
-          <div className="glass-card rounded-2xl p-6 animate-slide-up" style={{animationDelay: '0ms'}}>
+          <div className="glass-card rounded-2xl p-4 animate-slide-up" style={{animationDelay: '0ms'}}>
             <h2 className="text-lg font-semibold text-gray-900 mb-4">各区域用水占比</h2>
             {loadingRegionRate ? (
               <div className="h-[280px] flex items-center justify-center">

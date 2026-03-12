@@ -56,7 +56,7 @@ import static com.ncwu.common.utils.Utils.keep2;
 @Slf4j
 @Service
 @RequiredArgsConstructor
-@DubboService(version = "1.0.0",interfaceClass = IotDataService.class)
+@DubboService(version = "1.0.0", interfaceClass = IotDataService.class)
 public class IoTDataServiceImpl extends ServiceImpl<IoTDeviceDataMapper, IotDeviceData> implements IoTDataService, IotDataService {
 
     private final InfluxDBClient influxDBClient;
@@ -806,13 +806,30 @@ public class IoTDataServiceImpl extends ServiceImpl<IoTDeviceDataMapper, IotDevi
     @Override
     public Result<Map<String, Double>> getSwings() {
         LocalDateTime now = LocalDateTime.now();
+        //结果映射集，每个学校的用水波动指数
         Map<String, Double> result = new HashMap<>();
-
         for (int i = 1; i <= 3; i++) {
-            Double x3 = getSchoolUsage(i, now.minusHours(3), now.minusHours(2)).getData();
-            Double x2 = getSchoolUsage(i, now.minusHours(2), now.minusHours(1)).getData();
-            Double x1 = getSchoolUsage(i, now.minusHours(1), now).getData();
-            double index = calcFluctuationIndex(x3, x2, x1);
+            List<Double> points = new ArrayList<>();
+            //采集次数
+            for (int j = 15; j >= 1; j--) {
+                // 从旧到新，保证时序正确
+                DateFormatBo dateFormatBo = getDateFormatBo(
+                        //采集粒度是40秒
+                        now.minusSeconds((long) j * 40),
+                        now.minusSeconds((long) (j - 1) * 40)
+                );
+                Double usage = getSchoolUsageFromDb(i, dateFormatBo.startTime, dateFormatBo.endTime).getData();
+                if (usage == null){
+                    return Result.ok(Collections.emptyMap(), "200", "设备开启时间较短，暂无法分析");
+                }
+                double data = keep2(usage);
+                if (data != 0) {
+                    points.add(data);
+                }
+
+            }
+            System.out.println(points);
+            double index = calcFluctuationIndex(points.toArray(new Double[0]));
             result.put("school_" + i, index);
         }
         return Result.ok(result);
@@ -820,11 +837,15 @@ public class IoTDataServiceImpl extends ServiceImpl<IoTDeviceDataMapper, IotDevi
 
     /**
      * 环比波动均值
+     * <p>
      * index = mean(|x[t] - x[t-1]| / x[t-1]) * 100
      */
     private double calcFluctuationIndex(Double... values) {
+        if (values == null || values.length < 2) return 0.0;
+
         double sum = 0.0;
         int count = 0;
+
         for (int i = 1; i < values.length; i++) {
             Double prev = values[i - 1];
             Double curr = values[i];
@@ -832,6 +853,7 @@ public class IoTDataServiceImpl extends ServiceImpl<IoTDeviceDataMapper, IotDevi
             sum += Math.abs(curr - prev) / prev;
             count++;
         }
+
         return count == 0 ? 0.0 : (sum / count) * 100;
     }
 

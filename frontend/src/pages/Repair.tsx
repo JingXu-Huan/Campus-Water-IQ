@@ -396,7 +396,7 @@ export default function Repair() {
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-gray-100">
-                    {repairOrders.map((order, index) => (
+                    {repairOrders.map((order) => (
                       <tr key={order.id} className="hover:bg-gradient-to-r hover:from-primary-50/50 hover:to-transparent transition-all duration-200 group">
                         <td className="px-6 py-4">
                           <span className="inline-flex items-center px-3 py-1.5 rounded-lg bg-gray-100 text-gray-800 font-mono text-sm group-hover:bg-primary-100 group-hover:text-primary-700 transition-colors">

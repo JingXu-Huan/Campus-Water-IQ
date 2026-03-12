@@ -88,7 +88,10 @@ export default function Monitoring() {
   const [selectedBuilding, setSelectedBuilding] = useState<BuildingInfo | null>(null)
   const [deviceData, setDeviceData] = useState<DeviceFlowData[]>([])
   const [waterQualityData, setWaterQualityData] = useState<WaterQualityData[]>([])
-  const [loading, setLoading] = useState(false)
+  const [loadingFlow, setLoadingFlow] = useState(false)
+  const [loadingWaterQuality, setLoadingWaterQuality] = useState(false)
+  // 内部使用的整体加载状态（用于刷新按钮等）
+  const [, setIsLoading] = useState(false)
   const [lastUpdate, setLastUpdate] = useState<Date>(new Date())
   const [selectedDevice, setSelectedDevice] = useState<DeviceFlowData | null>(null)
   
@@ -105,7 +108,7 @@ export default function Monitoring() {
   const [waterQualityScore, setWaterQualityScore] = useState<number>(0)
   const [waterQualitySuggestion, setWaterQualitySuggestion] = useState<string>('')
   const [waterQualityRate, setWaterQualityRate] = useState<number>(0)
-  const [deviceQualitySuggestion, setDeviceQualitySuggestion] = useState<string>('')
+  const [deviceQualitySuggestion] = useState<string>('')
   
   // 切换校区时加载楼宇配置
   useEffect(() => {
@@ -124,11 +127,15 @@ export default function Monitoring() {
     loadBuildings()
   }, [selectedCampus])
   
-  // 获取选中楼宇的设备数据
+  // 获取选中楼宇的设备数据 - 分段加载
   const fetchBuildingData = useCallback(async () => {
     if (!selectedBuilding) return
     
-    setLoading(true)
+    setIsLoading(true)
+    
+    // 第一步：立即获取流量数据并渲染
+    setLoadingFlow(true)
+    let flowData: DeviceFlowData[] = []
     try {
       const deviceIds = generateBuildingDeviceIds(
         selectedCampus, 
@@ -137,24 +144,29 @@ export default function Monitoring() {
         buildingConfig.rooms
       )
       
-      // 先获取流量设备数据
-      const flowData = await iotApi.getBatchFlow(deviceIds)
+      flowData = await iotApi.getBatchFlow(deviceIds)
       setDeviceData(flowData)
-      
-      // 从流量设备数据中提取实际存在的楼层
+      setLastUpdate(new Date())
+    } catch (error) {
+      console.error('获取设备流量数据失败:', error)
+    } finally {
+      setLoadingFlow(false)
+    }
+    
+    // 第二步：获取水质数据（后台加载）
+    setLoadingWaterQuality(true)
+    try {
+      // 使用刚获取的 flowData 来确定楼层
       const actualFloors = [...new Set(flowData.map(d => parseDeviceCode(d.deviceId)?.floorNo).filter(Boolean))]
       const waterQualitySensorIds = actualFloors.map(floorNo => 
         generateWaterQualitySensorId(selectedCampus, selectedBuilding.buildingNo, parseInt(floorNo!))
       )
       
-      // 并行获取水质数据和每个楼层的水质分数
-      const waterQualityResults = await Promise.all([
+      // 并行获取水质数据
+      const [waterQualityData, ...waterQualityScores] = await Promise.all([
         iotApi.getBatchWaterQuality(waterQualitySensorIds),
         ...waterQualitySensorIds.map(id => iotApi.getWaterQuality(id))
-      ])
-      
-      const waterQualityData = waterQualityResults[0] as WaterQualityData[]
-      const waterQualityScores = waterQualityResults.slice(1) as number[]
+      ]) as [WaterQualityData[], ...number[]]
       
       // 将水质分数附加到水质数据中
       waterQualityData.forEach((wq, index) => {
@@ -187,24 +199,17 @@ export default function Monitoring() {
       // 获取水质合格率
       try {
         const qualityRate = await iotApi.getQualityRate()
-        setWaterQualityRate(qualityRate)
-        
-        // 获取设备水质合格率评价
-        try {
-          const suggestion = await aiApi.getDeviceQualitySuggestion()
-          setDeviceQualitySuggestion(suggestion || '')
-        } catch (err) {
-          console.error('获取设备水质评价失败:', err)
+        if (qualityRate !== null) {
+          setWaterQualityRate(qualityRate)
         }
       } catch (err) {
         console.error('获取水质合格率失败:', err)
       }
-      
-      setLastUpdate(new Date())
     } catch (error) {
-      console.error('获取设备数据失败:', error)
+      console.error('获取水质数据失败:', error)
     } finally {
-      setLoading(false)
+      setLoadingWaterQuality(false)
+      setIsLoading(false)
     }
   }, [selectedBuilding, selectedCampus, buildingConfig])
   
@@ -450,10 +455,10 @@ export default function Monitoring() {
               </span>
               <button
                 onClick={fetchBuildingData}
-                disabled={loading || !selectedBuilding}
+                disabled={loadingFlow || !selectedBuilding}
                 className="flex items-center gap-2 px-4 py-2 text-gray-600 hover:bg-gray-100 rounded-lg disabled:opacity-50"
               >
-                <RefreshCw className={`w-4 h-4 ${loading ? 'animate-spin' : ''}`} />
+                <RefreshCw className={`w-4 h-4 ${loadingFlow ? 'animate-spin' : ''}`} />
                 刷新
               </button>
             </div>
@@ -543,19 +548,27 @@ export default function Monitoring() {
                   <div className="space-y-3">
                     <div className="flex items-baseline gap-2">
                       <span className="text-sm text-gray-500">分数</span>
-                      <p className={`text-2xl font-bold ${
-                        waterQualityScore >= 90 ? 'text-green-600' :
-                        waterQualityScore >= 70 ? 'text-yellow-600' :
-                        'text-red-600'
-                      }`}>{waterQualityScore.toFixed(0)} <span className="text-sm font-normal text-gray-400">分</span></p>
+                      {loadingWaterQuality ? (
+                        <span className="text-lg text-gray-400">检测中...</span>
+                      ) : (
+                        <p className={`text-2xl font-bold ${
+                          waterQualityScore >= 90 ? 'text-green-600' :
+                          waterQualityScore >= 70 ? 'text-yellow-600' :
+                          'text-red-600'
+                        }`}>{waterQualityScore.toFixed(0)} <span className="text-sm font-normal text-gray-400">分</span></p>
+                      )}
                     </div>
                     <div className="flex items-baseline gap-2">
                       <span className="text-sm text-gray-500">合格率</span>
-                      <p className={`text-2xl font-bold ${
-                        waterQualityRate >= 0.9 ? 'text-green-600' :
-                        waterQualityRate >= 0.7 ? 'text-yellow-600' :
-                        'text-red-600'
-                      }`}>{(waterQualityRate * 100).toFixed(1)} <span className="text-sm font-normal text-gray-400">%</span></p>
+                      {loadingWaterQuality ? (
+                        <span className="text-lg text-gray-400">检测中...</span>
+                      ) : (
+                        <p className={`text-2xl font-bold ${
+                          waterQualityRate >= 0.9 ? 'text-green-600' :
+                          waterQualityRate >= 0.7 ? 'text-yellow-600' :
+                          'text-red-600'
+                        }`}>{(waterQualityRate * 100).toFixed(1)} <span className="text-sm font-normal text-gray-400">%</span></p>
+                      )}
                     </div>
                     {deviceQualitySuggestion && (
                       <div className="mt-2 pt-2 border-t border-gray-100">
@@ -650,12 +663,19 @@ export default function Monitoring() {
                     </span>
                   </div>
                 </div>
-                {loading ? (
+                {loadingFlow && deviceData.length === 0 ? (
                   <div className="flex items-center justify-center h-40">
                     <RefreshCw className="w-8 h-8 text-gray-400 animate-spin" />
                   </div>
                 ) : (
                   <div className="space-y-6">
+                    {/* 水质数据加载中提示 */}
+                    {loadingWaterQuality && waterQualityData.length === 0 && (
+                      <div className="flex items-center justify-center py-2 text-sm text-gray-400">
+                        <RefreshCw className="w-4 h-4 animate-spin mr-2" />
+                        正在加载水质数据...
+                      </div>
+                    )}
                     {floors.map((floor) => (
                       <div key={floor.floor} className="border border-gray-200 rounded-xl overflow-hidden">
                         {/* 楼层标题 */}

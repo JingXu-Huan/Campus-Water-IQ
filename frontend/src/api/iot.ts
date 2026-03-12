@@ -127,9 +127,9 @@ export const formatDate = (date: Date): string => {
 }
 
 export interface UsageResponse {
-    data: number
+    data: number | null
     yesterday?: number
-    lastMonthSameDay?: number
+    lastMonthSameDay?: number | null
 }
 
 // 设备编码解析
@@ -1035,5 +1035,15 @@ export const iotApi = {
             params: { region, campus }
         })
         return res?.data ?? res ?? 0
+    },
+
+    // 获取用水波动指数
+    getWaterSwings: async (): Promise<{
+        school_1: number | null
+        school_2: number | null
+        school_3: number | null
+    } | null> => {
+        const res = await iotDataApi.get('/Data/waterSwings')
+        return res?.data ?? null
     }
 }

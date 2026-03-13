@@ -33,7 +33,6 @@ public class ErrorDataConsumer implements RocketMQListener<String> {
 
     @Override
     public void onMessage(String s) {
-        System.out.println(s);
         ErrorDataMessageBO errorDataMessageBO;
         try {
             errorDataMessageBO = objectMapper.readValue(s, ErrorDataMessageBO.class);

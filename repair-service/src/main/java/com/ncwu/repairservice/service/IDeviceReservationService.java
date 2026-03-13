@@ -1,7 +1,7 @@
 package com.ncwu.repairservice.service;
 
+import com.ncwu.common.domain.dto.UserReportDTO;
 import com.ncwu.common.domain.vo.Result;
-import com.ncwu.repairservice.entity.dto.UserReportDTO;
 import com.ncwu.repairservice.entity.po.DeviceReservation;
 import com.baomidou.mybatisplus.extension.service.IService;
 import com.ncwu.repairservice.entity.vo.IotDeviceEventVo;

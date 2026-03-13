@@ -1,4 +1,4 @@
-package com.ncwu.repairservice.entity.dto;
+package com.ncwu.common.domain.dto;
 
 
 import lombok.Data;
@@ -23,7 +23,6 @@ public class UserReportDTO implements Serializable {
     //设备唯一编码
     String deviceCode;
 
-    //
     String uid;
 
     //报修人姓名

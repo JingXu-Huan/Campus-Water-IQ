@@ -5,8 +5,9 @@ import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.core.conditions.update.LambdaUpdateWrapper;
 import com.baomidou.mybatisplus.core.metadata.IPage;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
+import com.ncwu.common.apis.repair_service.DeviceReservationServiceApi;
+import com.ncwu.common.domain.dto.UserReportDTO;
 import com.ncwu.common.domain.vo.Result;
-import com.ncwu.repairservice.entity.dto.UserReportDTO;
 import com.ncwu.repairservice.entity.domain.DeviceUser;
 import com.ncwu.repairservice.entity.po.DeviceReservation;
 import com.ncwu.repairservice.entity.vo.IotDeviceEventVo;
@@ -18,6 +19,7 @@ import com.ncwu.repairservice.service.IDeviceReservationService;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import jakarta.annotation.PostConstruct;
 import lombok.RequiredArgsConstructor;
+import org.apache.dubbo.config.annotation.DubboService;
 import org.redisson.api.RLock;
 import org.redisson.api.RedissonClient;
 import org.springframework.data.redis.core.StringRedisTemplate;
@@ -44,7 +46,9 @@ import static com.ncwu.common.utils.Utils.getExecutorPools;
  */
 @Service
 @RequiredArgsConstructor
-public class DeviceReservationServiceImpl extends ServiceImpl<DeviceReservationMapper, DeviceReservation> implements IDeviceReservationService {
+@DubboService(version = "1.0.0",interfaceClass = DeviceReservationServiceApi.class)
+public class DeviceReservationServiceImpl extends ServiceImpl<DeviceReservationMapper, DeviceReservation>
+        implements IDeviceReservationService ,DeviceReservationServiceApi{
 
     private final RedissonClient redissonClient;
     private final DeviceReservationMapper deviceReservationMapper;

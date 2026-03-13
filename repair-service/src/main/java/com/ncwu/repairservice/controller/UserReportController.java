@@ -1,9 +1,9 @@
 package com.ncwu.repairservice.controller;
 
 
+import com.ncwu.common.domain.dto.UserReportDTO;
 import com.ncwu.common.domain.vo.Result;
 import com.ncwu.common.enums.ErrorCode;
-import com.ncwu.repairservice.entity.dto.UserReportDTO;
 import com.ncwu.repairservice.entity.vo.UserReportVO;
 import com.ncwu.repairservice.service.IDeviceReservationService;
 import com.ncwu.repairservice.tools.Utils;

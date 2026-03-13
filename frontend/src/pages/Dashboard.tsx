@@ -826,7 +826,6 @@ export default function Dashboard() {
                 title="AI 助手"
               >
                 <MessageCircle className="w-5 h-5 text-white" />
-                <span className="text-sm text-white">AI 助手</span>
               </button>
 
               {!sidebarOpen && (

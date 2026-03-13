@@ -209,10 +209,17 @@ public class IoTDataController {
      * 得到用水波动指数
      */
     @GetMapping("/waterSwings")
-    public Result<Map<String, Double>> getWaterUsageSwings(){
+    public Result<Map<String, Double>> getWaterUsageSwings() {
         return ioTDataService.getSwings();
     }
 
+    /**
+     * 得到某校区的夜间异常用水量
+     */
+    @PostMapping("/getUnNormalUsage")
+    public Result<Double> getUnNormalUsage(@Min(1) @Max(3) int campus) {
+        return ioTDataService.getUnNormalUsage(campus);
+    }
 
 
     /*===============================================水质传感器=======================================================*/
@@ -221,6 +228,7 @@ public class IoTDataController {
      * 获取水质评分
      */
     @GetMapping("/getWaterQuality")
+
     public Result<Double> getWaterQualityScore(String deviceId) {
         return ioTDataService.getWaterQualityScore(deviceId);
     }

@@ -71,6 +71,10 @@ export default function Dashboard() {
   const [waterSwings, setWaterSwings] = useState<{ school_1: number | null; school_2: number | null; school_3: number | null } | null>(null)
   const [loadingWaterSwings, setLoadingWaterSwings] = useState<boolean>(true)
 
+  // 夜间异常用水量
+  const [unNormalUsage, setUnNormalUsage] = useState<number>(0)
+  const [loadingUnNormal, setLoadingUnNormal] = useState<boolean>(true)
+
   // 卡片提示信息
   const [activeTooltip, setActiveTooltip] = useState<string | null>(null)
   const cardTooltips: Record<string, string> = {
@@ -138,6 +142,7 @@ export default function Dashboard() {
   const handleRefresh = () => {
     fetchWaterUsageData()
     fetchBuildingStats()
+    fetchUnNormalUsage()
     if (currentCampus) {
       fetchPrediction(currentCampus.schoolId)
       fetchRegionRate()
@@ -358,6 +363,20 @@ export default function Dashboard() {
     }
   }
 
+  // 获取夜间异常用水量
+  const fetchUnNormalUsage = async () => {
+    if (!currentCampus) return
+    setLoadingUnNormal(true)
+    try {
+      const data = await iotApi.getUnNormalUsage(currentCampus.schoolId)
+      setUnNormalUsage(data)
+    } catch (err) {
+      console.error('获取夜间异常用水量失败:', err)
+    } finally {
+      setLoadingUnNormal(false)
+    }
+  }
+
   // 打开个人中心
   const openProfileModal = () => {
     setEditingNickname(nickname || '')
@@ -575,6 +594,7 @@ export default function Dashboard() {
     fetchWaterSuggestion()
     fetchCampusRate()
     fetchWaterSwings()
+    fetchUnNormalUsage()
     const campus = campuses.find(c => c.id === selectedCampus)
     if (campus) {
       fetchWeather(campus.lat, campus.lon)
@@ -827,7 +847,7 @@ export default function Dashboard() {
           </div>
         )}
 
-        <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-7 gap-4 mb-8">
+        <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-8 gap-4 mb-8">
           {/* 今日用水量 */}
           <div className="glass-card rounded-2xl p-4 animate-slide-up" style={{animationDelay: '0ms'}}>
             <div className="flex items-center justify-between mb-2">
@@ -1020,6 +1040,37 @@ export default function Dashboard() {
               {loading ? '加载中...' : `${healthyScore.toFixed(1)}`}
             </p>
             <p className="text-xs text-gray-400 mt-1">满分: 100</p>
+          </div>
+
+          {/* 夜间异常用水量 */}
+          <div className="glass-card rounded-2xl p-4 animate-slide-up" style={{animationDelay: '0ms'}}>
+            <div className="flex items-center justify-between mb-2">
+              <div className="p-2 bg-red-500 rounded-lg">
+                <AlertTriangle className="w-4 h-4 text-white" />
+              </div>
+              {loadingUnNormal ? (
+                <RefreshCw className="w-4 h-4 text-gray-400 animate-spin" />
+              ) : unNormalUsage > 0 ? (
+                <span className="px-2 py-1 bg-red-100 text-red-700 text-xs font-medium rounded-full">
+                  异常
+                </span>
+              ) : (
+                <span className="px-2 py-1 bg-green-100 text-green-700 text-xs font-medium rounded-full">
+                  正常
+                </span>
+              )}
+            </div>
+            <p className="text-xs text-gray-500">
+              夜间异常用水量
+            </p>
+            <p className="text-xl font-bold text-gray-900">
+              {loadingUnNormal ? (
+                <span className="text-gray-300">加载中...</span>
+              ) : (
+                <span>{formatUsage(unNormalUsage)} m³</span>
+              )}
+            </p>
+            <p className="text-xs text-gray-400 mt-1">深夜 0:00-5:00 用水</p>
           </div>
         </div>
 

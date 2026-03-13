@@ -819,7 +819,7 @@ public class IoTDataServiceImpl extends ServiceImpl<IoTDeviceDataMapper, IotDevi
                         now.minusSeconds((long) (j - 1) * 40)
                 );
                 Double usage = getSchoolUsageFromDb(i, dateFormatBo.startTime, dateFormatBo.endTime).getData();
-                if (usage == null){
+                if (usage == null) {
                     return Result.ok(Collections.emptyMap(), "200", "设备开启时间较短，暂无法分析");
                 }
                 double data = keep2(usage);
@@ -833,6 +833,31 @@ public class IoTDataServiceImpl extends ServiceImpl<IoTDeviceDataMapper, IotDevi
             result.put("school_" + i, index);
         }
         return Result.ok(result);
+    }
+
+    @Override
+    public Result<Double> getUnNormalUsage(int campus) {
+        double res = 0;
+        // 从当天晚上22点整开始
+        LocalDateTime night = LocalDateTime.now()
+                .withHour(22)
+                .withMinute(0)
+                .withSecond(0);
+        //从当天的晚上10点开始，到早上5点，每十分钟查询一次数据库。
+        //如果得到的用水量超过阈值，则认为异常
+        for (int j = 8 * 60 / 10; j >= 10; j -= 10) {
+            LocalDateTime start = night.minusMinutes(j * 10L);
+            LocalDateTime end = night.minusMinutes((j - 1) * 10L);
+            //转换为influxdb要求的格式
+            DateFormatBo dateFormatBo = getDateFormatBo(start, end);
+            Result<Double> usage = getSchoolUsageFromDb(campus, dateFormatBo.startTime, dateFormatBo.endTime);
+            Double data = usage.getData();
+            data = data == null ? 0.00 : data;
+            if (data >= 1000) {
+                res += data;
+            }
+        }
+        return Result.ok(res);
     }
 
     /**

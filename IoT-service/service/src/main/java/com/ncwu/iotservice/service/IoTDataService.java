@@ -61,12 +61,11 @@ public interface IoTDataService extends IService<IotDeviceData> {
 
     Result<Map<Integer, Double>> getCampusRate();
 
-    /**
-     * 获取近七天的用水历史数据（三个校区）
-     */
     Result<ToAIBO> getRecentWeekUsage();
 
     Result<Double> getQualityRate();
 
     Result<Map<String, Double>> getSwings();
+
+    Result<Double> getUnNormalUsage(int campus);
 }

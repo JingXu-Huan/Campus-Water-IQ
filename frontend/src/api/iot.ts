@@ -1045,5 +1045,18 @@ export const iotApi = {
     } | null> => {
         const res = await iotDataApi.get('/Data/waterSwings')
         return res?.data ?? null
+    },
+
+    // 获取某校区的夜间异常用水量
+    getUnNormalUsage: async (campus: number): Promise<number> => {
+        try {
+            const res = await iotDataApi.post<number>('/Data/getUnNormalUsage', null, {
+                params: { campus }
+            })
+            return res?.data ?? res ?? 0
+        } catch (error) {
+            console.error('获取夜间异常用水量失败:', error)
+            return 0
+        }
     }
 }

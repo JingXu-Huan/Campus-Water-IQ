@@ -18,6 +18,7 @@ import lombok.extern.slf4j.Slf4j;
 import org.apache.dubbo.config.annotation.DubboReference;
 import org.jspecify.annotations.Nullable;
 import org.springframework.format.annotation.DateTimeFormat;
+import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 import java.time.LocalDateTime;
@@ -309,9 +310,11 @@ public class IoTDataController {
 
     /**
      * 导出设备原始数据表
+     *
+     * @param deviceCode 设备编码
      */
-    @PostMapping("/getDeviceData")
-    public Result getDeviceData() {
-        return null;
+    @GetMapping("/getDeviceData")
+    public ResponseEntity<byte[]> getDeviceData(@RequestParam String deviceCode) {
+        return ioTDataService.getDeviceDatas(deviceCode);
     }
 }

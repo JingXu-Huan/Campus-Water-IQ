@@ -4,6 +4,7 @@ import com.ncwu.common.apis.iot_service.IotDataService;
 import com.ncwu.common.domain.vo.Result;
 import dev.langchain4j.agent.tool.Tool;
 import org.apache.dubbo.config.annotation.DubboReference;
+import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Component;
 
 import java.time.LocalDateTime;
@@ -87,13 +88,24 @@ public class WaterQueryTools {
             当用户询问类似：某校区有哪些设备离线设备？
             你可以调用此工具。
             """)
-    Result<Collection<String>> getOffLineList(int campus){
+    Result<Collection<String>> getOffLineList(int campus) {
         return iotDataService.getOffLineList(campus);
     }
 
-    @Tool("此方法返回一个现在的时间。当你发现其他工具可能需要现在的时间时，你可以调用此工具。")
-    LocalDateTime getNow(){
+    @Tool("""
+            此方法返回一个现在的时间。当你发现其他工具可能需要现在的时间时，你可以调用此工具。
+            """)
+    LocalDateTime getNow() {
         return LocalDateTime.now();
+    }
+
+    @Tool("""
+            此工具可以下载某台设备的原始上报数据报表。
+            - 方法需要用户提供设备编码，请主动要求用户输入。
+            当用户询问数据报表时，你可以调用此工具。
+            """)
+    public ResponseEntity<byte[]> getDeviceDatas(String deviceCode) {
+        return iotDataService.getDeviceDatas(deviceCode);
     }
 
 }

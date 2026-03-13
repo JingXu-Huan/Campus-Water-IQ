@@ -617,7 +617,6 @@ public class VirtualMeterDeviceServiceImpl extends ServiceImpl<DeviceMapper, Vir
         // 延迟 = 基础频率 + 随机偏移，使上报时间更加分散
         long delay = Long.parseLong(reportFrequency) +
                 ThreadLocalRandom.current().nextLong(Long.parseLong(timeOffset));
-
         // 调度单次数据上报任务
         ScheduledFuture<?> future = scheduler.schedule(() -> {
             try {

@@ -4,6 +4,9 @@ import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.google.common.util.concurrent.AtomicDouble;
 import com.ncwu.common.apis.iot_device.VirtualMeterDeviceService;
+import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
+import com.baomidou.mybatisplus.core.metadata.IPage;
+import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import com.influxdb.client.InfluxDBClient;
 import com.influxdb.client.QueryApi;
@@ -13,6 +16,7 @@ import com.ncwu.common.apis.iot_service.IotDataService;
 import com.ncwu.common.enums.ErrorCode;
 import com.ncwu.common.enums.SuccessCode;
 import com.ncwu.common.domain.vo.Result;
+import com.ncwu.iotservice.config.ServiceConfig;
 import com.ncwu.iotservice.entity.BO.SchoolUsageBO;
 import com.ncwu.common.domain.bo.ToAIBO;
 import com.ncwu.iotservice.entity.IotDeviceData;
@@ -21,6 +25,7 @@ import com.ncwu.iotservice.exception.QueryFailedException;
 import com.ncwu.iotservice.mapper.IoTDeviceDataMapper;
 import com.ncwu.iotservice.mapper.WaterUsageRecordMapper;
 import com.ncwu.iotservice.service.IoTDataService;
+import com.ncwu.iotservice.util.ExcelExportUtil;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.dubbo.config.annotation.DubboReference;
@@ -29,6 +34,7 @@ import org.jspecify.annotations.NonNull;
 import org.redisson.api.RLock;
 import org.redisson.api.RedissonClient;
 import org.springframework.data.redis.core.StringRedisTemplate;
+import org.springframework.http.ResponseEntity;
 import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Service;
 
@@ -64,6 +70,8 @@ public class IoTDataServiceImpl extends ServiceImpl<IoTDeviceDataMapper, IotDevi
     private final IoTDeviceDataMapper ioTDeviceDataMapper;
     private final RedissonClient redissonClient;
     private final ObjectMapper objectMapper;
+    private final ServiceConfig serviceConfig;
+
     private final WaterUsageRecordMapper waterUsageRecordMapper;
     private final ExecutorService pool = Executors.newFixedThreadPool(100);
 
@@ -144,9 +152,9 @@ public class IoTDataServiceImpl extends ServiceImpl<IoTDeviceDataMapper, IotDevi
         // TTL 不超过10秒 key自定(value结构即可)
         String fluxQuery = String.format("""
                 from(bucket: "water")
-                |> range(start: -1m)
+                |> range(start: -10s)
                 |> filter(fn: (r) =>
-                                r._measurement == "water_meter" and
+                        r._measurement == "water_meter" and
                         r._field == "flow" and
                         r.deviceId == "%s"
                    )
@@ -858,6 +866,52 @@ public class IoTDataServiceImpl extends ServiceImpl<IoTDeviceDataMapper, IotDevi
             }
         }
         return Result.ok(res);
+    }
+
+    @Override
+    public ResponseEntity<byte[]> getDeviceDatas(String deviceCode) {
+        int maxSize = serviceConfig.getMaxSize();
+        try {
+            // 校验设备编号
+            if (deviceCode == null || deviceCode.trim().isEmpty()) {
+                throw new IllegalArgumentException("设备编号不能为空");
+            }
+
+            // 查询设备数据
+            LambdaQueryWrapper<IotDeviceData> queryWrapper = new LambdaQueryWrapper<>();
+            queryWrapper.eq(IotDeviceData::getDeviceCode, deviceCode)
+                    .orderByDesc(IotDeviceData::getCollectTime);
+            
+            // 使用分页查询，避免SQL注入
+            int safeSize = Math.max(1, Math.min(maxSize, 10000)); // 安全限制：1-10000条
+            Page<IotDeviceData> page = new Page<>(1, safeSize);
+            IPage<IotDeviceData> deviceDataPage = baseMapper.selectPage(page, queryWrapper);
+            List<IotDeviceData> deviceDataList = deviceDataPage.getRecords();
+
+            if (deviceDataList.isEmpty()) {
+                throw new IllegalArgumentException("未找到设备数据");
+            }
+
+            // 转换为Map列表用于Excel导出
+            List<Map<String, Object>> dataList = deviceDataList.stream()
+                    .map(data -> {
+                        Map<String, Object> map = new HashMap<>();
+                        map.put("deviceCode", data.getDeviceCode());
+                        map.put("deviceType", data.getDeviceType());
+                        map.put("collectTime", data.getCollectTime());
+                        map.put("dataPayload", data.getDataPayload());
+                        map.put("createTime", data.getCreateTime());
+                        return map;
+                    })
+                    .collect(Collectors.toList());
+
+            // 使用工具类导出Excel
+            return ExcelExportUtil.exportDeviceDataToExcel(deviceCode, dataList);
+
+        } catch (Exception e) {
+            log.error("导出设备数据报表失败: {}", e.getMessage(), e);
+            throw new RuntimeException("导出设备数据报表失败: " + e.getMessage());
+        }
     }
 
     /**

@@ -2,4 +2,4 @@ spring:
   aop:
     proxy-target-class: true
 influx:
-  token: K6ZhtozEovQfVI8_yuEPkrNLcss9Vlk-smy6bOP5RTFGU5sjLW5KGrHV3LLchjpCrz4FrRTGCAB6I1qGj-E06w==
+  token: 4aLKLsEJ1T7vWotF9avXhrl3wV-EN7_8wurF85N3TiPxwrXFTU7caAT5zxxeT_T5wAWRUJBw2WFkerG152TxnQ==

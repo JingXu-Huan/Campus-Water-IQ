@@ -2,6 +2,7 @@ package com.ncwu.common.apis.iot_service;
 
 import com.ncwu.common.domain.bo.ToAIBO;
 import com.ncwu.common.domain.vo.Result;
+import org.springframework.http.ResponseEntity;
 
 import java.time.LocalDateTime;
 import java.util.Collection;
@@ -61,4 +62,9 @@ public interface IotDataService {
      * 得到某个区域在校园场景的用水比例
      */
     Result<Double> getRate(int region, int campus);
+
+    /**
+     * 获取设备上报原始数据报表
+     */
+    ResponseEntity<byte[]> getDeviceDatas(String deviceCode);
 }

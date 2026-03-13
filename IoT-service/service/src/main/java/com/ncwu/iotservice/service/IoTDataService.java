@@ -9,6 +9,7 @@ import jakarta.validation.constraints.Max;
 import jakarta.validation.constraints.Min;
 import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Size;
+import org.springframework.http.ResponseEntity;
 
 import java.time.LocalDateTime;
 import java.util.Collection;
@@ -68,4 +69,6 @@ public interface IoTDataService extends IService<IotDeviceData> {
     Result<Map<String, Double>> getSwings();
 
     Result<Double> getUnNormalUsage(int campus);
+
+    ResponseEntity<byte[]> getDeviceDatas(String deviceCode);
 }

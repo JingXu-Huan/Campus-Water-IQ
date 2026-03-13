@@ -101,7 +101,7 @@ public class AIServiceController {
     }
 
     /**
-     * 用户与ai进行交互
+     * 用户与ai进行交互，支持工具调用。
      * @param input 用户输入
      */
     @PostMapping("/chatWithAgent")

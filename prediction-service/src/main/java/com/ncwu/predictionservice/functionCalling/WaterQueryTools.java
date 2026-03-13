@@ -10,6 +10,8 @@ import java.time.LocalDateTime;
 import java.util.Map;
 
 /**
+ * iotService的工具描述类，此类向LLM提供可用的工具描述。
+ *
  * @author jingxu
  * @version 1.0.0
  * @since 2026/3/12
@@ -19,7 +21,9 @@ public class WaterQueryTools {
     @DubboReference(version = "1.0.0", interfaceClass = IotDataService.class, timeout = 20000)
     private IotDataService iotDataService;
 
-    @Tool("此工具查询三个校区的用水波动指数。school_1 表示花园校区，school_2 表示龙子湖校区，school_3表示江淮校区。")
+    @Tool("""
+            此工具查询三个校区的用水波动指数。school_1 表示花园校区，school_2 表示龙子湖校区，school_3表示江淮校区。
+            """)
     Result<Map<String, Double>> getSwings() {
         return iotDataService.getSwings();
     }
@@ -32,7 +36,11 @@ public class WaterQueryTools {
     /**
      * 获得所有设备的离线率
      */
-    @Tool("此工具查询所有设备离线率")
+    @Tool("""
+            此工具查询设备集群的离线率。
+            用户提问类似：系统设备的离线率多少？
+            你可以调用此工具。
+            """)
     Result<Double> getOfflineRate() {
         return iotDataService.getOfflineRate();
     }
@@ -50,6 +58,25 @@ public class WaterQueryTools {
             - 三个参数齐全后，立即调用查询工具，无需再次确认。""")
     Result<Double> getSchoolUsage(int school, LocalDateTime start, LocalDateTime end) {
         return iotDataService.getSchoolUsage(school, start, end);
+    }
+
+    /**
+     * 得到水质评分
+     */
+    @Tool("""
+            此工具用于查询用水单元的水质数据。入参是设备id。需要向用户请求设备id。
+            """)
+    Result<Double> getWaterQualityScore(String deviceId) {
+        return iotDataService.getWaterQualityScore(deviceId);
+    }
+
+    @Tool("""
+            此工具可以获得整体集群设备的一个健康度评分。
+            用户提问类似：整体、系统设备的健康度如何？
+            你可以调用此工具。
+            """)
+    Result<Double> getHealthyScoreOfDevices() {
+        return iotDataService.getHealthyScoreOfDevices();
     }
 
 }

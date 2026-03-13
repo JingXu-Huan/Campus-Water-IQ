@@ -42,14 +42,19 @@ import java.util.concurrent.TimeUnit;
 @Component
 @RequiredArgsConstructor
 @RocketMQMessageListener(topic = "Meter-Data", consumerGroup = "Meter-Data-ConsumerGroup")
-public class MeterDataConsumer extends ServiceImpl<IotDataMapper, IotDeviceData> implements RocketMQListener<String>, IService<IotDeviceData> {
+public class MeterDataConsumer extends ServiceImpl<IotDataMapper, IotDeviceData> implements
+        RocketMQListener<String>, IService<IotDeviceData> {
+
     @Value("${influx.token}")
     private String influxToken;
+    int N = 2000;
+    private final RocketMQTemplate rocketMQTemplate;
     private final ObjectMapper objectMapper;
-    private final List<IotDeviceData> buffer = new ArrayList<>(200);
+
+    private final List<IotDeviceData> buffer = new ArrayList<>(N);
     private InfluxDBClient influxDBClient;
     private WriteApiBlocking writeApi;
-    private final RocketMQTemplate rocketMQTemplate;
+
     private final List<Point> points = new ArrayList<>(5000);
     private final Object lock1 = new Object();
     private final Object lock2 = new Object();
@@ -57,7 +62,7 @@ public class MeterDataConsumer extends ServiceImpl<IotDataMapper, IotDeviceData>
     @PostConstruct
     public void init() {
         influxDBClient = InfluxDBClientFactory
-                .create("http://localhost:8086", influxToken.toCharArray(),"ncwu","water");
+                .create("http://localhost:8086", influxToken.toCharArray(), "ncwu", "water");
         writeApi = influxDBClient.getWriteApiBlocking();
         startFlushRemainingData();
     }
@@ -87,7 +92,6 @@ public class MeterDataConsumer extends ServiceImpl<IotDataMapper, IotDeviceData>
 
     @Override
     public void onMessage(String s) {
-        System.out.println(s);
         MeterDataBo meterDataBo;
         try {
             meterDataBo = objectMapper.readValue(s, MeterDataBo.class);
@@ -104,7 +108,7 @@ public class MeterDataConsumer extends ServiceImpl<IotDataMapper, IotDeviceData>
         //批量保存原始数据到数据库
         synchronized (lock1) {
             buffer.add(iotDeviceData);
-            if (buffer.size() >= 200) {
+            if (buffer.size() >= N) {
                 MeterDataConsumer meterDataConsumer = (MeterDataConsumer) AopContext.currentProxy();
                 meterDataConsumer.saveBatch(buffer);
                 buffer.clear();

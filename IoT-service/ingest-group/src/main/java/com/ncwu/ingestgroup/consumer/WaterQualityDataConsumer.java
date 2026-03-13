@@ -40,25 +40,34 @@ import java.util.List;
         topic = "WaterQuality-Data",          // 主题
         consumerGroup = "WaterQuality-Data-ConsumerGroup" // 消费者组
 )
-public class WaterQualityDataConsumer extends ServiceImpl<IotDataMapper, IotDeviceData> implements RocketMQListener<String>, IService<IotDeviceData> {
+public class WaterQualityDataConsumer extends ServiceImpl<IotDataMapper, IotDeviceData> implements
+        RocketMQListener<String>, IService<IotDeviceData> {
+
+    final String  bucket = "water";
+    final String org = "ncwu";
+
+    int N = 2000;
+
     @Value("${influx.token}")
     private String influxToken;
+
     private final ObjectMapper objectMapper;
-    private final List<IotDeviceData> buffer = new ArrayList<>(2000);
     private final RocketMQTemplate rocketMQTemplate;
+
     private InfluxDBClient influxDBClient;
+    private final List<IotDeviceData> buffer = new ArrayList<>(N);
+
+
 
     @PostConstruct
     public void init() {
+        //初始化influxdb客户端
         influxDBClient = InfluxDBClientFactory
                 .create("http://localhost:8086", influxToken.toCharArray());
     }
 
     @Override
     public void onMessage(String s) {
-        System.out.println(s);
-        String bucket = "water";
-        String org = "ncwu";
         WaterQualityDataBo waterQualityDataBo;
         try {
             //消息反序列化为对象
@@ -76,14 +85,14 @@ public class WaterQualityDataConsumer extends ServiceImpl<IotDataMapper, IotDevi
         //批量写入数据库
         synchronized (this) {
             buffer.add(iotDeviceData);
-            if (buffer.size() >= 200) {
+            if (buffer.size() >= N) {
                 WaterQualityDataConsumer waterQualityDataConsumer = (WaterQualityDataConsumer) AopContext.currentProxy();
                 waterQualityDataConsumer.saveBatch(buffer);
                 buffer.clear();
             }
         }
         //检查数据状态
-        if (waterQualityDataBo.getStatus().equals("error")){
+        if (waterQualityDataBo.getStatus().equals("error")) {
             ErrorDataMessageBO errorDataMessageBO = new ErrorDataMessageBO();
             errorDataMessageBO.setDeviceId(waterQualityDataBo.getDeviceId());
             errorDataMessageBO.setPayLoad(s);
@@ -99,7 +108,7 @@ public class WaterQualityDataConsumer extends ServiceImpl<IotDataMapper, IotDevi
             }
             return;
         }
-        //上报到 influxdb
+        //上报到 influxdb,以点协议写入
         ZonedDateTime zdt = waterQualityDataBo.getTimeStamp().atZone(ZoneId.of("Asia/Shanghai"));
         Point point = Point.measurement("water_quality")
                 .addTag("deviceId", waterQualityDataBo.getDeviceId())

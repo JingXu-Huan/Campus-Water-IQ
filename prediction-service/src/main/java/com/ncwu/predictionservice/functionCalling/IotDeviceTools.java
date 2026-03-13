@@ -11,6 +11,7 @@ import java.util.List;
 import java.util.Map;
 
 /**
+ * iotDevice的工具描述类，此类向LLM提供可用的工具描述。
  * @author jingxu
  * @version 1.0.0
  * @since 2026/3/12

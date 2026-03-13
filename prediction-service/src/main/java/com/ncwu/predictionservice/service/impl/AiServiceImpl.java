@@ -6,6 +6,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.ncwu.common.domain.vo.Result;
 import com.ncwu.common.apis.iot_service.IotDataService;
 import com.ncwu.predictionservice.agent.WaterAgent;
+import com.ncwu.predictionservice.exceptions.ChatException;
 import com.ncwu.predictionservice.service.AiService;
 import com.ncwu.predictionservice.domain.UsageBO;
 import com.ncwu.predictionservice.domain.vo.UsageVO;
@@ -153,10 +154,15 @@ public class AiServiceImpl implements AiService {
 
     @Override
     public Result<String> chatWithAgent(String input) {
-        //todo  Function Calling
-        String chat = waterAgent.chat(input);
-        System.out.println(chat);
-        return null;
+        // Function Calling
+        String chat;
+        try {
+            chat = waterAgent.chat(input);
+        } catch (Exception e) {
+            log.error("调用模型失败，请稍后重试");
+            return Result.fail("调用模型失败，请稍后重试");
+        }
+        return Result.ok(chat);
     }
 
     private double getRes(List<Double> usage) {

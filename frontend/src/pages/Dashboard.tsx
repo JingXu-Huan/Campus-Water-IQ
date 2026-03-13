@@ -1,7 +1,7 @@
 import { useNavigate } from 'react-router-dom'
 import { useAuthStore } from '@/store/authStore'
-import { Droplets, LogOut, User, BarChart3, AlertTriangle, Settings, LayoutDashboard, Activity, Map, FileText, HelpCircle, Menu, X, RefreshCw, TrendingUp, TrendingDown, WifiOff, Camera, Eye, EyeOff, Check, Wrench, Sun, Lightbulb } from 'lucide-react'
-import { useState, useEffect } from 'react'
+import { Droplets, LogOut, User, BarChart3, AlertTriangle, Settings, LayoutDashboard, Activity, Map, FileText, HelpCircle, Menu, X, RefreshCw, TrendingUp, TrendingDown, WifiOff, Camera, Eye, EyeOff, Check, Wrench, Sun, Lightbulb, MessageCircle, Send, Bot, Loader2 } from 'lucide-react'
+import { useState, useEffect, useRef } from 'react'
 import { iotApi, generateDeviceId } from '@/api/iot'
 import { aiApi } from '@/api/ai'
 import { authApi } from '@/api/auth'
@@ -24,6 +24,15 @@ export default function Dashboard() {
   const [showPassword, setShowPassword] = useState(false)
   const [profileLoading, setProfileLoading] = useState(false)
   const [profileMessage, setProfileMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null)
+
+  // AI 聊天机器人状态
+  const [showChatBot, setShowChatBot] = useState(false)
+  const [chatMessages, setChatMessages] = useState<{ role: 'user' | 'assistant'; content: string }[]>([
+    { role: 'assistant', content: '你好！我是校园用水数据分析助手，可以帮你查询各校区、楼宇的用水数据。有什么想了解的吗？' }
+  ])
+  const [chatInput, setChatInput] = useState('')
+  const [chatLoading, setChatLoading] = useState(false)
+  const chatEndRef = useRef<HTMLDivElement>(null)
 
   const campuses = [
     { id: 'huayuan', name: '花园校区', code: 'HY', schoolId: 1, city: '郑州', lat: 34.76, lon: 113.62 },
@@ -588,6 +597,31 @@ export default function Dashboard() {
     }
   }
 
+  // 发送聊天消息
+  const handleSendMessage = async () => {
+    if (!chatInput.trim() || chatLoading) return
+
+    const userMessage = chatInput.trim()
+    setChatInput('')
+    setChatMessages(prev => [...prev, { role: 'user', content: userMessage }])
+    setChatLoading(true)
+
+    try {
+      const response = await aiApi.chatWithAgent(userMessage)
+      setChatMessages(prev => [...prev, { role: 'assistant', content: response || '抱歉，我暂时无法回答这个问题。' }])
+    } catch (error: any) {
+      console.error('聊天失败:', error)
+      setChatMessages(prev => [...prev, { role: 'assistant', content: '抱歉，出了点问题，请稍后重试。' }])
+    } finally {
+      setChatLoading(false)
+    }
+  }
+
+  // 聊天消息滚动到底部
+  useEffect(() => {
+    chatEndRef.current?.scrollIntoView({ behavior: 'smooth' })
+  }, [chatMessages])
+
   useEffect(() => {
     fetchWaterUsageData()
     fetchBuildingStats()
@@ -784,6 +818,16 @@ export default function Dashboard() {
                   <span className="text-xs text-white">加载天气...</span>
                 </div>
               )}
+
+              {/* AI 聊天助手按钮 */}
+              <button
+                onClick={() => setShowChatBot(true)}
+                className="flex items-center gap-2 px-3 py-1.5 bg-white/10 hover:bg-white/20 active:scale-95 rounded-xl transition-all duration-200"
+                title="AI 助手"
+              >
+                <MessageCircle className="w-5 h-5 text-white" />
+                <span className="text-sm text-white">AI 助手</span>
+              </button>
 
               {!sidebarOpen && (
                 <>
@@ -1459,6 +1503,128 @@ export default function Dashboard() {
                   </button>
                 </div>
               )}
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* AI 聊天助手弹窗 */}
+      {showChatBot && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
+          <div className="bg-white rounded-2xl shadow-xl w-full max-w-lg mx-4 h-[600px] flex flex-col">
+            {/* 聊天头部 */}
+            <div className="flex items-center justify-between p-4 border-b border-gray-200 bg-gradient-to-r from-primary-600 to-primary-800 rounded-t-2xl">
+              <div className="flex items-center gap-3">
+                <div className="p-2 bg-white/20 rounded-xl">
+                  <Bot className="w-6 h-6 text-white" />
+                </div>
+                <div>
+                  <h2 className="text-lg font-semibold text-white">AI 用水助手</h2>
+                  <p className="text-xs text-white/80">可查询各校区用水数据</p>
+                </div>
+              </div>
+              <button
+                onClick={() => setShowChatBot(false)}
+                className="p-2 hover:bg-white/10 active:scale-95 rounded-lg transition-all"
+              >
+                <X className="w-5 h-5 text-white" />
+              </button>
+            </div>
+
+            {/* 聊天消息区域 */}
+            <div className="flex-1 overflow-y-auto p-4 space-y-4 bg-gray-50">
+              {chatMessages.map((msg, idx) => (
+                <div
+                  key={idx}
+                  className={`flex ${msg.role === 'user' ? 'justify-end' : 'justify-start'}`}
+                >
+                  <div
+                    className={`max-w-[80%] p-3 rounded-2xl ${
+                      msg.role === 'user'
+                        ? 'bg-primary-600 text-white rounded-br-md'
+                        : 'bg-white border border-gray-200 text-gray-800 rounded-bl-md'
+                    }`}
+                  >
+                    <div className="flex items-start gap-2">
+                      {msg.role === 'assistant' && (
+                        <Bot className="w-4 h-4 text-primary-600 mt-0.5 flex-shrink-0" />
+                      )}
+                      <p className="text-sm whitespace-pre-wrap">{msg.content}</p>
+                    </div>
+                  </div>
+                </div>
+              ))}
+              {chatLoading && (
+                <div className="flex justify-start">
+                  <div className="bg-white border border-gray-200 p-3 rounded-2xl rounded-bl-md">
+                    <div className="flex items-center gap-2">
+                      <Loader2 className="w-4 h-4 text-primary-600 animate-spin" />
+                      <span className="text-sm text-gray-500">AI 正在思考...</span>
+                    </div>
+                  </div>
+                </div>
+              )}
+              <div ref={chatEndRef} />
+            </div>
+
+            {/* 快捷问题提示 */}
+            {chatMessages.length === 1 && (
+              <div className="px-4 pb-2 flex flex-wrap gap-2">
+                <button
+                  onClick={() => { setChatInput('龙子湖校区今天用水量是多少？'); handleSendMessage() }}
+                  className="px-3 py-1.5 text-xs bg-gray-100 hover:bg-gray-200 rounded-full transition-colors"
+                  disabled={chatLoading}
+                >
+                  今日用水量
+                </button>
+                <button
+                  onClick={() => { setChatInput('各校区用水占比是多少？'); handleSendMessage() }}
+                  className="px-3 py-1.5 text-xs bg-gray-100 hover:bg-gray-200 rounded-full transition-colors"
+                  disabled={chatLoading}
+                >
+                  用水占比
+                </button>
+                <button
+                  onClick={() => { setChatInput('设备离线率是多少？'); handleSendMessage() }}
+                  className="px-3 py-1.5 text-xs bg-gray-100 hover:bg-gray-200 rounded-full transition-colors"
+                  disabled={chatLoading}
+                >
+                  设备离线率
+                </button>
+                <button
+                  onClick={() => { setChatInput('水质合格率是多少？'); handleSendMessage() }}
+                  className="px-3 py-1.5 text-xs bg-gray-100 hover:bg-gray-200 rounded-full transition-colors"
+                  disabled={chatLoading}
+                >
+                  水质合格率
+                </button>
+              </div>
+            )}
+
+            {/* 输入区域 */}
+            <div className="p-4 border-t border-gray-200 bg-white rounded-b-2xl">
+              <div className="flex items-center gap-2">
+                <input
+                  type="text"
+                  value={chatInput}
+                  onChange={(e) => setChatInput(e.target.value)}
+                  onKeyDown={(e) => e.key === 'Enter' && !e.shiftKey && handleSendMessage()}
+                  placeholder="请输入你的问题..."
+                  disabled={chatLoading}
+                  className="flex-1 px-4 py-2.5 border border-gray-300 rounded-xl focus:ring-2 focus:ring-primary-500 focus:border-primary-500 outline-none disabled:bg-gray-100"
+                />
+                <button
+                  onClick={handleSendMessage}
+                  disabled={chatLoading || !chatInput.trim()}
+                  className="p-2.5 bg-primary-600 text-white rounded-xl hover:bg-primary-700 disabled:opacity-50 disabled:cursor-not-allowed active:scale-95 transition-all"
+                >
+                  {chatLoading ? (
+                    <Loader2 className="w-5 h-5 animate-spin" />
+                  ) : (
+                    <Send className="w-5 h-5" />
+                  )}
+                </button>
+              </div>
             </div>
           </div>
         </div>

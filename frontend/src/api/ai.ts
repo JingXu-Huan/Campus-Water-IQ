@@ -77,5 +77,16 @@ export const aiApi = {
     getDeviceQualitySuggestion: async (): Promise<string> => {
         const res = await aiApiClient.get<any>('/ai/suggestionOfDevice')
         return res.data
+    },
+
+    /**
+     * 与 AI 助手聊天（支持工具调用）
+     * @param input 用户输入
+     */
+    chatWithAgent: async (input: string): Promise<string> => {
+        const res = await aiApiClient.post<any>('/ai/chatWithAgent', null, {
+            params: { input }
+        })
+        return res.data
     }
 }

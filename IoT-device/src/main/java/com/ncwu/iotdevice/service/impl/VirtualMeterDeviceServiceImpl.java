@@ -117,7 +117,10 @@ public class VirtualMeterDeviceServiceImpl extends ServiceImpl<DeviceMapper, Vir
     void init() {
         // 经压测验证，约 70 台虚拟设备对应 1 个调度线程即可满足精度与吞吐
         // 取 max 防止入参为 0 发生异常
-        scheduler = Executors.newScheduledThreadPool(Math.max(5, (int) (this.count() / 70)));
+        scheduler = Executors.newScheduledThreadPool(
+                Math.max(5, (int) (this.count() / 70)),
+                Thread.ofVirtual().factory()
+        );
         //初始化Caffeine本地缓存，最大容量10000，写入后5分钟过期
         cache = Caffeine.newBuilder()
                 .maximumSize(10_000)
@@ -716,8 +719,10 @@ public class VirtualMeterDeviceServiceImpl extends ServiceImpl<DeviceMapper, Vir
         double flow;
 
         // 获取楼宇类型分界参数
-        int education = Integer.parseInt(Objects.requireNonNull(redisTemplate.opsForValue().get("device:educationBuildings")));   // 教学楼数量
-        int experiment = Integer.parseInt(Objects.requireNonNull(redisTemplate.opsForValue().get("device:experimentBuildings"))); // 实验楼数量
+        int education = Integer.parseInt(Objects.requireNonNull(redisTemplate.opsForValue()
+                .get("device:educationBuildings")));   // 教学楼数量
+        int experiment = Integer.parseInt(Objects.requireNonNull(redisTemplate.opsForValue()
+                .get("device:experimentBuildings"))); // 实验楼数量
 
         // 根据楼宇编号选择对应的流量生成算法
         if (buildingNum <= education) {
@@ -1069,7 +1074,7 @@ public class VirtualMeterDeviceServiceImpl extends ServiceImpl<DeviceMapper, Vir
     @Time
     @Override
     public Result<String> init(int buildings, int floors, int rooms, int dormitoryBuildings,
-                               int educationBuildings, int experimentBuildings) throws InterruptedException {
+                               int educationBuildings, int experimentBuildings) {
         if (isRunning()) {
             return Result.fail(ErrorCode.DEVICE_DEVICE_RUNNING_NOW_ERROR.code(),
                     ErrorCode.DEVICE_DEVICE_RUNNING_NOW_ERROR.message());

@@ -70,7 +70,9 @@ public class VirtualWaterQualityDeviceServiceImpl extends ServiceImpl<DeviceMapp
         if (size == null) {
             throw new DeviceRegisterException("请先初始化设备");
         }
-        scheduler = new ScheduledThreadPoolExecutor(Math.max(2, (int) (size / 100L)));
+        scheduler = Executors.newScheduledThreadPool(
+                Math.max(5, (int) (this.count() / 100)),
+                Thread.ofVirtual().factory());
     }
 
     @Override

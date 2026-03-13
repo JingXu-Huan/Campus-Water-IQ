@@ -1,18 +1,23 @@
 package com.ncwu.iotservice.schedule;
 
-
-import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.ncwu.common.domain.vo.Result;
+import com.ncwu.iotservice.config.ServiceConfig;
 import com.ncwu.iotservice.entity.WaterUsageRecord;
 import com.ncwu.iotservice.mapper.WaterUsageRecordMapper;
 import com.ncwu.iotservice.service.IoTDataService;
+import com.ncwu.iotservice.service.impl.IoTDataServiceImpl;
+import jakarta.annotation.PostConstruct;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.scheduling.annotation.Scheduled;
+import org.apache.rocketmq.spring.core.RocketMQTemplate;
 import org.springframework.stereotype.Component;
 
 import java.time.LocalDateTime;
-import java.util.List;
+import java.util.concurrent.Executors;
+import java.util.concurrent.ScheduledExecutorService;
+import java.util.concurrent.TimeUnit;
+
+import static com.ncwu.iotservice.util.DataFormatUtils.getDateFormatBo;
 
 /**
  * 每天24点准时调用方法，保存当天用水量到数据库
@@ -27,71 +32,62 @@ import java.util.List;
 public class OnTimeJob {
     private final WaterUsageRecordMapper waterUsageRecordMapper;
     private final IoTDataService ioTDataService;
+    private final ServiceConfig serviceConfig;
+    private final RocketMQTemplate rocketMQTemplate;
 
     /**
-     * 校区列表
+     * 调度器，用于管理定时任务
      */
-    private static final List<Integer> SCHOOLS = List.of(1, 2, 3);
+    private ScheduledExecutorService scheduler;
 
-    /**
-     * 每天 0 点执行，保存昨日用水量到数据库
-     */
-    @Scheduled(cron = "0 0 0 * * ?")
+    double sum = 0;
+
+    @PostConstruct
+    public void init() {
+        //使用虚拟线程
+        scheduler = Executors.newScheduledThreadPool(10, Thread.ofVirtual().factory());
+        // 启动定时任务
+        run();
+    }
+
+    public void run() {
+        scheduler.scheduleAtFixedRate(this::saveDailyWaterUsage, 0, serviceConfig.getSaveTimeInterval(), TimeUnit.SECONDS);
+    }
+
     public void saveDailyWaterUsage() {
-        log.info("开始执行每日用水量保存任务...");
-
         LocalDateTime now = LocalDateTime.now();
-        LocalDateTime yesterdayStart = now.minusDays(1).withHour(0).withMinute(0).withSecond(0).withNano(0);
-        LocalDateTime yesterdayEnd = now.minusDays(1).withHour(23).withMinute(59).withSecond(59).withNano(999999999);
-
-        for (Integer school : SCHOOLS) {
-            try {
-                saveSchoolUsage(school, yesterdayStart, yesterdayEnd);
-            } catch (Exception e) {
-                log.error("保存校区 {} 用水量失败: {}", school, e.getMessage(), e);
+        if (now.getHour() == 0 && now.getMinute() == 0) {
+            log.info("开始执行每日用水量保存任务...");
+            //todo 改用消息队列，保证消息不丢失。避免在凌晨系统宕机丢失数据。
+            // rocketMQTemplate.convertAndSend("");
+            for (int i = 1; i <= 3; i++) {
+                saveSchoolUsage(i, sum, now);
+            }
+            log.info("每日用水量保存任务执行完成");
+            sum = 0;
+        }
+        int saveTimeInterval = serviceConfig.getSaveTimeInterval();
+        for (int j = 1; j <= 3; j++) {
+            // 只查询最近 saveTimeInterval 分钟的数据,前一个时间段我们已经查过了
+            LocalDateTime startTime = now.minusMinutes(saveTimeInterval);
+            IoTDataServiceImpl.DateFormatBo dateFormatBo = getDateFormatBo(startTime, now);
+            Result<Double> schoolUsage = ioTDataService
+                    .getSchoolUsageFromDb(j, dateFormatBo.startTime(), dateFormatBo.endTime());
+            Double data = schoolUsage.getData();
+            if (data != null) {
+                sum += data;
             }
         }
-
-        log.info("每日用水量保存任务执行完成");
     }
 
     /**
      * 保存单个校区的用水量
      */
-    private void saveSchoolUsage(Integer school, LocalDateTime start, LocalDateTime end) {
-        // 检查是否已存在记录
-        if (hasRecordForDate(school, start.toLocalDate())) {
-            log.info("校区 {} 日期 {} 已存在记录，跳过", school, start.toLocalDate());
-            return;
-        }
-
-        // 获取用水量
-        Result<Double> result = ioTDataService.getSchoolUsage(school, start, end);
-
-        if (result != null && "200".equals(result.getCode()) && result.getData() != null) {
-            Double usage = result.getData();
-            WaterUsageRecord record = new WaterUsageRecord();
-            record.setSchool(school);
-            record.setUsage(usage);
-            waterUsageRecordMapper.insert(record);
-            log.info("校区 {} 用水量保存成功: {} m³, 日期: {}", school, usage, start.toLocalDate());
-        } else {
-            log.warn("校区 {} 日期 {} 无有效用水数据，跳过保存", school, start.toLocalDate());
-        }
-    }
-
-    /**
-     * 检查指定日期是否已有记录
-     */
-    private boolean hasRecordForDate(Integer school, java.time.LocalDate date) {
-        LocalDateTime startOfDay = date.atStartOfDay();
-        LocalDateTime endOfDay = date.atTime(23, 59, 59);
-
-        LambdaQueryWrapper<WaterUsageRecord> wrapper = new LambdaQueryWrapper<>();
-        wrapper.eq(WaterUsageRecord::getSchool, school)
-                .ge(WaterUsageRecord::getRecordDate, startOfDay)
-                .le(WaterUsageRecord::getRecordDate, endOfDay);
-
-        return waterUsageRecordMapper.selectCount(wrapper) > 0;
+    private void saveSchoolUsage(Integer school, double usage, LocalDateTime now) {
+        WaterUsageRecord waterUsageRecord = new WaterUsageRecord();
+        waterUsageRecord.setUsage(usage);
+        waterUsageRecord.setSchool(school);
+        waterUsageRecord.setRecordDate(now);
+        waterUsageRecordMapper.insert(waterUsageRecord);
     }
 }

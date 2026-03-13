@@ -71,4 +71,6 @@ public interface IoTDataService extends IService<IotDeviceData> {
     Result<Double> getUnNormalUsage(int campus);
 
     ResponseEntity<byte[]> getDeviceDatas(String deviceCode);
+
+    Result<Double> getSchoolUsageFromDb(int school, String startTime, String endTime);
 }

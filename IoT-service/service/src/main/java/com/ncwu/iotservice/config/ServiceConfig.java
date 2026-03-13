@@ -16,4 +16,6 @@ import org.springframework.context.annotation.Configuration;
 public class ServiceConfig {
     //导出报表的报表最大长度
     public int maxSize;
+    //保存数据时间间隔
+    public int saveTimeInterval;
 }

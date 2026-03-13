@@ -51,6 +51,7 @@ import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 
 import static com.ncwu.common.utils.Utils.keep2;
+import static com.ncwu.iotservice.util.DataFormatUtils.getDateFormatBo;
 
 /**
  * 查询、计算Iot设备数据
@@ -114,21 +115,9 @@ public class IoTDataServiceImpl extends ServiceImpl<IoTDeviceDataMapper, IotDevi
         return Result.ok(keep2(usage));
     }
 
-    /**
-     * 将本地时区格式转化成 UTC 格式
-     */
-    private static @NonNull DateFormatBo getDateFormatBo(LocalDateTime start, LocalDateTime end) {
-        // InfluxDB Flux 要求 UTC
-        ZoneId zoneId = ZoneId.of("Asia/Shanghai");
-        Instant startInstant = start.atZone(zoneId).toInstant();
-        Instant endInstant = end.atZone(zoneId).toInstant();
-        // 转换时间戳为 RFC3339
-        String startTime = DateTimeFormatter.ISO_INSTANT.format(startInstant);
-        String endTime = DateTimeFormatter.ISO_INSTANT.format(endInstant);
-        return new DateFormatBo(startTime, endTime);
-    }
 
-    private record DateFormatBo(String startTime, String endTime) {
+
+    public record DateFormatBo(String startTime, String endTime) {
     }
 
     @Override

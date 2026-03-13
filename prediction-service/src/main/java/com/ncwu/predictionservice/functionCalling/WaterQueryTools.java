@@ -7,6 +7,7 @@ import org.apache.dubbo.config.annotation.DubboReference;
 import org.springframework.stereotype.Component;
 
 import java.time.LocalDateTime;
+import java.util.Collection;
 import java.util.Map;
 
 /**
@@ -47,7 +48,7 @@ public class WaterQueryTools {
 
     @Tool("""
             你是一个校园用水量查询助手。用户查询时，你需要收集以下三个参数：
-            
+            此工具用于查询某校区的某时间段用水量数据。
             - school（校区）：1 = 花园校区，2 = 龙子湖校区，3 = 江淮校区
             - start（开始时间）：格式 yyyy-MM-dd HH:mm:ss
             - end（结束时间）：格式 yyyy-MM-dd HH:mm:ss
@@ -77,6 +78,22 @@ public class WaterQueryTools {
             """)
     Result<Double> getHealthyScoreOfDevices() {
         return iotDataService.getHealthyScoreOfDevices();
+    }
+
+    @Tool("""
+            此工具可以返回某校区的下线设备列表。
+            需要一个入参：
+            - school（校区）：1 = 花园校区，2 = 龙子湖校区，3 = 江淮校区
+            当用户询问类似：某校区有哪些设备离线设备？
+            你可以调用此工具。
+            """)
+    Result<Collection<String>> getOffLineList(int campus){
+        return iotDataService.getOffLineList(campus);
+    }
+
+    @Tool("此方法返回一个现在的时间。当你发现其他工具可能需要现在的时间时，你可以调用此工具。")
+    LocalDateTime getNow(){
+        return LocalDateTime.now();
     }
 
 }

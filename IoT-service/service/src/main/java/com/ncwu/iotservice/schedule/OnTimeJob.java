@@ -41,6 +41,7 @@ public class OnTimeJob {
     private ScheduledExecutorService scheduler;
 
     double sum = 0;
+    private String lastExecutionDate = "";
 
     @PostConstruct
     public void init() {
@@ -56,15 +57,20 @@ public class OnTimeJob {
 
     public void saveDailyWaterUsage() {
         LocalDateTime now = LocalDateTime.now();
-        if (now.getHour() == 0 && now.getMinute() == 0) {
+        String currentDate = now.toLocalDate().toString();
+        
+        // 11:00执行每日保存任务，且当天未执行过
+        if (now.getHour() == 23 && now.getMinute() == 59 && !currentDate.equals(lastExecutionDate)) {
             log.info("开始执行每日用水量保存任务...");
             //todo 改用消息队列，保证消息不丢失。避免在凌晨系统宕机丢失数据。
+            // 让下游消费者处理保存任务，失败可重试
             // rocketMQTemplate.convertAndSend("");
             for (int i = 1; i <= 3; i++) {
                 saveSchoolUsage(i, sum, now);
             }
             log.info("每日用水量保存任务执行完成");
             sum = 0;
+            lastExecutionDate = currentDate; // 记录已执行的日期
         }
         int saveTimeInterval = serviceConfig.getSaveTimeInterval();
         for (int j = 1; j <= 3; j++) {

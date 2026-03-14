@@ -56,7 +56,6 @@ public class CanalClient {
             //监听的表
             connector.subscribe("water\\.(iot_device_event|device_reservation)");
             connector.rollback();
-
             while (true) {
                 Message message = connector.getWithoutAck(100);
                 long batchId = message.getId();
@@ -75,7 +74,6 @@ public class CanalClient {
     }
 
     private void processEntries(List<CanalEntry.Entry> entries) {
-        System.out.println(entries);
         for (CanalEntry.Entry entry : entries) {
             if (entry.getEntryType() != CanalEntry.EntryType.ROWDATA) {
                 continue;

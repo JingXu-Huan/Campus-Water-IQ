@@ -2,6 +2,8 @@ package com.ncwu.common.apis.iot_service;
 
 import com.ncwu.common.domain.bo.ToAIBO;
 import com.ncwu.common.domain.vo.Result;
+import jakarta.validation.constraints.Max;
+import jakarta.validation.constraints.Min;
 import org.springframework.http.ResponseEntity;
 
 import java.time.LocalDateTime;
@@ -40,6 +42,11 @@ public interface IotDataService {
      * 得到某校区某段时间的用水量
      */
     Result<Double> getSchoolUsage(int school, LocalDateTime start, LocalDateTime end);
+
+    /**
+     * 获取某校区夜间异常用水量
+     */
+    Result<Double> getUnNormalUsage(@Min(1) @Max(3) int campus);
 
     //todo 描述tools=========================================================================================================
 

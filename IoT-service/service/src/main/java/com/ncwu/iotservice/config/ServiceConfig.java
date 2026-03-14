@@ -12,7 +12,7 @@ import org.springframework.context.annotation.Configuration;
  */
 @Data
 @Configuration
-@ConfigurationProperties(prefix = "service")
+@ConfigurationProperties(prefix = "server")
 public class ServiceConfig {
     //导出报表的报表最大长度
     public int maxSize;

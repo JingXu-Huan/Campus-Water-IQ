@@ -3,6 +3,8 @@ package com.ncwu.predictionservice.functionCalling;
 import com.ncwu.common.apis.iot_service.IotDataService;
 import com.ncwu.common.domain.vo.Result;
 import dev.langchain4j.agent.tool.Tool;
+import jakarta.validation.constraints.Max;
+import jakarta.validation.constraints.Min;
 import org.apache.dubbo.config.annotation.DubboReference;
 import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Component;
@@ -92,12 +94,7 @@ public class WaterQueryTools {
         return iotDataService.getOffLineList(campus);
     }
 
-    @Tool("""
-            此方法返回一个现在的时间。当你发现其他工具可能需要现在的时间时，你可以调用此工具。
-            """)
-    LocalDateTime getNow() {
-        return LocalDateTime.now();
-    }
+
 
     @Tool("""
             此工具可以下载某台设备的原始上报数据报表。
@@ -108,4 +105,14 @@ public class WaterQueryTools {
         return iotDataService.getDeviceDatas(deviceCode);
     }
 
+
+    @Tool("""
+            此工具可以获取某校区的夜间异常用水量。
+            当用户询问类似：花园校区的夜间异常用水量是多少时，你可以调用此工具来获取。
+            - 方法需要传入一个校园参数：1 = 花园校区，2 = 龙子湖校区，3 = 江淮校区。
+            请主动向用户请求校区，若用户不提供。
+            """)
+    Result<Double> getUnNormalUsage(@Min(1) @Max(3) int campus) {
+        return iotDataService.getUnNormalUsage(campus);
+    }
 }

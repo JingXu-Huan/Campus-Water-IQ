@@ -3,6 +3,7 @@ package com.ncwu.predictionservice.config;
 
 import com.ncwu.predictionservice.agent.WaterAgent;
 import com.ncwu.predictionservice.functionCalling.IotDeviceTools;
+import com.ncwu.predictionservice.functionCalling.OtherTools;
 import com.ncwu.predictionservice.functionCalling.RepairTools;
 import com.ncwu.predictionservice.functionCalling.WaterQueryTools;
 import dev.langchain4j.community.model.zhipu.ZhipuAiChatModel;
@@ -27,6 +28,7 @@ public class ModelConfig {
     private final WaterQueryTools waterQueryTools;
     private final IotDeviceTools iotDeviceTools;
     private final RepairTools repairTools;
+    private final OtherTools otherTools;
 
     @Bean
     public ChatLanguageModel initModel() {
@@ -45,7 +47,7 @@ public class ModelConfig {
     public WaterAgent waterAgent(ChatLanguageModel chatLanguageModel) {
         return AiServices.builder(WaterAgent.class)
                 .chatLanguageModel(chatLanguageModel)
-                .tools(waterQueryTools,iotDeviceTools,repairTools)   // ← Tools在这里注册
+                .tools(waterQueryTools,iotDeviceTools,repairTools,otherTools)   // ← Tools在这里注册
                 .build();
     }
 }

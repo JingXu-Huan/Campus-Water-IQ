@@ -1076,5 +1076,14 @@ export const iotApi = {
             console.error('获取夜间异常用水量失败:', error)
             return 0
         }
+    },
+
+    // 获取设备原始数据（用于数据报表）
+    getDeviceData: async (deviceCode: string): Promise<Blob> => {
+        const response = await iotDataApi.get('/Data/getDeviceData', {
+            params: { deviceCode },
+            responseType: 'blob'
+        })
+        return response
     }
 }

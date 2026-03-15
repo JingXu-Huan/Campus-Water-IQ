@@ -708,7 +708,7 @@ export default function Dashboard() {
         {id: 'monitoring', label: '实时监测', icon: Activity, path: '/monitoring'},
         {id: 'digital-twin', label: '数字孪生', icon: Map, path: '/digital-twin'},
         {id: 'repair', label: '报修管理', icon: Wrench, path: '/repair'},
-        {id: 'reports', label: '数据报表', icon: FileText, path: ''},
+        {id: 'reports', label: '数据报表', icon: FileText, path: '/reports'},
         {id: 'settings', label: '系统设置', icon: Settings, path: ''},
         {id: 'help', label: '帮助中心', icon: HelpCircle, path: '/help'},
     ]

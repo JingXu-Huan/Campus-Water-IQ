@@ -1,14 +1,26 @@
 package com.ncwu.authservice.config.springsecurity;
 
+import jakarta.servlet.FilterChain;
+import jakarta.servlet.ServletException;
+import jakarta.servlet.http.HttpServletRequest;
+import jakarta.servlet.http.HttpServletResponse;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.http.HttpMethod;
+import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
 import org.springframework.security.config.annotation.web.configurers.AbstractHttpConfigurer;
 import org.springframework.security.config.http.SessionCreationPolicy;
+import org.springframework.security.core.authority.SimpleGrantedAuthority;
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.security.web.SecurityFilterChain;
+import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
+import org.springframework.web.filter.OncePerRequestFilter;
+
+import java.io.IOException;
+import java.util.List;
 
 /**
  * Spring Security 配置类
@@ -24,31 +36,23 @@ public class SecurityConfig {
     @Bean
     public SecurityFilterChain filterChain(HttpSecurity http) throws Exception {
         http
-                // 禁用 CSRF，因为我们使用 JWT
                 .csrf(AbstractHttpConfigurer::disable)
-                // 设置会话管理为无状态
                 .sessionManagement(session -> 
                     session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
-                // 配置授权规则
+                .addFilterBefore(gatewayAuthenticationFilter(), UsernamePasswordAuthenticationFilter.class)
                 .authorizeHttpRequests(auth -> auth
-                        // 放行登录相关端点
                         .requestMatchers("/signup/**").permitAll()
                         .requestMatchers("/auth/signin").permitAll()
                         .requestMatchers("/auth/send-code").permitAll()
                         .requestMatchers("/auth/send-phone-code").permitAll()
-                        // 放行 GitHub OAuth 相关端点
                         .requestMatchers("/auth/github/authorize").permitAll()
                         .requestMatchers("/auth/github/callback").permitAll()
-                        // 放行 WeChat OAuth 相关端点
                         .requestMatchers("/auth/wechat/authorize").permitAll()
                         .requestMatchers("/auth/wechat/callback").permitAll()
                         .requestMatchers(HttpMethod.OPTIONS, "/**").permitAll()
-                        // 放行头像相关端点
                         .requestMatchers("/user/avatar").permitAll()
                         .requestMatchers("/user/getAvatat").permitAll()
-                        // 放行健康检查端点
                         .requestMatchers("/actuator/**").permitAll()
-                        // 其他所有请求都需要认证（包括 /user/**）
                         .anyRequest().authenticated()
                 );
         
@@ -58,5 +62,34 @@ public class SecurityConfig {
     @Bean
     public BCryptPasswordEncoder passwordEncoder() {
         return new BCryptPasswordEncoder();
+    }
+
+    @Bean
+    public GatewayAuthenticationFilter gatewayAuthenticationFilter() {
+        return new GatewayAuthenticationFilter();
+    }
+
+    /**
+     * 从网关传递的请求头中提取用户信息的过滤器
+     */
+    public static class GatewayAuthenticationFilter extends OncePerRequestFilter {
+        @Override
+        protected void doFilterInternal(HttpServletRequest request, HttpServletResponse response, FilterChain filterChain)
+                throws ServletException, IOException {
+            
+            String userId = request.getHeader("X-User-Id");
+            String userRole = request.getHeader("X-User-Role");
+
+            if (userId != null) {
+                UsernamePasswordAuthenticationToken auth = new UsernamePasswordAuthenticationToken(
+                        userId,
+                        null,
+                        List.of(new SimpleGrantedAuthority("ROLE_" + (userRole != null ? userRole : "USER")))
+                );
+                SecurityContextHolder.getContext().setAuthentication(auth);
+            }
+
+            filterChain.doFilter(request, response);
+        }
     }
 }

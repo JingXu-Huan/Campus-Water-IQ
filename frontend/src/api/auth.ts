@@ -14,9 +14,23 @@ const fileApi = axios.create({
   timeout: 30000,
 })
 
+// 提取 token 的辅助函数
+const getToken = () => {
+  try {
+    const authData = localStorage.getItem('auth-storage')
+    if (authData) {
+      const parsed = JSON.parse(authData)
+      return parsed.state?.token || parsed.token || null
+    }
+  } catch (e) {
+    console.error('Failed to parse auth token:', e)
+  }
+  return null
+}
+
 fileApi.interceptors.request.use(
   (config) => {
-    const token = localStorage.getItem('auth-token')
+    const token = getToken()
     if (token) {
       config.headers.Authorization = `Bearer ${token}`
     }
@@ -35,7 +49,7 @@ fileApi.interceptors.response.use(
 
 api.interceptors.request.use(
   (config) => {
-    const token = localStorage.getItem('auth-token')
+    const token = getToken()
     if (token) {
       config.headers.Authorization = `Bearer ${token}`
     }
@@ -124,8 +138,8 @@ export const authApi = {
   getUserProfile: () => api.get<UserProfile>('/user/profile'),
   
   // 更新昵称
-  updateNickname: (data: UpdateNicknameRequest) => 
-    api.put('/user/nickname', data),
+  updateNickname: (newName: string, uid: string) => 
+    api.post('/user/changeNickName', {}, { params: { newName, uid } }),
   
   // 更新密码
   updatePassword: (data: UpdatePasswordRequest) => 

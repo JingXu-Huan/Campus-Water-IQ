@@ -17,26 +17,22 @@ spring:
         - id: service
           uri: lb://IoT-service
           predicates:
-          # 按需替换，添加即可
             - Path=/service/**,/Data/**
         - id: prediction
           uri: lb://prediction-service
           predicates:
-          # 按需替换，添加即可
-            - Path=/prediction/**
+            - Path=/prediction/**,/ai/**
         - id: warning
-          uri: lb://warn-service
+          uri: lb://warning-service
           predicates:
-          # 按需替换，添加即可
             - Path=/warn/**
         - id: repair
           uri: lb://repair-service
           predicates:
-            - Path=/operations/**
+            - Path=/operations/**,/iot-event/**
         - id: auth
           uri: lb://Auth-service
           predicates:
-            # 按需替换，添加即可
             - Path=/auth/**,/signup/**,/user/**
   main:
     web-application-type: reactive

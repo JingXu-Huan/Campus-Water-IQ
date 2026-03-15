@@ -1,8 +1,8 @@
 import axios from 'axios'
 
-// AI 预测服务
+// AI 预测服务 - 走网关 /prediction/**
 const aiApiClient = axios.create({
-    baseURL: 'http://localhost:18011',
+    baseURL: '/api',
     timeout: 15000,
     headers: {
         'Content-Type': 'application/json',
@@ -10,13 +10,26 @@ const aiApiClient = axios.create({
     withCredentials: false,
 })
 
+// 提取 token 的辅助函数
+const getToken = () => {
+  try {
+    const authData = localStorage.getItem('auth-storage')
+    if (authData) {
+      const parsed = JSON.parse(authData)
+      return parsed.state?.token || parsed.token || null
+    }
+  } catch (e) {
+    console.error('Failed to parse auth token:', e)
+  }
+  return null
+}
+
 // 请求拦截器
 aiApiClient.interceptors.request.use((config: any) => {
-    // 可选：添加 token 认证（如果需要）
-    // const token = localStorage.getItem('auth-token')
-    // if (token) {
-    //     config.headers.Authorization = `Bearer ${token}`
-    // }
+    const token = getToken()
+    if (token) {
+        config.headers.Authorization = `Bearer ${token}`
+    }
     return config
 })
 

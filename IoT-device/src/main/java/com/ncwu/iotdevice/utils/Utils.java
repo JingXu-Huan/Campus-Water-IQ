@@ -79,10 +79,11 @@ public class Utils {
         Map<String, String> map = Stream.concat(meterDeviceIds.stream(), waterQualityDeviceIds.stream())
                 .collect(Collectors.toMap(Function.identity(), id -> "-1"));
         try {
-            redisTemplate.opsForValue().set("TotalBuildings",String.valueOf(buildings));
-            redisTemplate.opsForValue().set("Floors",String.valueOf(floors));
+            redisTemplate.opsForValue().set("TotalBuildings", String.valueOf(buildings));
 
-            redisTemplate.opsForValue().set("Rooms",String.valueOf(rooms));
+            redisTemplate.opsForValue().set("Floors", String.valueOf(floors));
+
+            redisTemplate.opsForValue().set("Rooms", String.valueOf(rooms));
             //初始化标志位
             redisTemplate.opsForValue().set("isInit", "1");
             //水表总用水量
@@ -103,6 +104,7 @@ public class Utils {
             redisTemplate.opsForValue().set("MeterChecked", "0");
             //水质传感器在线状态可否受检
             redisTemplate.opsForValue().set("WaterQualityChecked", "0");
+            redisTemplate.delete("SchoolUsage");
         } catch (Exception e) {
             throw new DeviceRegisterException("注册失败");
         }
@@ -124,7 +126,7 @@ public class Utils {
     }
 
     private static void delRedisData(StringRedisTemplate redisTemplate, String prefix) {
-        redisTemplate.delete("WaterQualityScore:*" );
+        redisTemplate.delete("WaterQualityScore:*");
         redisTemplate.delete("historical:*");
         redisTemplate.delete("SchoolUsage:*");
         redisTemplate.delete("WaterPredictionUsage:*");
@@ -209,7 +211,7 @@ public class Utils {
      * 设备上线后置处理器
      */
     public void markDeviceOnline(String deviceCode, long timestamp, DeviceMapper deviceMapper,
-                                        StringRedisTemplate redisTemplate) {
+                                 StringRedisTemplate redisTemplate) {
         //得到自定义线程池
         ExecutorService pools = getExecutorPools("markDeviceOnline", 5, 10, 60, 1000);
         // 1. 更新数据库状态（仅当当前为 offline 时）

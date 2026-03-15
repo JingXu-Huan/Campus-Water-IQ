@@ -103,6 +103,7 @@ public class VirtualMeterDeviceServiceImpl extends ServiceImpl<DeviceMapper, Vir
      * Redisson客户端，用于分布式锁等操作
      */
     private final RedissonClient redissonClient;
+
     /**
      * 本地缓存，使用Caffeine实现
      */
@@ -475,6 +476,7 @@ public class VirtualMeterDeviceServiceImpl extends ServiceImpl<DeviceMapper, Vir
         this.isInit = false;
         cache.invalidateAll();
         redisTemplate.opsForValue().set("isInit", "0");
+        clearRedisAndDbData(redisTemplate,deviceMapper);
         return Result.ok(SuccessCode.DEVICE_RESET_SUCCESS.getCode(), SuccessCode.DEVICE_RESET_SUCCESS.getMessage());
     }
 
@@ -1109,6 +1111,8 @@ public class VirtualMeterDeviceServiceImpl extends ServiceImpl<DeviceMapper, Vir
         this.allSize = buildings * floors * rooms * 3;
         //总数量写入redis
         redisTemplate.opsForValue().set("allDeviceNums", String.valueOf(allSize));
+        //新建时序数据库
+        rocketMQTemplate.convertAndSend("InfluxDB","rebuild");
         return Result.ok(SuccessCode.DEVICE_REGISTER_SUCCESS.getCode(),
                 SuccessCode.DEVICE_REGISTER_SUCCESS.getMessage());
     }

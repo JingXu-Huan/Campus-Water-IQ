@@ -1,5 +1,19 @@
 import axios from 'axios'
 
+// 提取 token 的辅助函数
+const getToken = () => {
+  try {
+    const authData = localStorage.getItem('auth-storage')
+    if (authData) {
+      const parsed = JSON.parse(authData)
+      return parsed.state?.token || parsed.token || null
+    }
+  } catch (e) {
+    console.error('Failed to parse auth token:', e)
+  }
+  return null
+}
+
 const api = axios.create({
   baseURL: '/api',
   timeout: 10000,
@@ -10,7 +24,7 @@ const api = axios.create({
 
 api.interceptors.request.use(
   (config) => {
-    const token = localStorage.getItem('auth-token')
+    const token = getToken()
     if (token) {
       config.headers.Authorization = `Bearer ${token}`
     }

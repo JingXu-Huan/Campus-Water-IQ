@@ -25,7 +25,7 @@ public class UserInfoController {
      * 用户上传自己的头像
      */
     @PostMapping("/avatar")
-    public Result<Boolean> uploadAvatar(@RequestParam("image") MultipartFile file, String uid) {
+    public Result<Boolean> uploadAvatar(@RequestParam("image") MultipartFile file, @RequestParam String uid) {
         return userService.uploadAvatar(file, uid);
     }
 
@@ -41,7 +41,7 @@ public class UserInfoController {
      * 用户修改自己的昵称
      */
     @PostMapping("/changeNickName")
-    public Result<Boolean> updateNickName(String newName, String uid) {
+    public Result<Boolean> updateNickName(@RequestParam String newName, @RequestParam String uid) {
         return userService.changeNickName(newName, uid);
     }
 

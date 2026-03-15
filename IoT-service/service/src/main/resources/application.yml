@@ -12,7 +12,7 @@ dubbo:
     password: nacos
 
 influx:
-  token: L1MgcbvgedkRR6x4q25yEYEf_DUN6BNkQRCgtk9JRpZ8-OaIZZb-_IqG4gODTxASeO3XfprITxCvgD709tdPdQ==
+  token: phqvNq5O0-Y0SqcxuQn8HSvqMHqOtEk92iI3Ig5jGkpsBuILR2E9G_4IJ0D_ygtSuMTcICAvAIkA8luM4zcLdg==
 
 # Actuator 配置
 management:

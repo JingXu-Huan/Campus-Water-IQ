@@ -117,7 +117,7 @@ public class GitHubLoginStrategy implements LoginStrategy {
         // 查询数据库
         User user = userMapper.selectOne(new LambdaQueryWrapper<User>()
                 .eq(User::getGithubId, githubId)
-                .select(User::getUid, User::getNickName, User::getUserType, User::getStatus));
+                .select(User::getUid, User::getNickName, User::getUserType, User::getStatus,User::getAvatar));
         if (user != null) {
             // 缓存用户信息
             UserInfo info = new UserInfo(

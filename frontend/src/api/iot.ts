@@ -1,8 +1,10 @@
 import axios from 'axios'
 
-// IoT-device 服务 (楼宇配置)
+const getToken = () => { try { const authData = localStorage.getItem("auth-storage"); if (authData) { const parsed = JSON.parse(authData); return parsed.state?.token || parsed.token || null; } } catch (e) { console.error("Failed to parse auth token:", e); } return null; }
+
+// IoT-device 服务 (楼宇配置) - 走网关 /device/**
 const iotDeviceApi = axios.create({
-    baseURL: 'http://127.0.0.1:18097',
+    baseURL: '/api',
     timeout: 10000,
     headers: {
         'Content-Type': 'application/json',
@@ -10,9 +12,9 @@ const iotDeviceApi = axios.create({
     withCredentials: false,
 })
 
-// IoT-service 服务
+// IoT-service 服务 - 走网关 /Data/**
 export const iotDataApi = axios.create({
-    baseURL: 'http://127.0.0.1:18016',
+    baseURL: '/api',
     timeout: 10000,
     headers: {
         'Content-Type': 'application/json',
@@ -20,9 +22,9 @@ export const iotDataApi = axios.create({
     withCredentials: false,
 })
 
-// IoT-service 服务 (实时监测 18016)
+// IoT-service 服务 (实时监测) - 走网关 /Data/**
 const iotMonitorApi = axios.create({
-    baseURL: 'http://127.0.0.1:18016',
+    baseURL: '/api',
     timeout: 10000,
     headers: {
         'Content-Type': 'application/json',
@@ -30,19 +32,35 @@ const iotMonitorApi = axios.create({
     withCredentials: false,
 })
 
-// IoT-event 服务 (告警管理 20000)
+iotMonitorApi.interceptors.request.use((config: any) => {
+    const token = getToken()
+    if (token) {
+        config.headers.Authorization = `Bearer ${token}`
+    }
+    return config
+})
+
+// IoT-event 服务 (告警管理) - 走网关 /warn/**
 const iotEventApi = axios.create({
-    baseURL: 'http://127.0.0.1:20000',
+    baseURL: '/api',
     timeout: 10000,
     headers: {
         'Content-Type': 'application/json',
     },
     withCredentials: false,
+})
+
+iotEventApi.interceptors.request.use((config: any) => {
+    const token = getToken()
+    if (token) {
+        config.headers.Authorization = `Bearer ${token}`
+    }
+    return config
 })
 
 // 请求拦截器
 iotDeviceApi.interceptors.request.use((config: any) => {
-    const token = localStorage.getItem('auth-token')
+    const token = getToken()
     if (token) {
         config.headers.Authorization = `Bearer ${token}`
     }
@@ -50,7 +68,7 @@ iotDeviceApi.interceptors.request.use((config: any) => {
 })
 
 iotDataApi.interceptors.request.use((config: any) => {
-    const token = localStorage.getItem('auth-token')
+    const token = getToken()
     if (token) {
         config.headers.Authorization = `Bearer ${token}`
     }
@@ -58,7 +76,7 @@ iotDataApi.interceptors.request.use((config: any) => {
 })
 
 iotEventApi.interceptors.request.use((config: any) => {
-    const token = localStorage.getItem('auth-token')
+    const token = getToken()
     if (token) {
         config.headers.Authorization = `Bearer ${token}`
     }

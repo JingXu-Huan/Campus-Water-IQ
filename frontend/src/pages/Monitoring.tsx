@@ -474,11 +474,11 @@ export default function Monitoring() {
               </div>
             </div>
           ) : (
-            <div className="space-y-6">
-              {/* 六个监测卡片 */}
-              <div className="grid grid-cols-2 md:grid-cols-3 xl:grid-cols-6 gap-4 mb-4">
+            <div className="space-y-4">
+              {/* 顶部监测卡片 */}
+              <div className="flex flex-wrap gap-3 mb-3">
                 {/* 总流量 */}
-                <div className="glass-card rounded-2xl p-5">
+                <div className="glass-card rounded-2xl p-4 flex-1 min-w-[140px]">
                   <div className="flex items-center gap-3 mb-3">
                     <div className="p-2.5 bg-blue-100 rounded-xl">
                       <Droplets className="w-5 h-5 text-blue-600" />
@@ -492,7 +492,7 @@ export default function Monitoring() {
                 </div>
 
                 {/* 平均流量 */}
-                <div className="glass-card rounded-2xl p-5">
+                <div className="glass-card rounded-2xl p-4 flex-1 min-w-[140px]">
                   <div className="flex items-center gap-3 mb-3">
                     <div className="p-2.5 bg-purple-100 rounded-xl">
                       <Activity className="w-5 h-5 text-purple-600" />
@@ -506,7 +506,7 @@ export default function Monitoring() {
                 </div>
 
                 {/* 平均水压 */}
-                <div className="glass-card rounded-2xl p-5">
+                <div className="glass-card rounded-2xl p-4 flex-1 min-w-[140px]">
                   <div className="flex items-center gap-3 mb-3">
                     <div className="p-2.5 bg-cyan-100 rounded-xl">
                       <Gauge className="w-5 h-5 text-cyan-600" />
@@ -520,7 +520,7 @@ export default function Monitoring() {
                 </div>
 
                 {/* 平均水温 */}
-                <div className="glass-card rounded-2xl p-5">
+                <div className="glass-card rounded-2xl p-4 flex-1 min-w-[140px]">
                   <div className="flex items-center gap-3 mb-3">
                     <div className="p-2.5 bg-orange-100 rounded-xl">
                       <Activity className="w-5 h-5 text-orange-600" />
@@ -534,7 +534,7 @@ export default function Monitoring() {
                 </div>
 
                 {/* 水质状况 */}
-                <div className="glass-card rounded-2xl p-5">
+                <div className="glass-card rounded-2xl p-4 flex-1 min-w-[140px]">
                   <div className="flex items-center gap-3 mb-3">
                     <div className={`p-2.5 rounded-xl ${
                       waterQualityScore >= 90 ? 'bg-gradient-to-br from-green-400 to-green-600' :
@@ -579,14 +579,14 @@ export default function Monitoring() {
                 </div>
 
                 {/* 设备在线状态 */}
-                <div className="glass-card rounded-2xl p-5">
+                <div className="glass-card rounded-2xl p-4 flex-1 min-w-[140px]">
                   <div className="flex items-center gap-3 mb-3">
                     <div className={`p-2.5 rounded-xl ${
                       onlineCount > 0 ? 'bg-gradient-to-br from-green-400 to-green-600' : 'bg-gray-100'
                     }`}>
                       {onlineCount > 0 ? <Wifi className="w-5 h-5 text-white" /> : <WifiOff className="w-5 h-5 text-gray-400" />}
                     </div>
-                    <span className="text-sm font-medium text-gray-700">在线设备</span>
+                    <span className="text-sm font-medium text-gray-700">设备在线</span>
                   </div>
                   <div className="flex items-baseline gap-2">
                     <p className="text-2xl font-bold text-green-600">{onlineCount}</p>
@@ -609,7 +609,7 @@ export default function Monitoring() {
               </div>
 
               {/* 图表区域 */}
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-3 mb-3">
                 {/* 各楼层流量对比图 */}
                 <div className="bg-white rounded-xl p-4 shadow-sm">
                   <h3 className="text-lg font-semibold text-gray-900 mb-3">各楼层流量对比</h3>
@@ -668,7 +668,7 @@ export default function Monitoring() {
                     <RefreshCw className="w-8 h-8 text-gray-400 animate-spin" />
                   </div>
                 ) : (
-                  <div className="space-y-6">
+                  <div className="space-y-4">
                     {/* 水质数据加载中提示 */}
                     {loadingWaterQuality && waterQualityData.length === 0 && (
                       <div className="flex items-center justify-center py-2 text-sm text-gray-400">
@@ -830,7 +830,7 @@ export default function Monitoring() {
               </div>
               
               {/* 三个环形仪表盘 */}
-              <div className="grid grid-cols-3 gap-6 mb-6">
+              <div className="grid grid-cols-3 gap-4 mb-3">
                 {/* 流量环 */}
                 <div className="flex flex-col items-center">
                   <GaugeMeter value={selectedDevice.flow} max={0.5} size={100} color="#3b82f6" />

@@ -33,11 +33,13 @@ public class EmailCodeSignUpStrategy implements SignUpStrategy {
 
     private final List<RBloomFilter<String>> bloomFilters;
     private RBloomFilter<String> passwordBloomFilter;
+    private RBloomFilter<String> emailBloomFilter;
     private final BCryptPasswordEncoder passwordEncoder = new BCryptPasswordEncoder();
     
     @PostConstruct
     void init() {
         passwordBloomFilter = bloomFilters.getLast();
+        emailBloomFilter = bloomFilters.getFirst();
     }
     //邮箱正则表达式
     private static final Pattern EMAIL_PATTERN = Pattern
@@ -80,6 +82,7 @@ public class EmailCodeSignUpStrategy implements SignUpStrategy {
         userEntity.setUid(uid);
         userMapper.insert(userEntity);
         passwordBloomFilter.add(uid);
+        emailBloomFilter.add(toEmail);
         return new SignUpResult(true, uid, nickname, "注册成功，请登录");
     }
 

@@ -7,6 +7,7 @@ import com.ncwu.common.domain.dto.IdsDTO;
 import com.ncwu.common.enums.ErrorCode;
 import com.ncwu.common.domain.vo.Result;
 import com.ncwu.common.domain.bo.ToAIBO;
+import com.ncwu.iotservice.entity.VO.UsageBO;
 import com.ncwu.iotservice.service.IoTDataService;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.Max;
@@ -220,6 +221,14 @@ public class IoTDataController {
     @PostMapping("/getUnNormalUsage")
     public Result<Double> getUnNormalUsage(@Min(1) @Max(3) int campus) {
         return ioTDataService.getUnNormalUsage(campus);
+    }
+
+    /**
+     * 查询过去七天的用水量
+     */
+    @GetMapping("/waterTrendsForTheWeek")
+    public Result<List<UsageBO>> waterTrendsForTheWeek(int campus) {
+        return ioTDataService.waterTrendsForTheWeek(campus);
     }
 
 

@@ -20,6 +20,7 @@ import com.ncwu.iotservice.config.ServiceConfig;
 import com.ncwu.iotservice.entity.BO.SchoolUsageBO;
 import com.ncwu.common.domain.bo.ToAIBO;
 import com.ncwu.iotservice.entity.IotDeviceData;
+import com.ncwu.iotservice.entity.VO.UsageBO;
 import com.ncwu.iotservice.entity.WaterUsageRecord;
 import com.ncwu.iotservice.exception.QueryFailedException;
 import com.ncwu.iotservice.mapper.IoTDeviceDataMapper;
@@ -81,8 +82,6 @@ public class IoTDataServiceImpl extends ServiceImpl<IoTDeviceDataMapper, IotDevi
 
     @Override
     public Result<Double> getRangeUsage(LocalDateTime start, LocalDateTime end, String deviceId) {
-        //todo 加入redis缓存
-        // TTL [4,6]分钟 key自定(value结构即可)
         DateFormatBo result = getDateFormatBo(start, end);
         // Flux 查询一次拿到 start 和 end 的累计值
         String fluxQuery = String.format("""
@@ -138,7 +137,7 @@ public class IoTDataServiceImpl extends ServiceImpl<IoTDeviceDataMapper, IotDevi
     @Override
     public Result<Double> getFlowNow(String deviceId) {
         //todo 加入redis缓存
-        // TTL 不超过10秒 key自定(value结构即可)
+        // TTL 不超过5秒 key自定(value结构即可)
         String fluxQuery = String.format("""
                 from(bucket: "water")
                 |> range(start: -10s)
@@ -230,7 +229,7 @@ public class IoTDataServiceImpl extends ServiceImpl<IoTDeviceDataMapper, IotDevi
 
     @Async
     public void setValueToCache(Double data, int school) {
-        LocalDateTime expireTime = LocalDateTime.now().plusMinutes(30);
+        LocalDateTime expireTime = LocalDateTime.now().plusSeconds(120);
         SchoolUsageBO usageBO = new SchoolUsageBO(data, expireTime);
         try {
             //序列化
@@ -289,6 +288,13 @@ public class IoTDataServiceImpl extends ServiceImpl<IoTDeviceDataMapper, IotDevi
             return Result.ok(null);
         }
         return Result.ok(usage);
+    }
+
+    @Override
+    public Result<List<UsageBO>> waterTrendsForTheWeek(int campus) {
+        //todo redis缓存
+        List<UsageBO> usageBOS = waterUsageRecordMapper.waterTrendsForTheWeek(campus);
+        return Result.ok(usageBOS);
     }
 
     @Override
@@ -406,7 +412,7 @@ public class IoTDataServiceImpl extends ServiceImpl<IoTDeviceDataMapper, IotDevi
 
     @Override
     public Result<Double> getTurbidity(String deviceId) {
-        //todo redis缓存 TTL 不超过10秒，key自定义
+        //todo redis缓存 TTL 不超过5秒，key自定义
         String flux = String.format("""
                     from(bucket: "water")
                       |> range(start: -1m)
@@ -438,7 +444,7 @@ public class IoTDataServiceImpl extends ServiceImpl<IoTDeviceDataMapper, IotDevi
 
     @Override
     public Result<Double> getPh(String deviceId) {
-        //todo redis缓存 TTL 不超过10秒，key自定义
+        //todo redis缓存 TTL 不超过5秒，key自定义
         String flux = String.format("""
                     from(bucket: "water")
                       |> range(start: -1m)
@@ -455,7 +461,7 @@ public class IoTDataServiceImpl extends ServiceImpl<IoTDeviceDataMapper, IotDevi
 
     @Override
     public Result<Double> getChlorine(String deviceId) {
-        //todo redis缓存 TTL 不超过10秒，key自定义
+        //todo redis缓存 TTL 不超过5秒，key自定义
         String flux = String.format("""
                     from(bucket: "water")
                       |> range(start: -1m)
@@ -579,7 +585,7 @@ public class IoTDataServiceImpl extends ServiceImpl<IoTDeviceDataMapper, IotDevi
     @Override
     public Result<Double> getPressureNow(String deviceId) {
         //todo 加入redis缓存
-        // TTL 不超过10秒 key自定(value结构即可)
+        // TTL 不超过5秒 key自定(value结构即可)
         String fluxQuery = String.format("""
                 from(bucket: "water")
                 |> range(start: -1m)
@@ -607,7 +613,7 @@ public class IoTDataServiceImpl extends ServiceImpl<IoTDeviceDataMapper, IotDevi
     @Override
     public Result<Double> getTemNow(String deviceId) {
         //todo 加入redis缓存
-        // TTL 不超过10秒 key自定(value结构即可)
+        // TTL 不超过5秒 key自定(value结构即可)
         String fluxQuery = String.format("""
                 from(bucket: "water")
                 |> range(start: -1m)
@@ -692,8 +698,7 @@ public class IoTDataServiceImpl extends ServiceImpl<IoTDeviceDataMapper, IotDevi
                         if (usage != null && usage.getData() != null) {
                             return new AbstractMap.SimpleEntry<>(usage.getData(), slot[0]);
                         }
-                    } catch (Exception e) {
-                        log.warn("查询用水量失败: {} - {}", slot[0], e.getMessage());
+                    } catch (Exception ignored) {
                     }
                     return (Map.Entry<Double, LocalDateTime>) null;
                 }, pool))
@@ -825,7 +830,7 @@ public class IoTDataServiceImpl extends ServiceImpl<IoTDeviceDataMapper, IotDevi
                 }
 
             }
-            System.out.println(points);
+//            System.out.println(points);
             double index = calcFluctuationIndex(points.toArray(new Double[0]));
             result.put("school_" + i, index);
         }
@@ -863,7 +868,9 @@ public class IoTDataServiceImpl extends ServiceImpl<IoTDeviceDataMapper, IotDevi
         try {
             // 校验设备编号
             if (deviceCode == null || deviceCode.trim().isEmpty()) {
-                throw new IllegalArgumentException("设备编号不能为空");
+                return ResponseEntity.badRequest()
+                        .header("Content-Type", "application/json")
+                        .body("{\"code\":\"S0500\",\"message\":\"设备编号不能为空\"}".getBytes());
             }
 
             // 查询设备数据
@@ -878,7 +885,9 @@ public class IoTDataServiceImpl extends ServiceImpl<IoTDeviceDataMapper, IotDevi
             List<IotDeviceData> deviceDataList = deviceDataPage.getRecords();
 
             if (deviceDataList.isEmpty()) {
-                throw new IllegalArgumentException("未找到设备数据");
+                return ResponseEntity.ok()
+                        .header("Content-Type", "application/json")
+                        .body("{\"code\":\"S0500\",\"message\":\"未找到设备数据\"}".getBytes());
             }
 
             // 转换为Map列表用于Excel导出
@@ -899,7 +908,9 @@ public class IoTDataServiceImpl extends ServiceImpl<IoTDeviceDataMapper, IotDevi
 
         } catch (Exception e) {
             log.error("导出设备数据报表失败: {}", e.getMessage(), e);
-            throw new RuntimeException("导出设备数据报表失败: " + e.getMessage());
+            return ResponseEntity.internalServerError()
+                    .header("Content-Type", "application/json")
+                    .body(("{\"code\":\"S0500\",\"message\":\"" + e.getMessage() + "\"}").getBytes());
         }
     }
 
@@ -938,7 +949,7 @@ public class IoTDataServiceImpl extends ServiceImpl<IoTDeviceDataMapper, IotDevi
             try {
                 return Result.ok(Double.valueOf(cachedData));
             } catch (NumberFormatException e) {
-                log.warn("缓存数据格式异常，key: {}, value: {}", cacheKey, cachedData);
+                log.info("缓存数据格式异常，key: {}, value: {}", cacheKey, cachedData);
                 // 删除异常缓存数据
                 redisTemplate.delete(cacheKey);
             }
@@ -951,7 +962,13 @@ public class IoTDataServiceImpl extends ServiceImpl<IoTDeviceDataMapper, IotDevi
                 // 双重检查，防止其他线程已经设置了缓存
                 cachedData = redisTemplate.opsForValue().get(cacheKey);
                 if (cachedData != null) {
-                    return Result.ok(Double.valueOf(cachedData));
+                    Double data = null;
+                    try {
+                        data = Double.valueOf(cachedData);
+                    } catch (NumberFormatException e) {
+                        log.info("入参非数字");
+                    }
+                    return Result.ok(data);
                 }
                 // 查询数据库并缓存结果
                 Result<Double> dbResult = getSchoolUsageFromDb(school, startTime, endTime);

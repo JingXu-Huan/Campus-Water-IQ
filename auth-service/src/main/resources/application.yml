@@ -10,6 +10,8 @@ dubbo:
     password: nacos
     # Or disable QoS
     qos-enable: false
+  consumer:
+    timeout: 5000  # 全局消费者超时时间（毫秒）
 
 # GitHub OAuth配置
 github:
@@ -25,6 +27,5 @@ wechat:
     app-secret: ${WECHAT_APP_SECRET:your_app_secret}
     redirect-uri: ${WECHAT_REDIRECT_URI:http://127.0.0.1:18099/auth/wechat/callback}
 logging:
-  # 2. 级别改为 INFO 或 ERROR
   level:
     com.ncwu.authservice: debug

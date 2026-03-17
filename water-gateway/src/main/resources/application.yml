@@ -36,32 +36,6 @@ spring:
             - Path=/auth/**,/signup/**,/user/**
   main:
     web-application-type: reactive
-# 网关配置
-gateway:
-  security:
-    # JWT密钥（与AuthService保持一致）
-    jwt-secret: ${jwt.secret:jicndghfsW=sbf739f4e7fhnsfhji9qw23fywq8fhweiouwf9uew9f76tewfewop9}
-    # 不需要认证的路径
-    permit-all-paths:
-      - /auth/signin
-      - /auth/send-code
-      - /auth/send-phone-code
-      - /auth/github/authorize
-      - /auth/github/callback
-      - /auth/wechat/authorize
-      - /auth/wechat/callback
-      - /signup
-      - /signup/send-code
-      - /user/avatar
-      - /user/getAvatat
-      - /operations/**
-      - /actuator/**
-      - /health
-      - /favicon.ico
-    # 限流配置
-    rate-limit:
-      enabled: false
-
 logging:
   # 2. 级别改为 INFO 或 ERROR
   level:

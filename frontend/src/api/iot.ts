@@ -107,6 +107,10 @@ iotDeviceApi.interceptors.response.use(
 iotDataApi.interceptors.response.use(
     (response: any) => {
         const data = response.data
+        // 如果是 Blob 或 ArrayBuffer，直接返回（用于文件下载）
+        if (data instanceof Blob || data instanceof ArrayBuffer) {
+            return response
+        }
         if (typeof data === 'string') {
             return {code: '200', message: 'success', data: data}
         }
@@ -1082,8 +1086,41 @@ export const iotApi = {
     getDeviceData: async (deviceCode: string): Promise<Blob> => {
         const response = await iotDataApi.get('/Data/getDeviceData', {
             params: { deviceCode },
-            responseType: 'blob'
+            responseType: 'blob',
+            validateStatus: () => true // 不抛出错误，让响应正常返回
         })
-        return response
+        
+        // 检查 HTTP 状态码
+        if (response.status !== 200) {
+            throw new Error(`请求失败: ${response.status}`)
+        }
+        
+        // 检查是否是 JSON 错误响应（Content-Type 判断）
+        const contentType = response.headers['content-type'] || ''
+        if (contentType.includes('application/json')) {
+            const text = await response.data.text()
+            const data = JSON.parse(text)
+            throw new Error(data.message || '获取数据失败')
+        }
+        
+        // 正常返回 Blob
+        return response.data
+    },
+
+    // 获取过去七天的用水量趋势
+    getWaterTrendsForTheWeek: async (campus: number): Promise<{ day: string; usage: number }[]> => {
+        try {
+            const res = await iotDataApi.get<{ data: { campus: number; time: string; schoolUsage: number }[] }>('/Data/waterTrendsForTheWeek', {
+                params: { campus }
+            })
+            const data = res?.data?.data || res?.data || []
+            return data.map(item => ({
+                day: new Date(item.time).toLocaleDateString('zh-CN', { weekday: 'short' }),
+                usage: item.schoolUsage || 0
+            }))
+        } catch (error) {
+            console.error('获取本周用水趋势失败:', error)
+            return []
+        }
     }
 }

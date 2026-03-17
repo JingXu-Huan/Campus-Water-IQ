@@ -74,4 +74,9 @@ public interface IotDataService {
      * 获取设备上报原始数据报表
      */
     ResponseEntity<byte[]> getDeviceDatas(String deviceCode);
+
+    /**
+     * 获得各校区用水占比
+     */
+    Result<Map<Integer, Double>> getCampusRate();
 }

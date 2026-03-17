@@ -59,7 +59,7 @@ public class MeterOnLineCheckerTasks {
         if (meterChecked == 0) {
             return;
         }
-        log.warn("水表--开始检测");
+        log.info("水表--开始检测");
         String prefix = "OnLineMap";
         long now = System.currentTimeMillis();
         //按量扫描，避免数据量过大产生OOM

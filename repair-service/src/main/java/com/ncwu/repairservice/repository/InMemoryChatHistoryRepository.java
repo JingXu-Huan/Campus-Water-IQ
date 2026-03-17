@@ -43,9 +43,6 @@ public class InMemoryChatHistoryRepository implements ChatHistoryRepository{
     @Override
     public List<MessageVO> getChatHistory(String type, String chatId) {
         List<Message> messages = chatMemory.get(chatId);
-        if(messages==null) {
-            return List.of();
-        }
         return messages.stream().map(MessageVO::new).collect(Collectors.toList());
     }
 }

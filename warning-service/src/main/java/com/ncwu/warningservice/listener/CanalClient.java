@@ -178,11 +178,11 @@ public class CanalClient {
                             <meta name="viewport" content="width=device-width, initial-scale=1.0">
                             <title>新报修单通知</title>
                         </head>
-                        <body style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif; 
+                        <body style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;\s
                                       margin: 0; padding: 20px; background-color: #f8f9fa; color: #2c3e50; line-height: 1.6;">
-                            <div style="max-width: 600px; margin: 0 auto; background-color: #ffffff; 
+                            <div style="max-width: 600px; margin: 0 auto; background-color: #ffffff;\s
                                         border-radius: 12px; box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1); overflow: hidden;">
-                        
+                       \s
                                 <!-- Header -->
                                 <div style="background: linear-gradient(135deg, #667eea 0%%, #764ba2 100%%); padding: 30px 20px; text-align: center;">
                                     <h1 style="margin: 0; color: #ffffff; font-size: 24px; font-weight: 600;">
@@ -192,7 +192,7 @@ public class CanalClient {
                                         请及时处理以下报修请求
                                     </p>
                                 </div>
-                        
+                       \s
                                 <!-- Content -->
                                 <div style="padding: 30px 20px;">
                                     <table style="width: 100%%; border-collapse: collapse; font-size: 14px;">
@@ -249,7 +249,7 @@ public class CanalClient {
                                                 严重程度
                                             </td>
                                             <td style="padding: 12px 0; border-bottom: 1px solid #e9ecef;">
-                                                <span style="display: inline-block; padding: 4px 12px; border-radius: 20px; 
+                                                <span style="display: inline-block; padding: 4px 12px; border-radius: 20px;\s
                                                            font-size: 12px; font-weight: 600; color: %s; background-color: %s20;">
                                                     %s
                                                 </span>
@@ -269,7 +269,7 @@ public class CanalClient {
                                         </tr>
                                     </table>
                                 </div>
-                        
+                       \s
                                 <!-- Footer -->
                                 <div style="background-color: #f8f9fa; padding: 20px; text-align: center; border-top: 1px solid #e9ecef;">
                                     <p style="margin: 0; font-size: 12px; color: #6c757d;">
@@ -282,7 +282,7 @@ public class CanalClient {
                             </div>
                         </body>
                         </html>
-                        """,
+                       \s""",
                 deviceCode,
                 campusNo,
                 buildingNo,

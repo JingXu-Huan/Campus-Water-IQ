@@ -109,8 +109,9 @@ public class GitHubOAuthService {
             
             // 解析JSON响应
             ObjectMapper mapper = new ObjectMapper();
-            Map<String, Object> userInfo = mapper.readValue(userInfoResponse, 
-                    new TypeReference<Map<String, Object>>() {});
+            Map<String, Object> userInfo = mapper.readValue(userInfoResponse,
+                    new TypeReference<>() {
+                    });
 
             // 获取用户邮箱信息
             String emailInfoResponse = webClientBuilder.build()
@@ -126,7 +127,8 @@ public class GitHubOAuthService {
             log.debug("Raw email info response: {}", emailInfoResponse);
             
             List<Map<String, Object>> emailInfo = mapper.readValue(emailInfoResponse,
-                    new TypeReference<List<Map<String, Object>>>() {});
+                    new TypeReference<>() {
+                    });
 
             if (userInfo != null) {
                 GitHubUserInfo result = new GitHubUserInfo();

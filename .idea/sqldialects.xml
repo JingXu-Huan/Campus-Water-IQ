@@ -4,5 +4,8 @@
     <file url="file://$PROJECT_DIR$/IoT-device/virtual_device.sql" dialect="MySQL" />
     <file url="file://$PROJECT_DIR$/IoT-service/iot_device_data.sql" dialect="MySQL" />
     <file url="file://$PROJECT_DIR$/IoT-service/iot_device_event.sql" dialect="MySQL" />
+    <file url="file://$PROJECT_DIR$/IoT-service/service/src/main/java/com/ncwu/iotservice/mapper/WaterUsageRecordMapper.java" dialect="GenericSQL" />
+    <file url="file://$PROJECT_DIR$/common/src/sql/InitData.sql" dialect="MySQL" />
+    <file url="PROJECT" dialect="MySQL" />
   </component>
 </project>

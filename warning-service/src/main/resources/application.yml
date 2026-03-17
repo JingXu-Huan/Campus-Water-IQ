@@ -3,17 +3,17 @@ dubbo:
     name: warning-service
     qos-port: 22225
   protocol:
-    port: 20882
+    port: 20888
   registry:
     address: nacos://101.42.157.163:8848
     username: nacos
     password: nacos
+  provider:
+    timeout: 7000  # 提供方超时时间（毫秒）
 spring:
   mail:
     host: smtp.qq.com
     port: 465
-    username: 2405313582@qq.com           # 改为你的QQ邮箱
-    password: szzgeuwfuigedjeg   # 改为你的QQ邮箱授权码
     fromEmail: 2405313582@qq.com
     default-encoding: UTF-8
     properties:

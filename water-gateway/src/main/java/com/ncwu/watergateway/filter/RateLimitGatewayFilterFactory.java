@@ -43,70 +43,65 @@ public class RateLimitGatewayFilterFactory extends AbstractGatewayFilterFactory<
         private boolean enabled = true;
     }
 
-    private static class RateLimitGatewayFilter implements GatewayFilter, Ordered {
-        private final Config config;
-
-        public RateLimitGatewayFilter(Config config) {
-            this.config = config;
-        }
+    private record RateLimitGatewayFilter(Config config) implements GatewayFilter, Ordered {
 
         @Override
-        public Mono<Void> filter(ServerWebExchange exchange, GatewayFilterChain chain) {
-            if (!config.isEnabled()) {
+            public Mono<Void> filter(ServerWebExchange exchange, GatewayFilterChain chain) {
+                if (!config.isEnabled()) {
+                    return chain.filter(exchange);
+                }
+
+                // 这里实现简单的限流逻辑
+                // 在生产环境中，建议使用Redis + Lua脚本实现分布式限流
+                String clientId = getClientId(exchange.getRequest());
+
+            // 简单的内存限流（仅用于演示）
+                if (isRateLimited(clientId)) {
+                    return handleRateLimitExceeded(exchange);
+                }
+
                 return chain.filter(exchange);
             }
 
-            // 这里实现简单的限流逻辑
-            // 在生产环境中，建议使用Redis + Lua脚本实现分布式限流
-            String clientId = getClientId(exchange.getRequest());
-            
-            // 简单的内存限流（仅用于演示）
-            if (isRateLimited(clientId)) {
-                return handleRateLimitExceeded(exchange);
+            private String getClientId(ServerHttpRequest request) {
+                // 使用IP地址作为客户端标识
+                String xForwardedFor = request.getHeaders().getFirst("X-Forwarded-For");
+                if (xForwardedFor != null && !xForwardedFor.isEmpty()) {
+                    return xForwardedFor.split(",")[0].trim();
+                }
+
+                String xRealIp = request.getHeaders().getFirst("X-Real-IP");
+                if (xRealIp != null && !xRealIp.isEmpty()) {
+                    return xRealIp;
+                }
+
+                return request.getRemoteAddress() != null ?
+                        request.getRemoteAddress().getAddress().getHostAddress() : "unknown";
             }
 
-            return chain.filter(exchange);
-        }
-
-        private String getClientId(ServerHttpRequest request) {
-            // 使用IP地址作为客户端标识
-            String xForwardedFor = request.getHeaders().getFirst("X-Forwarded-For");
-            if (xForwardedFor != null && !xForwardedFor.isEmpty()) {
-                return xForwardedFor.split(",")[0].trim();
+            private boolean isRateLimited(String clientId) {
+                // 这里应该实现基于时间窗口的限流逻辑
+                // 为了演示，这里返回false，即不限流
+                // 实际实现可以使用Redis的令牌桶或滑动窗口算法
+                return false;
             }
-            
-            String xRealIp = request.getHeaders().getFirst("X-Real-IP");
-            if (xRealIp != null && !xRealIp.isEmpty()) {
-                return xRealIp;
+
+            private Mono<Void> handleRateLimitExceeded(ServerWebExchange exchange) {
+                ServerHttpResponse response = exchange.getResponse();
+                response.setStatusCode(HttpStatus.TOO_MANY_REQUESTS);
+                response.getHeaders().add("Content-Type", "application/json");
+
+                String body = String.format("{\"code\":429,\"message\":\"Rate limit exceeded\",\"timestamp\":%d}",
+                        System.currentTimeMillis());
+
+                return response.writeWith(Mono.just(response.bufferFactory().wrap(body.getBytes())));
             }
-            
-            return request.getRemoteAddress() != null ? 
-                    request.getRemoteAddress().getAddress().getHostAddress() : "unknown";
-        }
 
-        private boolean isRateLimited(String clientId) {
-            // 这里应该实现基于时间窗口的限流逻辑
-            // 为了演示，这里返回false，即不限流
-            // 实际实现可以使用Redis的令牌桶或滑动窗口算法
-            return false;
+            @Override
+            public int getOrder() {
+                return -50;
+            }
         }
-
-        private Mono<Void> handleRateLimitExceeded(ServerWebExchange exchange) {
-            ServerHttpResponse response = exchange.getResponse();
-            response.setStatusCode(HttpStatus.TOO_MANY_REQUESTS);
-            response.getHeaders().add("Content-Type", "application/json");
-            
-            String body = String.format("{\"code\":429,\"message\":\"Rate limit exceeded\",\"timestamp\":%d}", 
-                    System.currentTimeMillis());
-            
-            return response.writeWith(Mono.just(response.bufferFactory().wrap(body.getBytes())));
-        }
-
-        @Override
-        public int getOrder() {
-            return -50;
-        }
-    }
 
     @Override
     public List<String> shortcutFieldOrder() {

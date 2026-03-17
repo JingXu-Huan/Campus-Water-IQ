@@ -127,10 +127,8 @@ public class DeviceReservationServiceImpl extends ServiceImpl<DeviceReservationM
                     .map(this::toVO)
                     .toList();
             //异步写入 redis
-            pool.submit(() -> {
-                redisTemplate.opsForValue().set("ReportByStatus:" + status, JSON.toJSONString(voList),
-                        120 + ThreadLocalRandom.current().nextInt(30), TimeUnit.SECONDS);
-            });
+            pool.submit(() -> redisTemplate.opsForValue().set("ReportByStatus:" + status, JSON.toJSONString(voList),
+                    120 + ThreadLocalRandom.current().nextInt(30), TimeUnit.SECONDS));
             return Result.ok(voList);
         }
     }

@@ -3,6 +3,8 @@ package com.ncwu.repairservice.entity.po;
 import com.baomidou.mybatisplus.annotation.TableName;
 import com.baomidou.mybatisplus.annotation.IdType;
 import com.baomidou.mybatisplus.annotation.TableId;
+
+import java.io.Serial;
 import java.time.LocalDateTime;
 import java.io.Serializable;
 import lombok.Data;
@@ -23,6 +25,7 @@ import lombok.experimental.Accessors;
 @TableName("device_reservation")
 public class DeviceReservation implements Serializable {
 
+    @Serial
     private static final long serialVersionUID = 1L;
 
     @TableId(value = "id", type = IdType.AUTO)

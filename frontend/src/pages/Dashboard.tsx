@@ -93,7 +93,7 @@ export default function Dashboard() {
         onlineCount: number;
         totalCount: number
     }[]>([])
-    const [loadingBuildings, setLoadingBuildings] = useState(false)
+    const [, setLoadingBuildings] = useState(false)
     const [alertCount, setAlertCount] = useState<number>(0)
     const [deviceCount, setDeviceCount] = useState<number>(0)
     const [offlineDevices, setOfflineDevices] = useState<string[]>([])
@@ -164,15 +164,15 @@ export default function Dashboard() {
         '2': '水质传感器'
     }
 
-    // 图表数据 - 模拟近7天用水趋势
-    const [weeklyUsageData] = useState([
-        {day: '周一', usage: 120},
-        {day: '周二', usage: 135},
-        {day: '周三', usage: 128},
-        {day: '周四', usage: 142},
-        {day: '周五', usage: 156},
-        {day: '周六', usage: 98},
-        {day: '周日', usage: 105}
+    // 图表数据 - 近7天用水趋势
+    const [weeklyUsageData, setWeeklyUsageData] = useState([
+        {day: '周一', usage: 0},
+        {day: '周二', usage: 0},
+        {day: '周三', usage: 0},
+        {day: '周四', usage: 0},
+        {day: '周五', usage: 0},
+        {day: '周六', usage: 0},
+        {day: '周日', usage: 0}
     ])
 
     // 各校区用水占比 - 使用真实API数据
@@ -437,6 +437,33 @@ export default function Dashboard() {
         }
     }
 
+    // 获取本周用水趋势
+    const fetchWeeklyTrends = async () => {
+        if (!currentCampus) return
+        setLoadingWaterSwings(true)
+        try {
+            const data = await iotApi.getWaterTrendsForTheWeek(currentCampus.schoolId)
+            // 有数据时更新，否则重置为空数据状态
+            if (data && data.length > 0) {
+                setWeeklyUsageData(data)
+            } else {
+                setWeeklyUsageData([
+                    {day: '周一', usage: 0},
+                    {day: '周二', usage: 0},
+                    {day: '周三', usage: 0},
+                    {day: '周四', usage: 0},
+                    {day: '周五', usage: 0},
+                    {day: '周六', usage: 0},
+                    {day: '周日', usage: 0}
+                ])
+            }
+        } catch (err) {
+            console.error('获取本周用水趋势失败:', err)
+        } finally {
+            setLoadingWaterSwings(false)
+        }
+    }
+
     // 打开个人中心
     const openProfileModal = () => {
         setEditingNickname(nickname || '')
@@ -694,6 +721,7 @@ export default function Dashboard() {
         fetchCampusRate()
         fetchWaterSwings()
         fetchUnNormalUsage()
+        fetchWeeklyTrends()
         const campus = campuses.find(c => c.id === selectedCampus)
         if (campus) {
             fetchWeather(campus.lat, campus.lon)
@@ -1355,29 +1383,35 @@ export default function Dashboard() {
                     <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mt-6">
                         {/* 用水趋势图 */}
                         <div className="glass-card rounded-2xl p-4 animate-slide-up" style={{animationDelay: '0ms'}}>
-                            <h2 className="text-lg font-semibold text-gray-900 mb-4">本周用水趋势</h2>
-                            <ResponsiveContainer width="100%" height={280}>
-                                <LineChart data={weeklyUsageData}>
-                                    <CartesianGrid strokeDasharray="3 3" stroke="#d1d5db"/>
-                                    <XAxis dataKey="day" tick={{fontSize: 12}}/>
-                                    <YAxis tick={{fontSize: 12}} unit="m³"/>
-                                    <Tooltip
-                                        formatter={(value: number | undefined) => value !== undefined ? [`${value} m³`, '用水量'] : ['无数据', '用水量']}
-                                        contentStyle={{
-                                            borderRadius: '8px',
-                                            border: 'none',
-                                            boxShadow: '0 2px 8px rgba(0,0,0,0.1)'
-                                        }}
-                                    />
-                                    <Line type="monotone" dataKey="usage" stroke="#1d4ed8" strokeWidth={3}
-                                          dot={{fill: '#1d4ed8', r: 5}}/>
-                                </LineChart>
-                            </ResponsiveContainer>
+                            <h2 className="text-lg font-semibold text-gray-900 mb-4">过去7日用水数据</h2>
+                            {weeklyUsageData.every(d => d.usage === 0) ? (
+                                <div className="h-[280px] flex items-center justify-center text-gray-400">
+                                    暂无数据
+                                </div>
+                            ) : (
+                                <ResponsiveContainer width="100%" height={280}>
+                                    <LineChart data={weeklyUsageData}>
+                                        <CartesianGrid strokeDasharray="3 3" stroke="#d1d5db"/>
+                                        <XAxis dataKey="day" tick={{fontSize: 12}}/>
+                                        <YAxis tick={{fontSize: 12}} unit="m³"/>
+                                        <Tooltip
+                                            formatter={(value: number | undefined) => value !== undefined ? [`${value} m³`, '用水量'] : ['无数据', '用水量']}
+                                            contentStyle={{
+                                                borderRadius: '8px',
+                                                border: 'none',
+                                                boxShadow: '0 2px 8px rgba(0,0,0,0.1)'
+                                            }}
+                                        />
+                                        <Line type="monotone" dataKey="usage" stroke="#1d4ed8" strokeWidth={3}
+                                              dot={{fill: '#1d4ed8', r: 5}}/>
+                                    </LineChart>
+                                </ResponsiveContainer>
+                            )}
                         </div>
 
                         {/* 各校区用水占比 */}
                         <div className="glass-card rounded-2xl p-4 animate-slide-up" style={{animationDelay: '0ms'}}>
-                            <h2 className="text-lg font-semibold text-gray-900 mb-4">各校区用水占比</h2>
+                            <h2 className="text-lg font-semibold text-gray-900 mb-4">花园、龙子湖、江淮三校区用水占比</h2>
                             {loadingCampusRate ? (
                                 <div className="h-[280px] flex items-center justify-center">
                                     <div
@@ -1405,7 +1439,7 @@ export default function Dashboard() {
 
                         {/* 各区域用水占比 */}
                         <div className="glass-card rounded-2xl p-4 animate-slide-up" style={{animationDelay: '0ms'}}>
-                            <h2 className="text-lg font-semibold text-gray-900 mb-4">各区域用水占比</h2>
+                            <h2 className="text-lg font-semibold text-gray-900 mb-4">各校园区域用水占比</h2>
                             {loadingRegionRate ? (
                                 <div className="h-[280px] flex items-center justify-center">
                                     <div

@@ -7,7 +7,6 @@ import com.ncwu.iotdevice.config.ServerConfig;
 import com.ncwu.iotdevice.domain.entity.VirtualDevice;
 import com.ncwu.iotdevice.mapper.DeviceMapper;
 import com.ncwu.iotdevice.service.impl.VirtualMeterDeviceServiceImpl;
-import com.ncwu.iotdevice.utils.Utils;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.rocketmq.spring.core.RocketMQTemplate;
@@ -51,7 +50,7 @@ public class WaterQualityCheckerTasks {
         if (waterQualityChecked == 0) {
             return;
         }
-        log.warn("传感器--开始检测");
+        log.info("传感器--开始检测");
         String prefix = "OnLineMap";
         long now = System.currentTimeMillis();
         //按量扫描，避免数据量过大产生OOM

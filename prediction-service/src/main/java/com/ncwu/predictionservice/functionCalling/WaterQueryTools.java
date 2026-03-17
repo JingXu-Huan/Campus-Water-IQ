@@ -50,14 +50,12 @@ public class WaterQueryTools {
     }
 
     @Tool("""
-            你是一个校园用水量查询助手。用户查询时，你需要收集以下三个参数：
             此工具用于查询某校区的某时间段用水量数据。
             - school（校区）：1 = 花园校区，2 = 龙子湖校区，3 = 江淮校区
             - start（开始时间）：格式 yyyy-MM-dd HH:mm:ss
             - end（结束时间）：格式 yyyy-MM-dd HH:mm:ss
-            
             【收集参数的原则】
-            - 若用户未提供某参数，主动询问，但无需追问精确时间——用户说"今天下午三点"即可，年份默认为 2026 年，补全后再调用工具。
+            - 若用户未提供某参数，就查询从今天零点到现在的用水量。
             - 你可以调用一些时间工具获取现在的时间。
             - 三个参数齐全后，立即调用查询工具，无需再次确认。""")
     Result<Double> getSchoolUsage(int school, LocalDateTime start, LocalDateTime end) {
@@ -95,7 +93,6 @@ public class WaterQueryTools {
     }
 
 
-
     @Tool("""
             此工具可以下载某台设备的原始上报数据报表。
             - 方法需要用户提供设备编码，请主动要求用户输入。
@@ -114,5 +111,13 @@ public class WaterQueryTools {
             """)
     Result<Double> getUnNormalUsage(@Min(1) @Max(3) int campus) {
         return iotDataService.getUnNormalUsage(campus);
+    }
+
+    @Tool("""
+            此工具查询三个校区的用水占比。
+            当用户询问三个校区的用水占比是多少，你可以调用此工具。
+            """)
+    Result<Map<Integer, Double>> getCampusRate() {
+        return iotDataService.getCampusRate();
     }
 }

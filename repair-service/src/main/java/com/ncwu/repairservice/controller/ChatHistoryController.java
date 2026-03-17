@@ -16,11 +16,11 @@ import java.util.List;
 public class ChatHistoryController {
     private final ChatHistoryRepository chatHistoryRepository;
     @GetMapping("{type}")
-    public List<String> getChatIdS(@PathVariable("type")String type) {
+    public List<String> getChatIdS(@PathVariable String type) {
         return chatHistoryRepository.getChatIds(type);
     }
     @GetMapping("{type}/{chatId}")
-    public List<MessageVO> getChatHistory(@PathVariable("type") String type, @PathVariable("chatId") String chatId) {
+    public List<MessageVO> getChatHistory(@PathVariable String type, @PathVariable String chatId) {
         return chatHistoryRepository.getChatHistory(type,chatId);
     }
  }

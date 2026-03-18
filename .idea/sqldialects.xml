@@ -2,7 +2,6 @@
 <project version="4">
   <component name="SqlDialectMappings">
     <file url="file://$PROJECT_DIR$/IoT-device/virtual_device.sql" dialect="MySQL" />
-    <file url="file://$PROJECT_DIR$/IoT-service/iot_device_data.sql" dialect="MySQL" />
-    <file url="file://$PROJECT_DIR$/IoT-service/iot_device_event.sql" dialect="MySQL" />
+    <file url="file://$PROJECT_DIR$/common/src/sql/InitData.sql" dialect="MySQL" />
   </component>
 </project>

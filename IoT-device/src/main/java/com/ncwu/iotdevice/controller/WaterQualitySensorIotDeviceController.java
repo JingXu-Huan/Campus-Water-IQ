@@ -1,5 +1,6 @@
 package com.ncwu.iotdevice.controller;
 
+import com.ncwu.common.annotation.RequireRole;
 import com.ncwu.common.domain.vo.Result;
 import com.ncwu.common.domain.dto.IdsDTO;
 import com.ncwu.common.enums.ErrorCode;
@@ -35,6 +36,7 @@ public class WaterQualitySensorIotDeviceController {
     /**
      * 开启所有水质传感器
      */
+    @RequireRole(value = {2,3}, names = {"运维","管理员"})
     @GetMapping("/startAll")
     public Result<String> startAll() {
         return waterQualityDeviceService.startAll();
@@ -45,6 +47,7 @@ public class WaterQualitySensorIotDeviceController {
      *
      * @param ids 设备列表
      */
+    @RequireRole(value = {2,3}, names = {"运维","管理员"})
     @PostMapping("/startList")
     public Result<String> startList(@RequestBody @Valid IdsDTO ids) {
         List<@NotBlank(message = "设备ID不能为空") @Pattern(
@@ -62,6 +65,7 @@ public class WaterQualitySensorIotDeviceController {
      *
      * @param ids 设备列表
      */
+    @RequireRole(value = {2,3}, names = {"运维","管理员"})
     @PostMapping("/stopList")
     public Result<String> stopList(@RequestBody @Valid IdsDTO ids) {
         List<@NotBlank(message = "设备ID不能为空") @Pattern(
@@ -77,6 +81,7 @@ public class WaterQualitySensorIotDeviceController {
     /**
      * 停止所有水质传感器上报任务
      */
+    @RequireRole(value = {2,3}, names = {"运维","管理员"})
     @GetMapping("/stopAll")
     public Result<String> stopAll() {
         return waterQualityDeviceService.stopAll();
@@ -87,6 +92,7 @@ public class WaterQualitySensorIotDeviceController {
      *
      * @param ids 设备列表
      */
+    @RequireRole(value = {2,3}, names = {"运维","管理员"})
     @PostMapping("/stopAll")
     public Result<String> offLineAll(@RequestBody @Valid IdsDTO ids) {
         List<@NotBlank(message = "设备ID不能为空") @Pattern(
@@ -98,6 +104,4 @@ public class WaterQualitySensorIotDeviceController {
         }
         return waterQualityDeviceService.offLine(ids.getIds());
     }
-
-
 }

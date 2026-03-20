@@ -70,7 +70,11 @@ public class EmailCodeSignUpStrategy implements SignUpStrategy {
         if (user != null) {
             return new SignUpResult(false, "", "", user.getNickName() + "已经注册，可以直接登录");
         }
-
+        // 处理角色：前端传入的 role 应该是 1(普通用户) / 2(运维) / 3(管理员)
+        int role = signUpRequest.getRole();
+        if (role < 1 || role > 3) {
+            role = 1;
+        }
         String uid = genUid(1);
         String nickname = signUpRequest.getNickname();
         // 使用 BCrypt 加密密码
@@ -80,6 +84,7 @@ public class EmailCodeSignUpStrategy implements SignUpStrategy {
         userEntity.setNickName(nickname);
         userEntity.setPassword(pwd);
         userEntity.setUid(uid);
+        userEntity.setUserType(role);
         userMapper.insert(userEntity);
         passwordBloomFilter.add(uid);
         emailBloomFilter.add(toEmail);

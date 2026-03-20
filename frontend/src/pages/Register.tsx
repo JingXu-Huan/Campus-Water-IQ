@@ -1,11 +1,25 @@
 import { useState, useMemo } from 'react'
 import { useNavigate, Link } from 'react-router-dom'
 import { authApi, SignUpResult } from '@/api/auth'
-import { Eye, EyeOff, Droplets, Mail, Phone, Lock, User, MessageSquare, Loader2, Check, X, ArrowRight } from 'lucide-react'
+import { Eye, EyeOff, Droplets, Mail, Phone, Lock, User, MessageSquare, Loader2, Check, X, ArrowRight, Shield, ShieldCheck, Users } from 'lucide-react'
 import { motion, AnimatePresence } from 'framer-motion'
 import * as React from "react";
 
 type RegisterMethod = 'email' | 'phone'
+
+// 角色类型
+type UserRole = {
+  value: number
+  label: string
+  desc: string
+  icon: React.ReactNode
+}
+
+const ROLES: UserRole[] = [
+  { value: 1, label: '普通用户', desc: '查看用水数据、提交报修', icon: <Users className="w-5 h-5" /> },
+  { value: 2, label: '运维人员', desc: '设备管理、参数配置', icon: <Shield className="w-5 h-5" /> },
+  { value: 3, label: '管理员', desc: '系统管理、全权限操作', icon: <ShieldCheck className="w-5 h-5" /> },
+]
 
 // 密码强度检查
 const getPasswordStrength = (password: string): { level: number; label: string; color: string } => {
@@ -32,6 +46,7 @@ export default function Register() {
   const [confirmPwd, setConfirmPwd] = useState('')
   const [nickname, setNickname] = useState('')
   const [code, setCode] = useState('')
+  const [role, setRole] = useState<number>(1) // 默认普通用户
   const [showPassword, setShowPassword] = useState(false)
   const [loading, setLoading] = useState(false)
   const [sendingCode, setSendingCode] = useState(false)
@@ -118,7 +133,8 @@ export default function Register() {
         identifier,
         credential: code,
         pwd: credential,
-        nickname
+        nickname,
+        role
       }) as unknown as SignUpResult
       
       if (res.isSuccess) {
@@ -217,25 +233,29 @@ export default function Register() {
             <p className="text-gray-500 mb-8">填写以下信息完成注册</p>
 
             {/* 注册方式切换 */}
-            <div className="flex rounded-2xl bg-gray-100 p-1.5 mb-6">
+            <div className="flex rounded-2xl bg-gray-100 p-1.5 mb-2">
               {([
-                { key: 'email', label: '邮箱注册' },
-                { key: 'phone', label: '手机注册' }
-              ] as const).map(({ key, label }) => (
+                { key: 'email', label: '邮箱注册', disabled: false },
+                { key: 'phone', label: '手机注册', disabled: true }
+              ] as const).map(({ key, label, disabled }) => (
                 <button
                   key={key}
                   type="button"
-                  onClick={() => setRegisterMethod(key)}
+                  onClick={() => !disabled && setRegisterMethod(key)}
+                  disabled={disabled}
                   className={`flex-1 py-2.5 px-3 rounded-xl text-sm font-medium transition-all duration-200 ${
-                    registerMethod === key
+                    registerMethod === key && !disabled
                       ? 'bg-white text-primary-600 shadow-md'
-                      : 'text-gray-500 hover:text-gray-700'
+                      : disabled
+                        ? 'bg-gray-200 text-gray-400 cursor-not-allowed'
+                        : 'text-gray-500 hover:text-gray-700'
                   }`}
                 >
                   {label}
                 </button>
               ))}
             </div>
+            <p className="text-xs text-gray-400 mb-6">📱 手机注册正在开发中，敬请期待</p>
 
             <form onSubmit={handleSubmit} className="space-y-4">
               {/* 昵称 */}
@@ -367,6 +387,33 @@ export default function Register() {
                     {passwordMatch === false && <X className="w-5 h-5 text-red-500" />}
                   </div>
                 </div>
+              </div>
+
+              {/* 角色选择 */}
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-3">选择角色</label>
+                <div className="grid grid-cols-3 gap-3">
+                  {ROLES.map((r) => (
+                    <button
+                      key={r.value}
+                      type="button"
+                      onClick={() => setRole(r.value)}
+                      className={`flex flex-col items-center justify-center p-3 rounded-xl border-2 transition-all ${
+                        role === r.value
+                          ? 'border-primary-500 bg-primary-50 text-primary-700'
+                          : 'border-gray-100 bg-gray-50 hover:border-gray-200 text-gray-600'
+                      }`}
+                    >
+                      <div className={`mb-2 ${role === r.value ? 'text-primary-600' : 'text-gray-400'}`}>
+                        {r.icon}
+                      </div>
+                      <span className="text-sm font-medium">{r.label}</span>
+                    </button>
+                  ))}
+                </div>
+                <p className="mt-2 text-xs text-gray-500">
+                  {ROLES.find(r => r.value === role)?.desc}
+                </p>
               </div>
 
               {/* 错误/成功提示 */}

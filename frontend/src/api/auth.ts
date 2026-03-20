@@ -78,6 +78,7 @@ export interface SignUpRequest {
   credential: string
   pwd: string
   nickname: string
+  role: number
 }
 
 export interface AuthResult {

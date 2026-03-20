@@ -75,7 +75,8 @@ public class SecurityConfig {
      */
     public static class GatewayAuthenticationFilter extends OncePerRequestFilter {
         @Override
-        protected void doFilterInternal(HttpServletRequest request, @NonNull HttpServletResponse response, @NonNull FilterChain filterChain)
+        protected void doFilterInternal(HttpServletRequest request, @NonNull HttpServletResponse response,
+                                        @NonNull FilterChain filterChain)
                 throws ServletException, IOException {
             
             String userId = request.getHeader("X-User-Id");

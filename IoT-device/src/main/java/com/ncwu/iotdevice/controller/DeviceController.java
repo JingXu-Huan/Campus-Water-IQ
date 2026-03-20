@@ -1,6 +1,7 @@
 package com.ncwu.iotdevice.controller;
 
 
+import com.ncwu.common.annotation.RequireRole;
 import com.ncwu.common.domain.vo.Result;
 import com.ncwu.common.enums.ErrorCode;
 import com.ncwu.common.enums.SuccessCode;
@@ -51,6 +52,7 @@ public class DeviceController {
      * @param experimentBuildings 实验楼宇的数量
      */
     @GetMapping("/init")
+    @RequireRole(value = {3}, names = {"管理员"})
     public Result<String> start(@Min(1) @Max(33) @RequestParam(defaultValue = "1") int dormitoryBuildings,
                                 @Min(1) @Max(30) @RequestParam(defaultValue = "1") int educationBuildings,
                                 @Min(1) @Max(30) @RequestParam(defaultValue = "1") int experimentBuildings,
@@ -74,6 +76,7 @@ public class DeviceController {
      * @author 景旭
      */
     @GetMapping("/timeChange")
+    @RequireRole(value = {3}, names = {"管理员"})
     public Result<String> changeTime(@Min(0) @Max(86400) int time) {
         return virtualMeterDeviceService.changeTime(time);
     }
@@ -91,6 +94,7 @@ public class DeviceController {
      * @author 景旭
      */
     @GetMapping("/seasonChange")
+    @RequireRole(value = {3}, names = {"管理员"})
     public Result<String> changeSeason(@Min(1) @Max(4) int season) {
         return virtualMeterDeviceService.changeSeason(season);
     }
@@ -100,6 +104,7 @@ public class DeviceController {
      * 重置全部设备
      */
     @GetMapping("/destroyAll")
+    @RequireRole(value = {3}, names = {"管理员"})
     public Result<String> destroyAllMeters() {
         Result<String> result = virtualWaterQualityDeviceService.destroyAll();
         Result<String> result1 = virtualMeterDeviceService.destroyAll();
@@ -136,6 +141,7 @@ public class DeviceController {
      * 设置模拟模式 支持：leaking、burstPipe、normal三种模式
      */
     @GetMapping("/changeModel")
+    @RequireRole(value = {3}, names = {"管理员"})
     public Result<String> changeModel(@NotNull @NotBlank String mode) {
         return virtualMeterDeviceService.changeMode(mode);
     }

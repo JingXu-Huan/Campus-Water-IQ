@@ -10,4 +10,5 @@ public class SignUpRequest {
     private String credential;   // password / code / null
     private String pwd;
     private String nickname;
+    private int role;
 }

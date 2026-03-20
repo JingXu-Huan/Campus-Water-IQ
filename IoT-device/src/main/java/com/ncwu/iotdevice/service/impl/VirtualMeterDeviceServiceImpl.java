@@ -539,7 +539,10 @@ public class VirtualMeterDeviceServiceImpl extends ServiceImpl<DeviceMapper, Vir
      */
     @Override
     public Result<Integer> getDeviceNums() {
-        return Result.ok(Integer.parseInt(Objects.requireNonNull(redisTemplate.opsForValue().get("allDeviceNums"))));
+        if (Objects.equals(redisTemplate.opsForValue().get("isInit"), "1")) {
+            return Result.ok(Integer.parseInt(Objects.requireNonNull(redisTemplate.opsForValue().get("allDeviceNums"))));
+        }
+        else return Result.ok(0);
     }
 
     /**

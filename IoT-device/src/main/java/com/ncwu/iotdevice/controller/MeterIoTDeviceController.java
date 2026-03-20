@@ -1,5 +1,6 @@
 package com.ncwu.iotdevice.controller;
 
+import com.ncwu.common.annotation.RequireRole;
 import com.ncwu.common.domain.vo.Result;
 import com.ncwu.common.domain.dto.IdsDTO;
 import com.ncwu.common.enums.ErrorCode;
@@ -33,6 +34,7 @@ public class MeterIoTDeviceController {
     /**
      * 开启所有水表
      */
+    @RequireRole(value = {2,3}, names = {"运维","管理员"})
     @GetMapping("/startAll")
     public Result<String> startAllSimulator() {
         return virtualMeterDeviceService.start();
@@ -41,6 +43,7 @@ public class MeterIoTDeviceController {
     /**
      * 单设备或设备列表开始模拟任务
      */
+    @RequireRole(value = {2,3}, names = {"运维","管理员"})
     @PostMapping("/startList")
     public Result<String> startListSimulator(@RequestBody @Valid IdsDTO ids) {
         List<@NotBlank(message = "设备ID不能为空") @Pattern(
@@ -57,6 +60,7 @@ public class MeterIoTDeviceController {
     /**
      * 停止所有水表上报任务
      */
+    @RequireRole(value = {2,3}, names = {"运维","管理员"})
     @GetMapping("/endAll")
     public Result<String> endAll() {
         return virtualMeterDeviceService.stopSimulation();
@@ -67,6 +71,7 @@ public class MeterIoTDeviceController {
      *
      * @param ids 设备列表
      */
+    @RequireRole(value = {2,3}, names = {"运维","管理员"})
     @PostMapping("/endList")
     public Result<String> endList(@NotNull @RequestBody @Valid IdsDTO ids) {
         List<@NotBlank(message = "设备ID不能为空") @Pattern(
@@ -84,6 +89,7 @@ public class MeterIoTDeviceController {
      *
      * @param ids 设备列表
      */
+    @RequireRole(value = {2,3}, names = {"运维","管理员"})
     @PostMapping("/offLine")
     public Result<String> offline(@RequestBody @Valid IdsDTO ids) {
         List<@NotBlank(message = "设备ID不能为空") @Pattern(
@@ -101,6 +107,7 @@ public class MeterIoTDeviceController {
      *
      * @param ids 设备列表
      */
+    @RequireRole(value = {2,3}, names = {"运维","管理员"})
     @PostMapping("/closeTheValve")
     public Result<String> closeValue(@NotNull @NotEmpty @RequestBody List<@NotBlank(message = "设备ID不能为空") @Pattern(
             regexp = "^[12][1-3](0[1-9]|[1-9][0-9])(0[1-9]|[1-9][0-9])(00[1-9]|0[1-9][0-9]|[1-9][0-9]{2})$",
@@ -117,6 +124,7 @@ public class MeterIoTDeviceController {
      *
      * @param ids 设备列表
      */
+    @RequireRole(value = {2,3}, names = {"运维","管理员"})
     @PostMapping("/openTheValve")
     public Result<String> openValue(@NotNull @NotEmpty @RequestBody List<@NotBlank(message = "设备ID不能为空") @Pattern(
             regexp = "^[12][1-3](0[1-9]|[1-9][0-9])(0[1-9]|[1-9][0-9])(00[1-9]|0[1-9][0-9]|[1-9][0-9]{2})$",

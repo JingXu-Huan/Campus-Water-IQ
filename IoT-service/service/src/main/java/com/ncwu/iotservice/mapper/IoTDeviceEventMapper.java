@@ -2,7 +2,7 @@ package com.ncwu.iotservice.mapper;
 
 
 import com.baomidou.mybatisplus.core.mapper.BaseMapper;
-import com.ncwu.iotservice.entity.IotDeviceEvent;
+import com.ncwu.common.domain.IotDeviceEvent;
 import org.apache.ibatis.annotations.Mapper;
 
 /**

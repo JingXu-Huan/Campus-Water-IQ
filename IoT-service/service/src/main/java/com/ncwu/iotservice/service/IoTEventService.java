@@ -3,7 +3,7 @@ package com.ncwu.iotservice.service;
 
 import com.baomidou.mybatisplus.extension.service.IService;
 import com.ncwu.common.domain.vo.Result;
-import com.ncwu.iotservice.entity.IotDeviceEvent;
+import com.ncwu.common.domain.IotDeviceEvent;
 
 import java.util.List;
 

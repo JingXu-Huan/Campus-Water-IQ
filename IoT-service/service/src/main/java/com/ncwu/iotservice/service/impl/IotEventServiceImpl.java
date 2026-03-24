@@ -7,7 +7,7 @@ import com.influxdb.client.InfluxDBClientFactory;
 import com.influxdb.client.QueryApi;
 import com.influxdb.query.FluxTable;
 import com.ncwu.common.domain.vo.Result;
-import com.ncwu.iotservice.entity.IotDeviceEvent;
+import com.ncwu.common.domain.IotDeviceEvent;
 import com.ncwu.iotservice.mapper.IoTDeviceEventMapper;
 import com.ncwu.iotservice.service.IoTEventService;
 import jakarta.annotation.PostConstruct;
@@ -19,11 +19,9 @@ import org.springframework.stereotype.Service;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
-import java.util.concurrent.TimeUnit;
 
 /**
  * @author jingxu

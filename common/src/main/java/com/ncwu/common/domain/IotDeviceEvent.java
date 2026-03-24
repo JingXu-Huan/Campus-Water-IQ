@@ -1,10 +1,12 @@
-package com.ncwu.iotservice.entity;
+package com.ncwu.common.domain;
 
 import com.baomidou.mybatisplus.annotation.IdType;
 import com.baomidou.mybatisplus.annotation.TableId;
 import com.baomidou.mybatisplus.annotation.TableName;
 import lombok.Data;
 
+import java.io.Serial;
+import java.io.Serializable;
 import java.time.LocalDateTime;
 
 /**
@@ -13,7 +15,9 @@ import java.time.LocalDateTime;
  */
 @Data
 @TableName("iot_device_event")
-public class IotDeviceEvent {
+public final class IotDeviceEvent implements Serializable {
+    @Serial
+    private static final long serialVersionUID = 1L;
 
     /**
      * 主键

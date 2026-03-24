@@ -2,7 +2,7 @@ package com.ncwu.repairservice.mapper;
 
 
 import com.baomidou.mybatisplus.core.mapper.BaseMapper;
-import com.ncwu.repairservice.entity.domain.IotDeviceEvent;
+import com.ncwu.common.domain.IotDeviceEvent;
 import com.ncwu.repairservice.entity.vo.IotDeviceEventVo;
 import org.apache.ibatis.annotations.Mapper;
 import org.apache.ibatis.annotations.Select;

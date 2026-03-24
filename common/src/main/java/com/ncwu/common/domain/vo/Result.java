@@ -13,7 +13,7 @@ import java.io.Serializable;
  * @since 2025/12/25
  */
 @Data
-public class Result<T> implements Serializable {
+public final class Result<T> implements Serializable {
     @Serial
     private static final long serialVersionUID = 1L;
 

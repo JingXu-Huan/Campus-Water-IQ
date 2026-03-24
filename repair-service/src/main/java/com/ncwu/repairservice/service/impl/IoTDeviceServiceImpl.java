@@ -2,11 +2,13 @@ package com.ncwu.repairservice.service.impl;
 
 
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
+import com.ncwu.common.apis.warning_service.EventInterFace;
 import com.ncwu.common.domain.vo.Result;
-import com.ncwu.repairservice.entity.domain.IotDeviceEvent;
+import com.ncwu.common.domain.IotDeviceEvent;
 import com.ncwu.repairservice.mapper.IoTDeviceMapper;
 import com.ncwu.repairservice.service.IoTDeviceService;
 import lombok.RequiredArgsConstructor;
+import org.apache.dubbo.config.annotation.DubboService;
 import org.springframework.stereotype.Service;
 
 import java.util.List;
@@ -18,12 +20,15 @@ import java.util.List;
  */
 @Service
 @RequiredArgsConstructor
-public class IoTDeviceServiceImpl extends ServiceImpl<IoTDeviceMapper, IotDeviceEvent> implements IoTDeviceService {
+@DubboService(version = "1.0.0",interfaceClass = EventInterFace.class)
+public class IoTDeviceServiceImpl extends ServiceImpl<IoTDeviceMapper, IotDeviceEvent> implements IoTDeviceService ,
+        EventInterFace {
     private final IoTDeviceMapper ioTDeviceMapper;
 
     @Override
-    public Result<Boolean> addNewEvent() {
-        return null;
+    public Result<Boolean> addNewEvent(IotDeviceEvent iotDeviceEvent) {
+        ioTDeviceMapper.insert(iotDeviceEvent);
+        return Result.ok(true);
     }
 
     @Override
@@ -39,4 +44,5 @@ public class IoTDeviceServiceImpl extends ServiceImpl<IoTDeviceMapper, IotDevice
         int cnt = ioTDeviceMapper.selectAllNums();
         return com.ncwu.common.domain.vo.Result.ok(cnt);
     }
+
 }

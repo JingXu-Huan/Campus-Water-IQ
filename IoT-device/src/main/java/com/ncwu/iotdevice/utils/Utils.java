@@ -126,10 +126,14 @@ public class Utils {
     }
 
     private static void delRedisData(StringRedisTemplate redisTemplate, String prefix) {
-        redisTemplate.delete("WaterQualityScore:*");
-        redisTemplate.delete("historical:*");
-        redisTemplate.delete("SchoolUsage:*");
-        redisTemplate.delete("WaterPredictionUsage:*");
+        //清除缓存
+        redisScanDel("SchoolUsage:*",3,redisTemplate);
+        redisScanDel("WaterPredictionUsage:*",3,redisTemplate);
+        redisScanDel("historical:*",1000,redisTemplate);
+        redisScanDel("WaterQualityScore:*",10,redisTemplate);
+        redisScanDel("historical:*",1000,redisTemplate);
+        redisScanDel("SchoolUsage:*",3,redisTemplate);
+        redisScanDel("WaterPredictionUsage:*",3,redisTemplate);
         redisTemplate.opsForValue().set("isInit", "0");
         redisTemplate.delete("allDeviceNums");
         redisTemplate.delete(prefix + "meter");

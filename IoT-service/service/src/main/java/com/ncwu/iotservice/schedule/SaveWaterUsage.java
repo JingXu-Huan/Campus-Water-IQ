@@ -29,7 +29,7 @@ import static com.ncwu.iotservice.util.DataFormatUtils.getDateFormatBo;
 @Slf4j
 @Component
 @RequiredArgsConstructor
-public class OnTimeJob {
+public class SaveWaterUsage {
     private final WaterUsageRecordMapper waterUsageRecordMapper;
     private final IoTDataService ioTDataService;
     private final ServiceConfig serviceConfig;

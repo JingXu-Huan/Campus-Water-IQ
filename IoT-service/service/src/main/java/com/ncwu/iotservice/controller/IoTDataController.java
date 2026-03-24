@@ -63,7 +63,6 @@ public class IoTDataController {
      * 校验时间和 id 是否合法
      */
     private @Nullable Result<Double> checkDateAndDeviceId(LocalDateTime start, LocalDateTime end, String deviceId) {
-        //校验时间
         LocalDateTime now = LocalDateTime.now();
         if (end.isBefore(start) || end.isAfter(now)) {
             return Result.fail("Data_1000", "传入时间非法");

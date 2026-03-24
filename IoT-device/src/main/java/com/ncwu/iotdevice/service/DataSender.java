@@ -160,22 +160,20 @@ public class DataSender {
             public void onSuccess(SendResult sendResult) {
                 messageSuccessCounter.increment();
             }
-
             @Override
             public void onException(Throwable throwable) {
                 messageFailureCounter.increment();
-                log.error("MQ 异步发送失败，尝试再次异步发送", throwable);
+                log.error("{},MQ 异步发送失败，尝试再次异步发送", throwable.getMessage());
                 rocketMQTemplate.asyncSend(topic, data, new SendCallback() {
                     @Override
                     public void onSuccess(SendResult sendResult) {
                         log.info("重试发送成功");
                         messageSuccessCounter.increment();
                     }
-
                     @Override
                     public void onException(Throwable t) {
                         messageFailureCounter.increment();
-                        log.error("重试发送仍然失败，记录{}", data);
+                        log.error("重试发送仍然失败，记录：{}", data);
                     }
                 });
             }

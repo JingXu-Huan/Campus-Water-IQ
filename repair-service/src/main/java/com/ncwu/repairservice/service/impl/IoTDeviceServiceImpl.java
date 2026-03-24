@@ -1,8 +1,8 @@
 package com.ncwu.repairservice.service.impl;
 
 
-import com.alibaba.nacos.api.model.v2.Result;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
+import com.ncwu.common.domain.vo.Result;
 import com.ncwu.repairservice.entity.domain.IotDeviceEvent;
 import com.ncwu.repairservice.mapper.IoTDeviceMapper;
 import com.ncwu.repairservice.service.IoTDeviceService;

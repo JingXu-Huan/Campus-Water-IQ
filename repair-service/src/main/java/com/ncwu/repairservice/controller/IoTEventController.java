@@ -1,6 +1,7 @@
 package com.ncwu.repairservice.controller;
 
 import com.ncwu.common.domain.vo.Result;
+import com.ncwu.repairservice.entity.domain.IotDeviceEvent;
 import com.ncwu.repairservice.service.IoTDeviceService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -26,7 +27,7 @@ public class IoTEventController {
      * 添加用户的报修信息
      */
     @PostMapping("/addNewEvent")
-    public com.alibaba.nacos.api.model.v2.Result<Boolean> addNewEvent() {
+    public Result<Boolean> addNewEvent(IotDeviceEvent iotDeviceEvent) {
         return ioTDeviceService.addNewEvent();
     }
 

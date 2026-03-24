@@ -1,8 +1,8 @@
 package com.ncwu.repairservice.service;
 
 
-import com.alibaba.nacos.api.model.v2.Result;
 import com.baomidou.mybatisplus.extension.service.IService;
+import com.ncwu.common.domain.vo.Result;
 import com.ncwu.repairservice.entity.domain.IotDeviceEvent;
 
 import java.util.List;

@@ -730,7 +730,7 @@ public class VirtualMeterDeviceServiceImpl extends ServiceImpl<DeviceMapper, Vir
 
         // 根据楼宇编号选择对应的流量生成算法
         if (buildingNum <= education) {
-            // 教学楼：使用教育区流量模式
+            // 教学楼：使用教学区流量模式
             flow = getEducationFlow(time, deviceId);
         } else if (buildingNum <= experiment) {
             // 实验楼：使用实验区流量模式
@@ -747,7 +747,7 @@ public class VirtualMeterDeviceServiceImpl extends ServiceImpl<DeviceMapper, Vir
     /**
      * 每台设备可以上报活跃用水数据的剩余次数
      */
-    Map<String, Integer> eachDeviceRemainingReportActiveWaterInfoCounts;
+    Map<String, Integer> EachDeviceRemainingReportActiveWaterInfoCounts;
     /**
      * 每台设备可以上报活跃用水数据的次数的副本，用于后续时段
      */
@@ -780,20 +780,20 @@ public class VirtualMeterDeviceServiceImpl extends ServiceImpl<DeviceMapper, Vir
             double wakeUpDormRate = serverConfig.getWakeUpDormRate();
             synchronized (lock) {
                 if (!flag) {
-                    eachDeviceRemainingReportActiveWaterInfoCounts = chooseDormitory(wakeUpDormRate);
-                    if (eachDeviceRemainingReportActiveWaterInfoCounts != null) {
-                        temp = new HashMap<>(eachDeviceRemainingReportActiveWaterInfoCounts);
+                    EachDeviceRemainingReportActiveWaterInfoCounts = chooseDormitory(wakeUpDormRate);
+                    if (EachDeviceRemainingReportActiveWaterInfoCounts != null) {
+                        temp = new HashMap<>(EachDeviceRemainingReportActiveWaterInfoCounts);
                     }
                     flag = true;
                 }
             }
             if (p >= 0.93) {
-                if (eachDeviceRemainingReportActiveWaterInfoCounts != null) {
+                if (EachDeviceRemainingReportActiveWaterInfoCounts != null) {
                     synchronized (lock) {
-                        if (eachDeviceRemainingReportActiveWaterInfoCounts.containsKey(id)
-                                && eachDeviceRemainingReportActiveWaterInfoCounts.get(id) > 0) {
-                            Integer cnt = eachDeviceRemainingReportActiveWaterInfoCounts.get(id);
-                            eachDeviceRemainingReportActiveWaterInfoCounts.put(id, --cnt);
+                        if (EachDeviceRemainingReportActiveWaterInfoCounts.containsKey(id)
+                                && EachDeviceRemainingReportActiveWaterInfoCounts.get(id) > 0) {
+                            Integer cnt = EachDeviceRemainingReportActiveWaterInfoCounts.get(id);
+                            EachDeviceRemainingReportActiveWaterInfoCounts.put(id, --cnt);
                             return ThreadLocalRandom.current().nextDouble(0.2, 0.3);
                         }
                     }
@@ -874,7 +874,7 @@ public class VirtualMeterDeviceServiceImpl extends ServiceImpl<DeviceMapper, Vir
     /**
      * 每个实验楼设备剩余上报活跃用水数据的次数
      */
-    volatile Map<String, Integer> eachExperimentDeviceRemainingReportActiveWaterInfoCounts;
+    volatile Map<String, Integer> EachExperimentDeviceRemainingReportActiveWaterInfoCounts;
     /**
      * 实验楼设备同步锁对象
      */
@@ -904,7 +904,7 @@ public class VirtualMeterDeviceServiceImpl extends ServiceImpl<DeviceMapper, Vir
             if (!flag1) {
                 synchronized (lock1) {
                     if (!flag1) {
-                        assignRunnableActiveDevice();
+                        AssignRunnableActiveDevice();
                         flag1 = true;
                     }
                 }
@@ -916,7 +916,7 @@ public class VirtualMeterDeviceServiceImpl extends ServiceImpl<DeviceMapper, Vir
             if (!flag2) {
                 synchronized (lock1) {
                     if (!flag2) {
-                        assignRunnableActiveDevice();
+                        AssignRunnableActiveDevice();
                         flag2 = true;
                     }
                 }
@@ -928,7 +928,7 @@ public class VirtualMeterDeviceServiceImpl extends ServiceImpl<DeviceMapper, Vir
             if (!flag3) {
                 synchronized (lock1) {
                     if (!flag3) {
-                        assignRunnableActiveDevice();
+                        AssignRunnableActiveDevice();
                         flag3 = true;
                     }
                 }
@@ -940,7 +940,7 @@ public class VirtualMeterDeviceServiceImpl extends ServiceImpl<DeviceMapper, Vir
             if (!flag4) {
                 synchronized (lock1) {
                     if (!flag4) {
-                        assignRunnableActiveDevice();
+                        AssignRunnableActiveDevice();
                         flag4 = true;
                     }
                 }
@@ -968,9 +968,9 @@ public class VirtualMeterDeviceServiceImpl extends ServiceImpl<DeviceMapper, Vir
     }
 
     private double returnFlow(String deviceId, double origin, double bound) {
-        Integer cnt = eachExperimentDeviceRemainingReportActiveWaterInfoCounts.get(deviceId);
+        Integer cnt = EachExperimentDeviceRemainingReportActiveWaterInfoCounts.get(deviceId);
         if (cnt != null && cnt > 0) {
-            eachExperimentDeviceRemainingReportActiveWaterInfoCounts.put(deviceId, --cnt);
+            EachExperimentDeviceRemainingReportActiveWaterInfoCounts.put(deviceId, --cnt);
             return ThreadLocalRandom.current().nextDouble(origin, bound);
         } else return 0;
     }
@@ -978,7 +978,7 @@ public class VirtualMeterDeviceServiceImpl extends ServiceImpl<DeviceMapper, Vir
     /**
      * 分配可以上报活跃水信息的设备
      */
-    private void assignRunnableActiveDevice() {
+    private void AssignRunnableActiveDevice() {
         int education = Integer.parseInt(Objects.requireNonNull(redisTemplate.opsForValue().get("device:educationBuildings")));
         int experiment = Integer.parseInt(Objects.requireNonNull(redisTemplate.opsForValue().get("device:experimentBuildings")));
         synchronized (lock1) {
@@ -991,7 +991,7 @@ public class VirtualMeterDeviceServiceImpl extends ServiceImpl<DeviceMapper, Vir
                     return buildingNum > education && buildingNum <= experiment;
                 }).count();
                 //选择的所有运行设备
-                eachExperimentDeviceRemainingReportActiveWaterInfoCounts = members
+                EachExperimentDeviceRemainingReportActiveWaterInfoCounts = members
                         .stream()
                         .filter(id -> {
                             int buildingNum = Integer.parseInt(id.substring(2, 4));

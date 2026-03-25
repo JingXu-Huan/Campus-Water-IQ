@@ -1,13 +1,13 @@
 spring:
   application:
-    name: IoT-device
+    name: iot-device
   profiles:
     active: dev
   cloud:
     nacos:
       config:
-        server-addr: 101.42.157.163:8848
-        namespace: 085ed7bf-0e3f-42ff-a2fe-992272b746ae
+        server-addr: 40.81.229.5:8848
+        namespace: 57c968d5-1abe-434d-bcac-bebb53760a5b
         group: DEFAULT_GROUP
         file-extension: yml
         username: nacos
@@ -25,9 +25,10 @@ spring:
           - data-id: IoT-device.yml
             group: DEFAULT_GROUP
             refresh: true
+        timeout: 10000
       discovery:
-        server-addr: 101.42.157.163:8848
-        namespace: 085ed7bf-0e3f-42ff-a2fe-992272b746ae
+        server-addr: 40.81.229.5:8848
+        namespace: 57c968d5-1abe-434d-bcac-bebb53760a5b
         group: DEFAULT_GROUP
         username: nacos
         password: nacos

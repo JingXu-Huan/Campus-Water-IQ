@@ -28,4 +28,6 @@ public interface UserService extends IService<User> {
     Result<Boolean> changeNickName(String newName,String uid);
 
     Result<Boolean> changePwd(String oldPwd,String newPwd, String uid);
+
+    Result<Boolean> bindingDevice(String uid, String deviceCode);
 }

@@ -78,10 +78,8 @@ public class SecurityConfig {
         protected void doFilterInternal(HttpServletRequest request, @NonNull HttpServletResponse response,
                                         @NonNull FilterChain filterChain)
                 throws ServletException, IOException {
-            
             String userId = request.getHeader("X-User-Id");
             String userRole = request.getHeader("X-User-Role");
-
             if (userId != null) {
                 UsernamePasswordAuthenticationToken auth = new UsernamePasswordAuthenticationToken(
                         userId,
@@ -90,7 +88,6 @@ public class SecurityConfig {
                 );
                 SecurityContextHolder.getContext().setAuthentication(auth);
             }
-
             filterChain.doFilter(request, response);
         }
     }

@@ -2,8 +2,10 @@ package com.ncwu.authservice.service.impl;
 
 
 import com.aliyun.oss.OSS;
+import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import com.ncwu.authservice.domain.DTO.SignUpRequest;
+import com.ncwu.authservice.domain.DeviceUser;
 import com.ncwu.authservice.domain.VO.AuthResult;
 import com.ncwu.authservice.domain.VO.SignUpResult;
 import com.ncwu.authservice.domain.enums.LoginType;
@@ -14,6 +16,7 @@ import com.ncwu.authservice.factory.login.LoginStrategy;
 import com.ncwu.authservice.factory.login.LoginStrategyFactory;
 import com.ncwu.authservice.factory.signup.SignUpStrategy;
 import com.ncwu.authservice.factory.signup.SignUpStrategyFactory;
+import com.ncwu.authservice.mapper.DeviceUserMapper;
 import com.ncwu.authservice.mapper.UserMapper;
 import com.ncwu.authservice.service.UserService;
 import com.ncwu.common.domain.vo.Result;
@@ -42,6 +45,8 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User> implements Us
     private final LoginStrategyFactory loginStrategyFactory;
     private final SignUpStrategyFactory signUpStrategyFactory;
     private final OSS OSSClient;
+    private final DeviceUserMapper deviceUserMapper;
+
     private final BCryptPasswordEncoder passwordEncoder = new BCryptPasswordEncoder();
 
     @Override
@@ -112,5 +117,21 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User> implements Us
         return update ? Result.ok(true) : Result.fail(false);
     }
 
-
+    @Override
+    public Result<Boolean> bindingDevice(String uid, String deviceCode) {
+        LambdaQueryWrapper<DeviceUser> eq = new LambdaQueryWrapper<DeviceUser>()
+                .eq(DeviceUser::getUid, uid)
+                .eq(DeviceUser::getDeviceCode,deviceCode);
+        DeviceUser deviceUser = deviceUserMapper.selectOne(eq);
+        if (deviceUser!=null){
+            return Result.fail(false,"用户已绑定该设备，请不要重复绑定。");
+        }
+        else {
+            DeviceUser newBinding = new DeviceUser();
+            newBinding.setUid(uid);
+            newBinding.setDeviceCode(deviceCode);
+            int insert = deviceUserMapper.insert(newBinding);
+            return insert > 0 ? Result.ok(true) : Result.fail(false);
+        }
+    }
 }

@@ -53,4 +53,12 @@ public class UserInfoController {
         return userService.changePwd(oldPwd, newPwd, uid);
     }
 
+    /**
+     * 用户绑定某一个 device
+     */
+    @PostMapping("/bindingDevice")
+    public Result<Boolean> bindingDevice(String uid, String deviceCode) {
+        return userService.bindingDevice(uid, deviceCode);
+    }
+
 }

@@ -39,6 +39,7 @@ public class UserReportController {
     @PostMapping("/report")
     public Result<Boolean> userReport(@RequestBody @NotNull UserReportDTO userReportDTO) {
         String deviceCode = userReportDTO.getDeviceCode();
+        //校验设备编码合法性
         if (Utils.isUnValidDeviceId(List.of(deviceCode), redisTemplate))
             return Result.fail(false, ErrorCode.PARAM_VALIDATION_ERROR.code(),
                     ErrorCode.PARAM_VALIDATION_ERROR.message());

@@ -29,7 +29,7 @@ spring:
         - id: repair
           uri: lb://repair-service
           predicates:
-            - Path=/operations/**,/iot-event/**
+            - Path=/operations/**,/iot-event/**,/user-report/**
         - id: auth
           uri: lb://Auth-service
           predicates:

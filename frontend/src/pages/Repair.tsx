@@ -1,10 +1,10 @@
 import { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useAuthStore } from '@/store/authStore'
-import { repairApi, RepairOrder, RepairStatus, statusLabels, severityLabels, severityColors } from '@/api/repair'
+import { repairApi, RepairOrder, RepairStatus, statusLabels, severityLabels, severityColors, UserReportDTO } from '@/api/repair'
 import { 
   Droplets, LayoutDashboard, Activity, Map, FileText, Settings, HelpCircle, 
-  Menu, X, RefreshCw, CheckCircle, Clock, AlertTriangle, Filter, Zap, Smile
+  Menu, X, RefreshCw, CheckCircle, Clock, AlertTriangle, Filter, Zap, Smile, Plus
 } from 'lucide-react'
 
 // 状态选项
@@ -44,9 +44,20 @@ export default function Repair() {
   
   // 模态框
   const [showStatusModal, setShowStatusModal] = useState(false)
+  const [showAddModal, setShowAddModal] = useState(false)
   const [selectedOrder, setSelectedOrder] = useState<RepairOrder | null>(null)
   const [newStatus, setNewStatus] = useState<RepairStatus>('CONFIRMED')
   const [updating, setUpdating] = useState(false)
+
+  // 添加报修表单
+  const [reportForm, setReportForm] = useState<UserReportDTO>({
+    deviceCode: '',
+    contactInfo: '',
+    desc: '',
+    severity: 2,
+    reportName: ''
+  })
+  const [submitting, setSubmitting] = useState(false)
 
   // 菜单项
   const menuItems = [
@@ -133,6 +144,37 @@ export default function Repair() {
       console.error('修改状态失败:', error)
     } finally {
       setUpdating(false)
+    }
+  }
+
+  // 提交报修
+  const handleSubmitReport = async () => {
+    if (!reportForm.deviceCode) {
+      alert('请输入设备编号')
+      return
+    }
+    if (!reportForm.desc) {
+      alert('请输入故障描述')
+      return
+    }
+    setSubmitting(true)
+    try {
+      await repairApi.report(reportForm)
+      alert('报修提交成功！')
+      setShowAddModal(false)
+      setReportForm({
+        deviceCode: '',
+        contactInfo: '',
+        desc: '',
+        severity: 2,
+        reportName: ''
+      })
+      handleRefresh()
+    } catch (error: any) {
+      console.error('提交报修失败:', error)
+      alert(error.message || '提交失败，请稍后重试')
+    } finally {
+      setSubmitting(false)
     }
   }
 
@@ -229,6 +271,13 @@ export default function Repair() {
               >
                 <RefreshCw className={`w-4 h-4 ${refreshing ? 'animate-spin' : ''}`} />
                 刷新
+              </button>
+              <button
+                onClick={() => setShowAddModal(true)}
+                className="flex items-center gap-2 px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors"
+              >
+                <Plus className="w-4 h-4" />
+                添加报修
               </button>
             </div>
           </div>
@@ -535,6 +584,137 @@ export default function Repair() {
                     提交中...
                   </span>
                 ) : '确认修改'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* 添加报修弹窗 */}
+      {showAddModal && (
+        <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 animate-fade-in">
+          <div className="bg-white rounded-3xl shadow-2xl w-full max-w-md mx-4 overflow-hidden animate-scale-in">
+            {/* 弹窗头部 */}
+            <div className="px-6 py-5 bg-gradient-to-r from-green-500 to-green-600">
+              <div className="flex items-center justify-between">
+                <h3 className="text-lg font-bold text-white">添加报修</h3>
+                <button
+                  onClick={() => setShowAddModal(false)}
+                  className="p-1.5 rounded-lg bg-white/20 hover:bg-white/30 transition-colors"
+                >
+                  <X className="w-5 h-5 text-white" />
+                </button>
+              </div>
+            </div>
+            
+            <div className="p-6">
+              {/* 设备编号 */}
+              <div className="mb-4">
+                <label className="block text-sm font-medium text-gray-600 mb-2">
+                  <span className="flex items-center gap-2">
+                    <span className="w-1.5 h-1.5 bg-red-500 rounded-full"></span>
+                    设备编号 <span className="text-red-500">*</span>
+                  </span>
+                </label>
+                <input
+                  type="text"
+                  value={reportForm.deviceCode}
+                  onChange={(e) => setReportForm({ ...reportForm, deviceCode: e.target.value })}
+                  placeholder="请输入设备编号"
+                  className="w-full px-4 py-3 border border-gray-200 rounded-xl focus:ring-2 focus:ring-green-500 focus:border-transparent transition-all"
+                />
+              </div>
+
+              {/* 报修人 */}
+              <div className="mb-4">
+                <label className="block text-sm font-medium text-gray-600 mb-2">报修人</label>
+                <input
+                  type="text"
+                  value={reportForm.reportName}
+                  onChange={(e) => setReportForm({ ...reportForm, reportName: e.target.value })}
+                  placeholder="请输入报修人姓名"
+                  className="w-full px-4 py-3 border border-gray-200 rounded-xl focus:ring-2 focus:ring-green-500 focus:border-transparent transition-all"
+                />
+              </div>
+
+              {/* 联系方式 */}
+              <div className="mb-4">
+                <label className="block text-sm font-medium text-gray-600 mb-2">联系方式</label>
+                <input
+                  type="text"
+                  value={reportForm.contactInfo}
+                  onChange={(e) => setReportForm({ ...reportForm, contactInfo: e.target.value })}
+                  placeholder="请输入联系电话"
+                  className="w-full px-4 py-3 border border-gray-200 rounded-xl focus:ring-2 focus:ring-green-500 focus:border-transparent transition-all"
+                />
+              </div>
+
+              {/* 故障描述 */}
+              <div className="mb-4">
+                <label className="block text-sm font-medium text-gray-600 mb-2">
+                  <span className="flex items-center gap-2">
+                    <span className="w-1.5 h-1.5 bg-yellow-500 rounded-full"></span>
+                    故障描述 <span className="text-red-500">*</span>
+                  </span>
+                </label>
+                <textarea
+                  value={reportForm.desc}
+                  onChange={(e) => setReportForm({ ...reportForm, desc: e.target.value })}
+                  placeholder="请描述设备故障情况"
+                  rows={3}
+                  className="w-full px-4 py-3 border border-gray-200 rounded-xl focus:ring-2 focus:ring-green-500 focus:border-transparent transition-all resize-none"
+                />
+              </div>
+
+              {/* 严重程度 */}
+              <div className="mb-2">
+                <label className="block text-sm font-medium text-gray-600 mb-3">
+                  <span className="flex items-center gap-2">
+                    <span className="w-1.5 h-1.5 bg-orange-500 rounded-full"></span>
+                    严重程度
+                  </span>
+                </label>
+                <div className="grid grid-cols-4 gap-2">
+                  {[
+                    { value: 1, label: '轻微' },
+                    { value: 2, label: '一般' },
+                    { value: 3, label: '严重' },
+                    { value: 4, label: '紧急' }
+                  ].map((option) => (
+                    <button
+                      key={option.value}
+                      onClick={() => setReportForm({ ...reportForm, severity: option.value })}
+                      className={`px-3 py-2 rounded-xl text-sm font-medium transition-all duration-200 ${
+                        reportForm.severity === option.value
+                          ? 'bg-gradient-to-r from-green-500 to-green-600 text-white shadow-lg shadow-green-300/50'
+                          : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+                      }`}
+                    >
+                      {option.label}
+                    </button>
+                  ))}
+                </div>
+              </div>
+            </div>
+            
+            <div className="px-6 py-4 bg-gray-50 border-t border-gray-100 flex justify-end gap-3">
+              <button
+                onClick={() => setShowAddModal(false)}
+                className="px-5 py-2.5 text-gray-600 hover:bg-gray-200 rounded-xl transition-colors font-medium"
+              >
+                取消
+              </button>
+              <button
+                onClick={handleSubmitReport}
+                disabled={submitting || !reportForm.deviceCode || !reportForm.desc}
+                className="px-5 py-2.5 bg-gradient-to-r from-green-500 to-green-600 text-white rounded-xl hover:shadow-lg hover:shadow-green-300/50 transition-all duration-200 font-medium disabled:opacity-50 disabled:hover:shadow-none"
+              >
+                {submitting ? (
+                  <span className="flex items-center gap-2">
+                    <RefreshCw className="w-4 h-4 animate-spin" />
+                    提交中...
+                  </span>
+                ) : '提交报修'}
               </button>
             </div>
           </div>

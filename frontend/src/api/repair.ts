@@ -34,7 +34,14 @@ api.interceptors.request.use(
 )
 
 api.interceptors.response.use(
-  (response) => response.data,
+  (response) => {
+    const data = response.data
+    // 检查业务响应是否成功
+    if (data.code && data.code !== '00000' && data.code !== '200') {
+      return Promise.reject(new Error(data.message || '请求失败'))
+    }
+    return data
+  },
   (error) => {
     const message = error.response?.data?.message || '请求失败，请稍后重试'
     return Promise.reject(new Error(message))
@@ -91,7 +98,19 @@ export const severityColors: Record<number, { bg: string; text: string }> = {
   4: { bg: 'bg-red-100', text: 'text-red-600' },
 }
 
+export interface UserReportDTO {
+  deviceCode: string
+  contactInfo?: string
+  desc?: string
+  severity?: number
+  reportName?: string
+}
+
 export const repairApi = {
+  // 用户上报设备异常报修单
+  report: (data: UserReportDTO) =>
+    api.post<{ code: string; data: boolean }>('/user-report/report', data),
+
   // 按状态查询报修单
   getByStatus: (status: RepairStatus, pageNum = 1, pageSize = 10) => 
     api.get<{ code: string; data: RepairOrder[] }>('/operations/listByStatus', {

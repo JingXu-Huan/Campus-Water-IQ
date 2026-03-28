@@ -151,7 +151,7 @@ public class MeterDataConsumer extends ServiceImpl<IotDataMapper, IotDeviceData>
                     .addField("tem", meterDataBo.getWaterTem())
                     .addField("pressure", meterDataBo.getPressure())
                     .time(zdt.toInstant(), WritePrecision.MS));
-            if (points.size() >= 500) {
+            if (points.size() >= 400) {
                 writeApi.writePoints(points);
                 points.clear();
             }

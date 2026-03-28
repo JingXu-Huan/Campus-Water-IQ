@@ -30,4 +30,12 @@ public interface UserService extends IService<User> {
     Result<Boolean> changePwd(String oldPwd,String newPwd, String uid);
 
     Result<Boolean> bindingDevice(String uid, String deviceCode);
+
+    Result<Boolean> forbiddenSomeUser(String uid);
+
+    Result<Boolean> unforbiddenSomeUser(String uid);
+
+    Result<Boolean> changeRole(String uid, Integer newRole);
+
+    Result<Boolean> foundPwd(String code);
 }

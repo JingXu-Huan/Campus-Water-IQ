@@ -134,4 +134,24 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User> implements Us
             return insert > 0 ? Result.ok(true) : Result.fail(false);
         }
     }
+
+    @Override
+    public Result<Boolean> forbiddenSomeUser(String uid) {
+        return null;
+    }
+
+    @Override
+    public Result<Boolean> unforbiddenSomeUser(String uid) {
+        return null;
+    }
+
+    @Override
+    public Result<Boolean> changeRole(String uid, Integer newRole) {
+        return null;
+    }
+
+    @Override
+    public Result<Boolean> foundPwd(String code) {
+        return null;
+    }
 }

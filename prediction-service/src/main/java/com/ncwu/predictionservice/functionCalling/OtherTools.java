@@ -44,4 +44,26 @@ public class OtherTools {
             default -> "未知校区";
         };
     }
+
+    @Tool("根据设备编码返回用户设备所在的的位置")
+    String getPosOfUser(String deviceCode) {
+        StringBuilder sb = new StringBuilder();
+        int school = Integer.parseInt(deviceCode.substring(1, 2));
+        if (school == 1) {
+            sb.append("花园校区,");
+        }
+        if (school == 2) {
+            sb.append("龙子湖校区,");
+        }
+        if (school == 3) {
+            sb.append("江淮校区,");
+        }
+        int buildingsNo = Integer.parseInt(deviceCode.substring(2, 4));
+        sb.append("第").append(buildingsNo).append("教学楼");
+        int floor = Integer.parseInt(deviceCode.substring(4, 6));
+        sb.append("，").append("第").append(floor).append("层");
+        int room = Integer.parseInt(deviceCode.substring(6, 9));
+        sb.append("，").append("房间号").append(room);
+        return sb.toString();
+    }
 }

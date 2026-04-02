@@ -169,6 +169,7 @@ public class EmailCodeLoginStrategy implements LoginStrategy, CodeSender {
         //todo 接口防刷
         //todo 接入手机短信服务
         log.debug("手机登陆验证码{}", code);
+        redisTemplate.opsForValue().set("Verify:PhoneCode:" + phoneNum, code, 5, TimeUnit.MINUTES);
         //todo 异常消息队列处理
     }
 }

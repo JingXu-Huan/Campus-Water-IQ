@@ -48,6 +48,9 @@ public class IotDeviceTools {
             
             - `20101001001` = 2(类型) + 01(校区) + 01(楼) + 01(层) + 001(单元)
               - 水质传感器 / 花园校区 / 1号楼 / 1层 / 001
+            如果用户提问类似：设备10201001001的状态如何？你可以调用此工具，输入参数[10201001001]，查询设备状态。
+            如果用户提供的是设备的位置信息，你要转换成对应的编码再调用此工具查询状态。
+            例如：用户提问：龙子湖校区1号楼1层1单元的水表状态如何？你要把“龙子湖校区1号楼1层1单元”转换成设备ID“10201001001”，再调用此工具查询状态。
             """)
     public Result<Map<String, String>> checkDeviceStatus(List<String> ids) {
         return iotDeviceApi.checkDeviceStatus(ids);

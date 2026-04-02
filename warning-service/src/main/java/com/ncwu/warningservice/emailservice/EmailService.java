@@ -42,7 +42,7 @@ public class EmailService implements EmailServiceInterFace{
             //默认重复三次
             backoff = @Backoff(delay = 5000))
     public Result<Boolean> sendVerificationCode(String toEmail, String code) throws MailException, MessagingException {
-        if (!isValidEmail(toEmail)) {
+        if (isValidEmail(toEmail)) {
             return Result.fail(false, ErrorCode.PARAM_VALIDATION_ERROR.code(), ErrorCode.PARAM_VALIDATION_ERROR.message());
         }
         //MimeMessage：支持多媒体内容的邮件消息对象，可以发送HTML格式邮件
@@ -71,7 +71,7 @@ public class EmailService implements EmailServiceInterFace{
             //默认重复三次
             backoff = @Backoff(delay = 5000))
     public Result<Boolean> sendMail(String subject, String content, String toEmail) throws MailException, MessagingException {
-        if (!isValidEmail(toEmail)) {
+        if (isValidEmail(toEmail)) {
             return Result.fail(false, ErrorCode.PARAM_VALIDATION_ERROR.code(), ErrorCode.PARAM_VALIDATION_ERROR.message());
         }
         MimeMessage message = mailSender.createMimeMessage();
@@ -89,6 +89,6 @@ public class EmailService implements EmailServiceInterFace{
     }
 
     private boolean isValidEmail(String email) {
-        return email != null && MAIL_PATTERN.matcher(email).matches();
+        return email == null || !MAIL_PATTERN.matcher(email).matches();
     }
 }

@@ -5,9 +5,9 @@ dubbo:
   protocol:
     port: 20888
   registry:
-    address: nacos://40.81.229.5:8848
-    username: nacos
-    password: nacos
+    address: nacos://${NACOS_SERVER_ADDR:127.0.0.1:8848}
+    username: ${NACOS_USERNAME:}
+    password: ${NACOS_PASSWORD:}
   provider:
     timeout: 7000  # 提供方超时时间（毫秒）
 spring:

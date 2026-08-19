@@ -1,0 +1,7 @@
+server:
+  port: ${WARNING_SERVICE_PORT:18018}
+canal:
+  host: ${CANAL_HOST:127.0.0.1}
+  port: ${CANAL_PORT:11111}
+wechat:
+  webhook: ${WECHAT_WEBHOOK:http://127.0.0.1:18018/local-webhook-disabled}

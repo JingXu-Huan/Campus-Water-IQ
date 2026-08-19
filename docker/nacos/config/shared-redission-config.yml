@@ -1,0 +1,6 @@
+spring:
+  redis:
+    redisson:
+      config: |
+        singleServerConfig:
+          address: "redis://${REDIS_LOCK_HOST:127.0.0.1}:${REDIS_LOCK_PORT:36379}"

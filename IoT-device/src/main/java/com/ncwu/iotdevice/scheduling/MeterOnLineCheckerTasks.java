@@ -1,7 +1,7 @@
 package com.ncwu.iotdevice.scheduling;
 
 import com.baomidou.mybatisplus.core.conditions.update.LambdaUpdateWrapper;
-import com.ncwu.common.domain.Bo.ErrorDataMessageBO;
+import com.ncwu.common.domain.bo.ErrorDataMessageBO;
 import com.ncwu.iotdevice.config.ServerConfig;
 import com.ncwu.iotdevice.domain.entity.VirtualDevice;
 import com.ncwu.iotdevice.mapper.DeviceMapper;

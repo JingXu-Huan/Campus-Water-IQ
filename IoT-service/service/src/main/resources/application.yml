@@ -7,9 +7,9 @@ dubbo:
   protocol:
     port: 20881
   registry:
-    address: nacos://40.81.229.5:8848
-    username: nacos
-    password: nacos
+    address: nacos://${NACOS_SERVER_ADDR:127.0.0.1:8848}
+    username: ${NACOS_USERNAME:}
+    password: ${NACOS_PASSWORD:}
 
 influx:
   token: tUV9DI3xq-9dKMtH1mufyJ_gVIILoPNbWPa345mie-GBoyDMqa7C_8fmce8sI1BwrbOllCYyt_rJlOEvCCk5-Q==

@@ -4,12 +4,12 @@ spring:
   cloud:
     nacos:
       config:
-        server-addr: 101.42.157.163:8848
-        namespace: 085ed7bf-0e3f-42ff-a2fe-992272b746ae
+        server-addr: ${NACOS_SERVER_ADDR:127.0.0.1:8848}
+        namespace: ${NACOS_NAMESPACE:}
         group: DEFAULT_GROUP
         file-extension: yml
-        username: nacos
-        password: nacos
+        username: ${NACOS_USERNAME:}
+        password: ${NACOS_PASSWORD:}
         shared-configs:
           - data-id: shared-mysql-config.yml
             group: DEFAULT_GROUP
@@ -24,8 +24,8 @@ spring:
             group: DEFAULT_GROUP
             refresh: true
       discovery:
-        server-addr: 101.42.157.163:8848
-        namespace: 085ed7bf-0e3f-42ff-a2fe-992272b746ae
+        server-addr: ${NACOS_SERVER_ADDR:127.0.0.1:8848}
+        namespace: ${NACOS_NAMESPACE:}
         group: DEFAULT_GROUP
-        username: nacos
-        password: nacos
+        username: ${NACOS_USERNAME:}
+        password: ${NACOS_PASSWORD:}

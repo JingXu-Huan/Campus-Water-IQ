@@ -6,7 +6,7 @@ import com.influxdb.client.InfluxDBClient;
 import com.influxdb.client.QueryApi;
 import com.influxdb.query.FluxTable;
 import com.ncwu.common.domain.vo.Result;
-import com.ncwu.iotservice.entity.IotDeviceEvent;
+import com.ncwu.common.domain.IotDeviceEvent;
 import com.ncwu.iotservice.mapper.IoTDeviceEventMapper;
 import com.ncwu.iotservice.service.IoTEventService;
 import lombok.RequiredArgsConstructor;
@@ -62,7 +62,6 @@ public class IotEventServiceImpl extends ServiceImpl<IoTDeviceEventMapper, IotDe
         for (Object id : ids) {
             String s = id.toString();
             if (s.length() >= 2 && s.charAt(0) == WATER_METER_TYPE && s.substring(1, 2).equals(String.valueOf(campus))) {
-                deviceIds.add(s);
                 if (deviceFilter.length() > 0) {
                     deviceFilter.append(" or ");
                 }
@@ -87,7 +86,10 @@ public class IotEventServiceImpl extends ServiceImpl<IoTDeviceEventMapper, IotDe
                 for (var record : table.getRecords()) {
                     Double value = record.getValue() != null ? ((Number) record.getValue()).doubleValue() : 0;
                     if (value > LEAK_FLOW_THRESHOLD) {
-                        leakingDevices.add(record.getDeviceId());
+                        Object deviceId = record.getValueByKey("deviceId");
+                        if (deviceId != null) {
+                            leakingDevices.add(String.valueOf(deviceId));
+                        }
                     }
                 }
             }

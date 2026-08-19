@@ -1,0 +1,5 @@
+rocketmq:
+  name-server: ${ROCKETMQ_NAME_SERVER:127.0.0.1:9876}
+  producer:
+    group: campus-water-producer
+    send-message-timeout: 3000

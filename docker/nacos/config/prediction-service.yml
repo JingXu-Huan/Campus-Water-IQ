@@ -1,0 +1,2 @@
+server:
+  port: ${PREDICTION_SERVICE_PORT:18017}

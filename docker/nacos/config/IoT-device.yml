@@ -1,0 +1,2 @@
+server:
+  port: ${IOT_DEVICE_PORT:18015}

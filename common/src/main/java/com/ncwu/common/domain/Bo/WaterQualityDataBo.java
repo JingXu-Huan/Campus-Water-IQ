@@ -1,4 +1,4 @@
-package com.ncwu.common.domain.Bo;
+package com.ncwu.common.domain.bo;
 
 
 import lombok.AllArgsConstructor;

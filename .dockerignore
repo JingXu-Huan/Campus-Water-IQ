@@ -1,0 +1,11 @@
+.git
+.gitignore
+.idea
+.venv
+**/target
+**/node_modules
+frontend/dist
+frontend/.vite
+docker-compose.services.yml
+*.iml
+*.log

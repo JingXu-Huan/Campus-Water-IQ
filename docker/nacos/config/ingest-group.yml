@@ -1,0 +1,7 @@
+spring:
+  main:
+    web-application-type: none
+influx:
+  url: ${INFLUX_URL:http://127.0.0.1:8086}
+  org: ${INFLUX_ORG:ncwu}
+  bucket: ${INFLUX_BUCKET:water}

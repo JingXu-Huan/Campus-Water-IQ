@@ -1,0 +1,12 @@
+spring:
+  data:
+    redis:
+      host: ${REDIS_HOST:127.0.0.1}
+      port: ${REDIS_PORT:6379}
+      database: ${REDIS_DATABASE:0}
+      timeout: 3s
+  redis:
+    redisson:
+      config: |
+        singleServerConfig:
+          address: "redis://${REDIS_LOCK_HOST:127.0.0.1}:${REDIS_LOCK_PORT:36379}"

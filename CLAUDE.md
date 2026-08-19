@@ -95,7 +95,7 @@ repair-service (维修服务)
 
 ## Configuration Notes
 
-- 所有微服务使用 Nacos 作为注册中心 (`101.42.157.163:8848`)
+- 所有微服务使用 Nacos 作为注册中心，默认连接本机 `127.0.0.1:8848`；可通过 `NACOS_SERVER_ADDR` 和 `NACOS_NAMESPACE` 覆盖
 - InfluxDB token 需要在 `IoT-service/ingest-group` 和 `IoT-service/service` 两处配置
 - Dubbo 协议端口: IoT-service 20881, IoT-device 50052
 - Java 版本: **21** (强制要求)

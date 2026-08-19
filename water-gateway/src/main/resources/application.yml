@@ -4,10 +4,15 @@ spring:
   cloud:
     nacos:
       discovery:
-        server-addr: 40.81.229.5:8848
+        server-addr: ${NACOS_SERVER_ADDR:127.0.0.1:8848}
+        namespace: ${NACOS_NAMESPACE:}
+        username: ${NACOS_USERNAME:}
+        password: ${NACOS_PASSWORD:}
       config:
-        name: nacos
-        password: nacos
+        server-addr: ${NACOS_SERVER_ADDR:127.0.0.1:8848}
+        namespace: ${NACOS_NAMESPACE:}
+        username: ${NACOS_USERNAME:}
+        password: ${NACOS_PASSWORD:}
     gateway:
       routes:
         - id: device

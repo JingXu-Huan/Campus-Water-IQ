@@ -77,7 +77,11 @@ public class CheckHighFlow {
                 for (var record : table.getRecords()) {
                     Double value = record.getValue() != null ? ((Number) record.getValue()).doubleValue() : 0;
                     if (value > HIGH_FLOW_THRESHOLD) {
-                        String deviceId = record.getDeviceId();
+                        Object deviceIdValue = record.getValueByKey("deviceId");
+                        if (deviceIdValue == null) {
+                            continue;
+                        }
+                        String deviceId = String.valueOf(deviceIdValue);
                         log.warn("检测到高流量设备: {}, 流量: {}", deviceId, value);
                         rocketMQTemplate.convertAndSend("error-flow", buildHighFlowAlert(deviceId, value));
                     }

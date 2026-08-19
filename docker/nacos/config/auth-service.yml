@@ -1,0 +1,3 @@
+jwt:
+  secret: campus-water-local-jwt-secret-change-me-please-32-bytes
+  expiration: 86400000

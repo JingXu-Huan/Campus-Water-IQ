@@ -26,12 +26,21 @@ public class InfluxDBOps implements RocketMQListener<String> {
 
     @Value("${influx.token}")
     private String influxToken;
+
+    @Value("${influx.url:http://localhost:8086}")
+    private String influxUrl;
+
+    @Value("${influx.org:ncwu}")
+    private String influxOrg;
+
+    @Value("${influx.bucket:water}")
+    private String influxBucket;
     private InfluxDBClient influxDBClient;
 
     @PostConstruct
     public void init() {
         influxDBClient = InfluxDBClientFactory
-                .create("http://localhost:8086", influxToken.toCharArray(), "ncwu", "water");
+                .create(influxUrl, influxToken.toCharArray(), influxOrg, influxBucket);
     }
 
     @Override
@@ -47,6 +56,6 @@ public class InfluxDBOps implements RocketMQListener<String> {
         OffsetDateTime start = OffsetDateTime.parse("1970-01-01T00:00:00Z");
         OffsetDateTime stop  = OffsetDateTime.now(ZoneOffset.UTC).plusHours(1);
         // 删除所有 measurement（空 predicate = 不过滤）
-        deleteApi.delete(start, stop, "", "water", "ncwu");
+        deleteApi.delete(start, stop, "", influxBucket, influxOrg);
     }
 }

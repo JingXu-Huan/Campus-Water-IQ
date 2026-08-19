@@ -12,6 +12,7 @@ import jakarta.mail.MessagingException;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.rocketmq.spring.core.RocketMQTemplate;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
 
 import java.net.InetSocketAddress;
@@ -29,11 +30,17 @@ public class CanalClient {
     private final WeChatNotifyService weChatNotifyService;
     private final EmailService emailService;
 
+    @Value("${canal.host:127.0.0.1}")
+    private String canalHost;
+
+    @Value("${canal.port:11111}")
+    private int canalPort;
+
     @PostConstruct
     public void init() {
         // 连接到Canal Server
         connector = CanalConnectors.newSingleConnector(
-                new InetSocketAddress("127.0.0.1", 11111),
+                new InetSocketAddress(canalHost, canalPort),
                 "example",  // destination，对应conf/example
                 "",
                 ""

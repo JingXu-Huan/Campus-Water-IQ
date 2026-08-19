@@ -19,6 +19,15 @@ public class InfluxDbConfig {
     @Value("${influx.token:}")
     private String influxToken;
 
+    @Value("${influx.url:http://localhost:8086}")
+    private String influxUrl;
+
+    @Value("${influx.org:ncwu}")
+    private String influxOrg;
+
+    @Value("${influx.bucket:water}")
+    private String influxBucket;
+
     @Bean
     public InfluxDBClient influxDBClient(){
         if (influxToken == null || influxToken.trim().isEmpty()) {
@@ -26,7 +35,7 @@ public class InfluxDbConfig {
         }
         char[] influxTokens = influxToken.toCharArray();
 
-        return InfluxDBClientFactory.create("http://localhost:8086",influxTokens,"ncwu","water");
+        return InfluxDBClientFactory.create(influxUrl, influxTokens, influxOrg, influxBucket);
     }
 
     @Bean

@@ -10,8 +10,8 @@ import com.influxdb.client.InfluxDBClientFactory;
 import com.influxdb.client.WriteApiBlocking;
 import com.influxdb.client.domain.WritePrecision;
 import com.influxdb.client.write.Point;
-import com.ncwu.common.domain.Bo.ErrorDataMessageBO;
-import com.ncwu.common.domain.Bo.WaterQualityDataBo;
+import com.ncwu.common.domain.bo.ErrorDataMessageBO;
+import com.ncwu.common.domain.bo.WaterQualityDataBo;
 import com.ncwu.ingestgroup.entity.IotDeviceData;
 import com.ncwu.ingestgroup.exception.DeserializationFailedException;
 import com.ncwu.ingestgroup.mapper.IotDataMapper;
@@ -43,13 +43,19 @@ import java.util.List;
 public class WaterQualityDataConsumer extends ServiceImpl<IotDataMapper, IotDeviceData> implements
         RocketMQListener<String>, IService<IotDeviceData> {
 
-    final String  bucket = "water";
-    final String org = "ncwu";
+    @Value("${influx.bucket:water}")
+    private String bucket;
+
+    @Value("${influx.org:ncwu}")
+    private String org;
 
     int N = 2000;
 
     @Value("${influx.token}")
     private String influxToken;
+
+    @Value("${influx.url:http://localhost:8086}")
+    private String influxUrl;
 
     private final ObjectMapper objectMapper;
     private final RocketMQTemplate rocketMQTemplate;
@@ -63,7 +69,7 @@ public class WaterQualityDataConsumer extends ServiceImpl<IotDataMapper, IotDevi
     public void init() {
         //初始化influxdb客户端
         influxDBClient = InfluxDBClientFactory
-                .create("http://localhost:8086", influxToken.toCharArray());
+                .create(influxUrl, influxToken.toCharArray());
     }
 
     @Override

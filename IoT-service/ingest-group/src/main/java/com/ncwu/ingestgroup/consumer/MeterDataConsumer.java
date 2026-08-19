@@ -9,8 +9,8 @@ import com.influxdb.client.InfluxDBClientFactory;
 import com.influxdb.client.WriteApiBlocking;
 import com.influxdb.client.domain.WritePrecision;
 import com.influxdb.client.write.Point;
-import com.ncwu.common.domain.Bo.ErrorDataMessageBO;
-import com.ncwu.common.domain.Bo.MeterDataBo;
+import com.ncwu.common.domain.bo.ErrorDataMessageBO;
+import com.ncwu.common.domain.bo.MeterDataBo;
 import com.ncwu.ingestgroup.entity.IotDeviceData;
 import com.ncwu.ingestgroup.exception.DeserializationFailedException;
 import com.ncwu.ingestgroup.mapper.IotDataMapper;
@@ -47,6 +47,15 @@ public class MeterDataConsumer extends ServiceImpl<IotDataMapper, IotDeviceData>
 
     @Value("${influx.token}")
     private String influxToken;
+
+    @Value("${influx.url:http://localhost:8086}")
+    private String influxUrl;
+
+    @Value("${influx.org:ncwu}")
+    private String influxOrg;
+
+    @Value("${influx.bucket:water}")
+    private String influxBucket;
     int N = 2000;
     private final RocketMQTemplate rocketMQTemplate;
     private final ObjectMapper objectMapper;
@@ -62,7 +71,7 @@ public class MeterDataConsumer extends ServiceImpl<IotDataMapper, IotDeviceData>
     @PostConstruct
     public void init() {
         influxDBClient = InfluxDBClientFactory
-                .create("http://localhost:8086", influxToken.toCharArray(), "ncwu", "water");
+                .create(influxUrl, influxToken.toCharArray(), influxOrg, influxBucket);
         writeApi = influxDBClient.getWriteApiBlocking();
         startFlushRemainingData();
     }

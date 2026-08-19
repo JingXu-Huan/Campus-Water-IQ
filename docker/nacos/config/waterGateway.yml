@@ -1,0 +1,15 @@
+server:
+  port: 18080
+gateway:
+  security:
+    jwt-secret: campus-water-local-jwt-secret-change-me-please-32-bytes
+    permit-all-paths:
+      - /auth/**
+      - /signup/**
+      - /user/login
+      - /user/register
+      - /actuator/health
+    rate-limit:
+      enabled: true
+      replenish-rate: 10
+      burst-capacity: 20

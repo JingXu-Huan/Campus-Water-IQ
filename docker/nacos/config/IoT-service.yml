@@ -1,0 +1,8 @@
+server:
+  port: ${IOT_SERVICE_PORT:18016}
+  maxSize: ${IOT_SERVICE_MAX_SIZE:1000}
+  saveTimeInterval: ${IOT_SERVICE_SAVE_INTERVAL:60}
+influx:
+  url: ${INFLUX_URL:http://127.0.0.1:8086}
+  org: ${INFLUX_ORG:ncwu}
+  bucket: ${INFLUX_BUCKET:water}

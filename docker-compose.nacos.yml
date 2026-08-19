@@ -1,0 +1,168 @@
+name: campus-water-middleware
+
+services:
+  mysql:
+    image: mysql:8.0
+    container_name: mysql
+    restart: unless-stopped
+    environment:
+      TZ: ${TZ:-Asia/Shanghai}
+      MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD:-change-me-local}
+      MYSQL_DATABASE: ${MYSQL_DATABASE:-water}
+    ports:
+      - "3306:3306"
+    volumes:
+      - mysql_data:/var/lib/mysql
+    networks:
+      - campus-water
+
+  redis:
+    image: redis:7
+    container_name: redis
+    restart: unless-stopped
+    command: redis-server
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_data:/data
+    networks:
+      - campus-water
+
+  redisson:
+    image: redis:7
+    container_name: redission
+    restart: unless-stopped
+    command: redis-server
+    ports:
+      - "36379:6379"
+    volumes:
+      - redisson_data:/data
+    networks:
+      - campus-water
+
+  influxdb:
+    image: influxdb:2
+    container_name: influxdb2
+    restart: unless-stopped
+    environment:
+      TZ: ${TZ:-Asia/Shanghai}
+      DOCKER_INFLUXDB_INIT_MODE: ${INFLUX_INIT_MODE:-setup}
+      DOCKER_INFLUXDB_INIT_USERNAME: ${INFLUX_USERNAME:-jingxu}
+      DOCKER_INFLUXDB_INIT_PASSWORD: ${INFLUX_PASSWORD:-change-me-local}
+      DOCKER_INFLUXDB_INIT_ORG: ${INFLUX_ORG:-ncwu}
+      DOCKER_INFLUXDB_INIT_BUCKET: ${INFLUX_BUCKET:-water}
+      DOCKER_INFLUXDB_INIT_ADMIN_TOKEN: ${INFLUX_TOKEN:-replace-with-a-random-local-token}
+    ports:
+      - "8086:8086"
+    volumes:
+      - influxdb_config:/etc/influxdb2
+      - influxdb_data:/var/lib/influxdb2
+    networks:
+      - campus-water
+
+  canal-server:
+    image: canal/canal-server:latest
+    container_name: canal-server
+    restart: unless-stopped
+    environment:
+      canal.instance.master.address: ${CANAL_MYSQL_MASTER_ADDRESS:-mysql:3306}
+      canal.instance.dbUsername: ${CANAL_MYSQL_USERNAME:-canal}
+      canal.instance.dbPassword: ${CANAL_MYSQL_PASSWORD:-canal}
+      canal.instance.connectionCharset: ${CANAL_MYSQL_CHARSET:-UTF-8}
+      canal.instance.filter.regex: ${CANAL_FILTER_REGEX:-.*\\..*}
+    ports:
+      - "11111:11111"
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+    networks:
+      - campus-water
+
+  nacos:
+    image: nacos/nacos-server:v2.3.2
+    container_name: campus-water-nacos
+    restart: unless-stopped
+    environment:
+      MODE: standalone
+      PREFER_HOST_MODE: ip
+      NACOS_AUTH_ENABLE: "false"
+      JVM_XMS: 256m
+      JVM_XMX: 512m
+      JVM_XMN: 256m
+    ports:
+      - "8848:8848"
+      - "9848:9848"
+      - "9849:9849"
+    volumes:
+      - campus_water_nacos_data:/home/nacos/data
+      - campus_water_nacos_logs:/home/nacos/logs
+    networks:
+      - campus-water
+    healthcheck:
+      test: ["CMD-SHELL", "curl --fail --silent http://127.0.0.1:8848/nacos/v1/console/health/readiness > /dev/null || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 12
+      start_period: 30s
+
+  rocketmq-namesrv:
+    image: apache/rocketmq:5.3.2
+    container_name: campus-water-rmq-namesrv
+    restart: unless-stopped
+    command: sh mqnamesrv
+    ports:
+      - "9876:9876"
+    volumes:
+      - rocketmq_namesrv_logs:/home/rocketmq/logs
+    networks:
+      - campus-water
+
+  rocketmq-broker:
+    image: apache/rocketmq:5.3.2
+    container_name: campus-water-rmq-broker
+    restart: unless-stopped
+    depends_on:
+      - rocketmq-namesrv
+    environment:
+      NAMESRV_ADDR: campus-water-rmq-namesrv:9876
+      JAVA_OPT_EXT: -server -Xms256m -Xmx256m -Xmn128m -XX:MaxDirectMemorySize=128m
+    command: sh mqbroker
+    ports:
+      - "10909:10909"
+      - "10911:10911"
+      - "10912:10912"
+    volumes:
+      - rocketmq_broker_logs:/home/rocketmq/logs
+    networks:
+      - campus-water
+
+volumes:
+  mysql_data:
+    name: 8d648176258e72fb29d282fb7a44b842746b256204a838eda7cba582e04e4213
+    external: true
+  redis_data:
+    name: e1a5afaf79742c15d6c90c394c3668fa0884166ee5b188018f605154f01b0de1
+    external: true
+  redisson_data:
+    name: ee0a4c9faed78259ca6c3cca90ad0811c87108f841224cda4aaace68cce5a4be
+    external: true
+  influxdb_config:
+    name: influxdb2-config
+    external: true
+  influxdb_data:
+    name: influxdb2-data
+    external: true
+  campus_water_nacos_data:
+    name: campus_water_nacos_data
+    external: true
+  campus_water_nacos_logs:
+    name: campus_water_nacos_logs
+    external: true
+  rocketmq_namesrv_logs:
+    name: campus_water_rocketmq_namesrv_logs
+  rocketmq_broker_logs:
+    name: campus_water_rocketmq_broker_logs
+
+networks:
+  campus-water:
+    name: campus-water-network
+    external: true

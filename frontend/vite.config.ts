@@ -11,6 +11,7 @@ export default defineConfig({
   },
   server: {
     port: 5173,
+    host: '0.0.0.0',
     proxy: {
       '/api/user': {
         target: 'http://localhost:18099',
@@ -28,12 +29,12 @@ export default defineConfig({
         rewrite: (path) => path.replace(/^\/api/, ''),
       },
       '/api': {
-        target: 'http://localhost:28097',
+        target: 'http://localhost:18080',
         changeOrigin: true,
         rewrite: (path) => path.replace(/^\/api/, ''),
       },
       '/api/user-report': {
-        target: 'http://localhost:28097',
+        target: 'http://localhost:18080',
         changeOrigin: true,
         rewrite: (path) => path.replace(/^\/api/, ''),
       },

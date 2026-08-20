@@ -5,8 +5,9 @@ import { iotApi, generateDeviceId, generateWaterQualitySensorId } from '@/api/io
 import { 
   Droplets, User, Menu, X, Activity, LayoutDashboard, 
   Play, RotateCcw, Power, PowerOff, AlertCircle, CheckCircle,
-  Gauge, RefreshCw, Cpu, ChevronDown, AlertTriangle
+  RefreshCw, Cpu, ChevronDown, AlertTriangle
 } from 'lucide-react'
+import NavigationMenu from '@/components/NavigationMenu'
 
 type SimMode = 'normal' | 'leaking' | 'burstPipe' | 'shows'
 
@@ -381,9 +382,9 @@ export default function DigitalTwin() {
   }
 
   return (
-    <div className="h-screen bg-gray-50 flex overflow-hidden">
+    <div className="app-shell h-screen bg-gray-50 flex overflow-hidden">
       {/* Sidebar */}
-      <aside className={`${sidebarOpen ? 'w-64' : 'w-20'} bg-gradient-to-b from-primary-600 to-primary-800 shadow-xl transition-all duration-300 flex flex-col h-screen`}>
+      <aside className={`app-sidebar ${sidebarOpen ? 'w-64' : 'w-20'} bg-gradient-to-b from-primary-600 to-primary-800 shadow-xl transition-all duration-300 flex flex-col h-screen`}>
         {/* Logo区域 */}
         <div className="p-4 border-b border-white/10 flex-shrink-0">
           <div className="flex items-center gap-3">
@@ -406,29 +407,7 @@ export default function DigitalTwin() {
 
         {/* 导航菜单 */}
         <nav className="flex-1 p-2 overflow-y-auto">
-          <div className="space-y-1">
-            <button
-              onClick={() => navigate('/dashboard')}
-              className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl transition-all text-white/70 hover:bg-white/10 hover:text-white`}
-            >
-              <Activity className="w-5 h-5" />
-              {sidebarOpen && <span>数据概览</span>}
-            </button>
-            <button
-              onClick={() => navigate('/monitoring')}
-              className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl transition-all text-white/70 hover:bg-white/10 hover:text-white`}
-            >
-              <Gauge className="w-5 h-5" />
-              {sidebarOpen && <span>实时监测</span>}
-            </button>
-            <button
-              onClick={() => {}}
-              className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl transition-all bg-white/20 text-white border border-white/30 shadow-lg`}
-            >
-              <Cpu className="w-5 h-5" />
-              {sidebarOpen && <span>数字孪生</span>}
-            </button>
-          </div>
+          <NavigationMenu collapsed={!sidebarOpen}/>
         </nav>
 
         {/* User Footer */}
@@ -453,7 +432,7 @@ export default function DigitalTwin() {
 
       {/* Main Content */}
       <div className="flex-1 flex flex-col bg-gray-50">
-        <header className="bg-gradient-to-r from-primary-600 to-primary-800 shadow-lg">
+        <header className="app-header bg-gradient-to-r from-primary-600 to-primary-800 shadow-lg">
           <div className="px-6 py-4 flex items-center justify-between">
             <div className="flex items-center gap-4">
               <button

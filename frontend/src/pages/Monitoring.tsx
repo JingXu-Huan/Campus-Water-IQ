@@ -5,6 +5,7 @@ import { iotApi, generateDeviceId, generateWaterQualitySensorId, parseDeviceCode
 import { aiApi } from '@/api/ai'
 import { Droplets, User, Menu, X, Activity, Building2, Building, Home, RefreshCw, XCircle, LayoutDashboard, Waves, FlaskConical, Gauge, Wifi, WifiOff } from 'lucide-react'
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts'
+import NavigationMenu from '@/components/NavigationMenu'
 
 // 校区映射
 const CAMPUS_MAP: Record<number, { name: string; code: string }> = {
@@ -270,9 +271,9 @@ export default function Monitoring() {
     .sort((a, b) => b.floor - a.floor)
   
   return (
-    <div className="h-screen bg-gray-50 flex overflow-hidden">
+    <div className="app-shell h-screen bg-gray-50 flex overflow-hidden">
       {/* Sidebar */}
-      <aside className={`${sidebarOpen ? 'w-64' : 'w-20'} bg-gradient-to-b from-primary-600 to-primary-800 shadow-xl transition-all duration-300 flex flex-col h-screen`}>
+      <aside className={`app-sidebar ${sidebarOpen ? 'w-64' : 'w-20'} bg-gradient-to-b from-primary-600 to-primary-800 shadow-xl transition-all duration-300 flex flex-col h-screen`}>
         {/* Logo区域 */}
         <div className="p-4 border-b border-white/10 flex-shrink-0">
           <div className="flex items-center gap-3">
@@ -295,6 +296,10 @@ export default function Monitoring() {
 
         {/* 校区选择 */}
         <nav className="flex-1 p-2 overflow-y-auto">
+          <div className="mb-5">
+            <p className="px-4 mb-2 text-xs font-medium text-white/40 uppercase">菜单</p>
+            <NavigationMenu collapsed={!sidebarOpen}/>
+          </div>
           <p className="px-4 mb-2 text-xs font-medium text-white/40 uppercase">切换校区</p>
           <div className="space-y-1 mb-6">
             {campuses.map((campus) => (
@@ -428,7 +433,7 @@ export default function Monitoring() {
 
       {/* Main Content */}
       <div className="flex-1 flex flex-col bg-gray-50">
-        <header className="bg-gradient-to-r from-primary-600 to-primary-800 shadow-lg">
+        <header className="app-header bg-gradient-to-r from-primary-600 to-primary-800 shadow-lg">
           <div className="px-6 py-4 flex items-center justify-between">
             <div className="flex items-center gap-4">
               <button

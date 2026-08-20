@@ -1,0 +1,613 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project version="4">
+  <component name="AutoImportSettings">
+    <option name="autoReloadType" value="SELECTIVE" />
+  </component>
+  <component name="ChangeListManager">
+    <list default="true" id="0ce7bfa8-bbc8-49f4-9b85-6ad9f6e323cf" name="更改" comment="优化用水数据定时保存任务">
+      <change afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/.idea/.cache/.Apifox_Helper/.toolWindow.db" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/.idea/.gitignore" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/.idea/ApifoxUploaderProjectSetting.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/ApifoxUploaderProjectSetting.xml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/.idea/GrepConsole.xml" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/.idea/IntelliLang.xml" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/.idea/betterCommentsSettings.xml" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/.idea/dataSources.xml" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/.idea/db-forest-config.xml" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/.idea/dictionaries/project.xml" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/.idea/inspectionProfiles/Project_Default.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/inspectionProfiles/Project_Default.xml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/.idea/material_theme_project_new.xml" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/.idea/misc.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/misc.xml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/.idea/mybatisx/templates.xml" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/.idea/sqldialects.xml" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/IoT-service/service/src/main/java/com/ncwu/iotservice/service/impl/IoTDataServiceImpl.java" beforeDir="false" afterPath="$PROJECT_DIR$/IoT-service/service/src/main/java/com/ncwu/iotservice/service/impl/IoTDataServiceImpl.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/docker-compose.services.yml" beforeDir="false" afterPath="$PROJECT_DIR$/docker-compose.services.yml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/docker/Dockerfile" beforeDir="false" afterPath="$PROJECT_DIR$/docker/Dockerfile" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/docker/nacos/config/IoT-device.yml" beforeDir="false" afterPath="$PROJECT_DIR$/docker/nacos/config/IoT-device.yml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/frontend/src/App.tsx" beforeDir="false" afterPath="$PROJECT_DIR$/frontend/src/App.tsx" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/frontend/src/api/iot.ts" beforeDir="false" afterPath="$PROJECT_DIR$/frontend/src/api/iot.ts" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/frontend/src/index.css" beforeDir="false" afterPath="$PROJECT_DIR$/frontend/src/index.css" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/frontend/src/pages/Dashboard.tsx" beforeDir="false" afterPath="$PROJECT_DIR$/frontend/src/pages/Dashboard.tsx" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/frontend/src/pages/DigitalTwin.tsx" beforeDir="false" afterPath="$PROJECT_DIR$/frontend/src/pages/DigitalTwin.tsx" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/frontend/src/pages/Help.tsx" beforeDir="false" afterPath="$PROJECT_DIR$/frontend/src/pages/Help.tsx" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/frontend/src/pages/Login.tsx" beforeDir="false" afterPath="$PROJECT_DIR$/frontend/src/pages/Login.tsx" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/frontend/src/pages/Monitoring.tsx" beforeDir="false" afterPath="$PROJECT_DIR$/frontend/src/pages/Monitoring.tsx" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/frontend/src/pages/Repair.tsx" beforeDir="false" afterPath="$PROJECT_DIR$/frontend/src/pages/Repair.tsx" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/frontend/src/pages/Reports.tsx" beforeDir="false" afterPath="$PROJECT_DIR$/frontend/src/pages/Reports.tsx" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/frontend/tailwind.config.js" beforeDir="false" afterPath="$PROJECT_DIR$/frontend/tailwind.config.js" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/frontend/tsconfig.node.tsbuildinfo" beforeDir="false" afterPath="$PROJECT_DIR$/frontend/tsconfig.node.tsbuildinfo" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/frontend/tsconfig.tsbuildinfo" beforeDir="false" afterPath="$PROJECT_DIR$/frontend/tsconfig.tsbuildinfo" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/repair-service/src/main/java/com/ncwu/repairservice/controller/IoTEventController.java" beforeDir="false" afterPath="$PROJECT_DIR$/repair-service/src/main/java/com/ncwu/repairservice/controller/IoTEventController.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/repair-service/src/main/java/com/ncwu/repairservice/mapper/IoTDeviceMapper.java" beforeDir="false" afterPath="$PROJECT_DIR$/repair-service/src/main/java/com/ncwu/repairservice/mapper/IoTDeviceMapper.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/repair-service/src/main/java/com/ncwu/repairservice/service/IoTDeviceService.java" beforeDir="false" afterPath="$PROJECT_DIR$/repair-service/src/main/java/com/ncwu/repairservice/service/IoTDeviceService.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/repair-service/src/main/java/com/ncwu/repairservice/service/impl/IoTDeviceServiceImpl.java" beforeDir="false" afterPath="$PROJECT_DIR$/repair-service/src/main/java/com/ncwu/repairservice/service/impl/IoTDeviceServiceImpl.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/water-gateway/src/main/resources/application.yml" beforeDir="false" afterPath="$PROJECT_DIR$/water-gateway/src/main/resources/application.yml" afterDir="false" />
+    </list>
+    <option name="SHOW_DIALOG" value="false" />
+    <option name="HIGHLIGHT_CONFLICTS" value="true" />
+    <option name="HIGHLIGHT_NON_ACTIVE_CHANGELIST" value="false" />
+    <option name="LAST_RESOLUTION" value="IGNORE" />
+  </component>
+  <component name="EmbeddingIndexingInfo">
+    <option name="cachedIndexableFilesCount" value="371" />
+  </component>
+  <component name="FileTemplateManagerImpl">
+    <option name="RECENT_TEMPLATES">
+      <list>
+        <option value="AnnotationType" />
+        <option value="Interface" />
+        <option value="Enum" />
+        <option value="Class" />
+      </list>
+    </option>
+  </component>
+  <component name="Git.Settings">
+    <option name="RECENT_GIT_ROOT_PATH" value="$PROJECT_DIR$" />
+  </component>
+  <component name="GitHubPullRequestSearchHistory">{
+  &quot;lastFilter&quot;: {
+    &quot;state&quot;: &quot;OPEN&quot;,
+    &quot;assignee&quot;: &quot;JingXu-Huan&quot;
+  }
+}</component>
+  <component name="GithubPullRequestsUISettings">{
+  &quot;selectedUrlAndAccountId&quot;: {
+    &quot;url&quot;: &quot;https://github.com/JingXu-Huan/Campus-Water-IQ.git&quot;,
+    &quot;accountId&quot;: &quot;9812cea5-9f8f-4efd-a32d-1b4ba7ce14d5&quot;
+  }
+}</component>
+  <component name="HighlightingSettingsPerFile">
+    <setting file="jar://$USER_HOME$/.jdks/ms-21.0.10/lib/src.zip!/java.base/java/lang/NumberFormatException.java" root0="SKIP_INSPECTION" />
+    <setting file="jar://$MAVEN_REPOSITORY$/com/influxdb/influxdb-client-java/6.6.0/influxdb-client-java-6.6.0.jar!/com/influxdb/client/InfluxDBClient.class" root0="SKIP_INSPECTION" />
+    <setting file="jar://$MAVEN_REPOSITORY$/com/influxdb/influxdb-client-java/6.6.0/influxdb-client-java-6.6.0.jar!/com/influxdb/client/write/Point.class" root0="SKIP_INSPECTION" />
+    <setting file="jar://$MAVEN_REPOSITORY$/org/apache/dubbo/dubbo/3.3.6/dubbo-3.3.6.jar!/org/apache/dubbo/config/deploy/DefaultModuleDeployer.class" root0="SKIP_INSPECTION" />
+    <setting file="jar://$MAVEN_REPOSITORY$/org/eclipse/angus/jakarta.mail/2.0.3/jakarta.mail-2.0.3.jar!/jakarta/mail/MessagingException.class" root0="SKIP_INSPECTION" />
+    <setting file="jar://$MAVEN_REPOSITORY$/org/springframework/boot/spring-boot-autoconfigure/3.3.5/spring-boot-autoconfigure-3.3.5.jar!/org/springframework/boot/autoconfigure/mail/MailProperties.class" root0="SKIP_INSPECTION" />
+    <setting file="jar://$MAVEN_REPOSITORY$/org/springframework/retry/spring-retry/2.0.10/spring-retry-2.0.10-sources.jar!/org/springframework/retry/annotation/Retryable.java" root0="SKIP_INSPECTION" />
+    <setting file="jar://$MAVEN_REPOSITORY$/org/springframework/retry/spring-retry/2.0.10/spring-retry-2.0.10.jar!/org/springframework/retry/annotation/Retryable.class" root0="SKIP_INSPECTION" />
+    <setting file="jar://$MAVEN_REPOSITORY$/org/springframework/spring-aop/6.1.14/spring-aop-6.1.14.jar!/org/springframework/aop/support/AopUtils.class" root0="SKIP_INSPECTION" />
+    <setting file="jar://$APPLICATION_HOME_DIR$/plugins/maven/lib/maven.jar!/schemas/maven-4.0.0.xsd" root0="SKIP_INSPECTION" />
+  </component>
+  <component name="KubernetesApiPersistence">{}</component>
+  <component name="KubernetesApiProvider">{
+  &quot;isMigrated&quot;: true
+}</component>
+  <component name="MavenRunner">
+    <option name="skipTests" value="true" />
+  </component>
+  <component name="McpProjectServerCommands">
+    <commands />
+    <urls />
+  </component>
+  <component name="NextEditCompletionFeaturesState">
+    <decayedCancelled>
+      <entry key="MS100" value="0.0018955694853653605" />
+      <entry key="MS500" value="0.8068088775817822" />
+      <entry key="S2" value="3.5012734159987735" />
+      <entry key="S5" value="6.127697564990931" />
+      <entry key="S10" value="9.171035838258616" />
+      <entry key="S30" value="13.49216417440631" />
+      <entry key="S60" value="15.09777030367786" />
+      <entry key="M2" value="16.0083783591636" />
+      <entry key="M5" value="16.593153507288577" />
+      <entry key="M10" value="16.794835763307017" />
+      <entry key="M15" value="16.862833830883222" />
+      <entry key="M30" value="16.9312211226144" />
+      <entry key="H1" value="16.96556146493828" />
+      <entry key="H2" value="16.982768439806744" />
+      <entry key="H4" value="16.99138114441338" />
+      <entry key="D1" value="16.998563096720073" />
+      <entry key="W1" value="16.99979471763461" />
+    </decayedCancelled>
+    <decayedSelected>
+      <entry key="MS100" value="1.0000000000010891" />
+      <entry key="MS500" value="1.0040496144776796" />
+      <entry key="S2" value="1.2575842289089847" />
+      <entry key="S5" value="1.6995655200310478" />
+      <entry key="S10" value="2.1101418892734722" />
+      <entry key="S30" value="2.6176148660811824" />
+      <entry key="S60" value="2.7949763593355392" />
+      <entry key="M2" value="2.8937388958955603" />
+      <entry key="M5" value="2.956555461195877" />
+      <entry key="M10" value="2.9781175605684505" />
+      <entry key="M15" value="2.985375850556564" />
+      <entry key="M30" value="2.992669930773448" />
+      <entry key="H1" value="2.9963304542920812" />
+      <entry key="H2" value="2.9981640978099087" />
+      <entry key="H4" value="2.999081766375367" />
+      <entry key="D1" value="2.9998469218057306" />
+      <entry key="W1" value="2.9999781307249247" />
+    </decayedSelected>
+    <decayedShown>
+      <entry key="MS100" value="0.015836582891115888" />
+      <entry key="MS500" value="1.2207396936206394" />
+      <entry key="S2" value="4.416079473900543" />
+      <entry key="S5" value="7.558930692745182" />
+      <entry key="S10" value="11.088724633748948" />
+      <entry key="S30" value="16.02277550933554" />
+      <entry key="S60" value="17.845351903592558" />
+      <entry key="M2" value="18.87734451465737" />
+      <entry key="M5" value="19.53952742573975" />
+      <entry key="M10" value="19.767815889879852" />
+      <entry key="M15" value="19.8447742608595" />
+      <entry key="M30" value="19.922168086816512" />
+      <entry key="H1" value="19.961029117356365" />
+      <entry key="H2" value="19.98050080646605" />
+      <entry key="H4" value="19.990246962589115" />
+      <entry key="D1" value="19.99837401567757" />
+      <entry key="W1" value="19.999767704814243" />
+    </decayedShown>
+  </component>
+  <component name="ProblemsViewState">
+    <option name="selectedTabId" value="CurrentFile" />
+  </component>
+  <component name="ProjectColorInfo">{
+  &quot;associatedIndex&quot;: 0
+}</component>
+  <component name="ProjectId" id="390wvzOwNhx4eY8TujAUccTxacd" />
+  <component name="ProjectViewState">
+    <option name="hideEmptyMiddlePackages" value="true" />
+    <option name="showLibraryContents" value="true" />
+  </component>
+  <component name="PropertiesComponent">{
+  &quot;keyToString&quot;: {
+    &quot;JUnit.RepairServiceApplicationTests.executor&quot;: &quot;Run&quot;,
+    &quot;JUnit.RepairServiceApplicationTests.sendConde.executor&quot;: &quot;Run&quot;,
+    &quot;JUnit.RepairServiceApplicationTests.sendText.executor&quot;: &quot;Run&quot;,
+    &quot;JUnit.WarningServiceApplicationTests.executor&quot;: &quot;Run&quot;,
+    &quot;JUnit.WarningServiceApplicationTests.sendConde.executor&quot;: &quot;Run&quot;,
+    &quot;JUnit.WarningServiceApplicationTests.testSendEmail.executor&quot;: &quot;Run&quot;,
+    &quot;Maven.Campus-Water-IQ [clean,compile].executor&quot;: &quot;Run&quot;,
+    &quot;Maven.Campus-Water-IQ [clean].executor&quot;: &quot;Run&quot;,
+    &quot;Maven.Campus-Water-IQ [compile].executor&quot;: &quot;Run&quot;,
+    &quot;Maven.Campus-Water-IQ [install].executor&quot;: &quot;Run&quot;,
+    &quot;Maven.common [install].executor&quot;: &quot;Run&quot;,
+    &quot;Maven.warning-service [clean].executor&quot;: &quot;Run&quot;,
+    &quot;ModuleVcsDetector.initialDetectionPerformed&quot;: &quot;true&quot;,
+    &quot;Python.water_quality.executor&quot;: &quot;Run&quot;,
+    &quot;RequestMappingsPanelOrder0&quot;: &quot;0&quot;,
+    &quot;RequestMappingsPanelOrder1&quot;: &quot;1&quot;,
+    &quot;RequestMappingsPanelWidth0&quot;: &quot;75&quot;,
+    &quot;RequestMappingsPanelWidth1&quot;: &quot;75&quot;,
+    &quot;RunOnceActivity.MCP Project settings loaded&quot;: &quot;true&quot;,
+    &quot;RunOnceActivity.ShowReadmeOnStart&quot;: &quot;true&quot;,
+    &quot;RunOnceActivity.TerminalTabsStorage.copyFrom.TerminalArrangementManager.252&quot;: &quot;true&quot;,
+    &quot;RunOnceActivity.git.unshallow&quot;: &quot;true&quot;,
+    &quot;RunOnceActivity.typescript.service.memoryLimit.init&quot;: &quot;true&quot;,
+    &quot;SHARE_PROJECT_CONFIGURATION_FILES&quot;: &quot;true&quot;,
+    &quot;Spring Boot.CommonApplication (1).executor&quot;: &quot;Run&quot;,
+    &quot;Spring Boot.CommonApplication.executor&quot;: &quot;Run&quot;,
+    &quot;Spring Boot.IngestGroupApplication.executor&quot;: &quot;Run&quot;,
+    &quot;Spring Boot.IoTDeviceApplication.executor&quot;: &quot;Run&quot;,
+    &quot;Spring Boot.IoTServiceApplication.executor&quot;: &quot;Run&quot;,
+    &quot;Spring Boot.PredictionServiceApplication.executor&quot;: &quot;Run&quot;,
+    &quot;Spring Boot.RepairServiceApplication.executor&quot;: &quot;Run&quot;,
+    &quot;Spring Boot.WarningServiceApplication.executor&quot;: &quot;Run&quot;,
+    &quot;Spring Boot.WaterGatewayApplication.executor&quot;: &quot;Run&quot;,
+    &quot;codeWithMe.voiceChat.enabledByDefault&quot;: &quot;false&quot;,
+    &quot;com.intellij.ml.llm.matterhorn.ej.ui.settings.DefaultModelSelectionForGA.v1&quot;: &quot;true&quot;,
+    &quot;extract.method.default.visibility&quot;: &quot;private&quot;,
+    &quot;git-widget-placeholder&quot;: &quot;agent/local-docker-middleware&quot;,
+    &quot;ignore.virus.scanning.warn.message&quot;: &quot;true&quot;,
+    &quot;junie.onboarding.icon.badge.shown&quot;: &quot;true&quot;,
+    &quot;kotlin-language-version-configured&quot;: &quot;true&quot;,
+    &quot;last_opened_file_path&quot;: &quot;C:/Users/24053/IdeaProjects/Campus-Water-IQ/common/src/init&quot;,
+    &quot;node.js.detected.package.eslint&quot;: &quot;true&quot;,
+    &quot;node.js.detected.package.tslint&quot;: &quot;true&quot;,
+    &quot;node.js.selected.package.eslint&quot;: &quot;(autodetect)&quot;,
+    &quot;node.js.selected.package.tslint&quot;: &quot;(autodetect)&quot;,
+    &quot;nodejs_package_manager_path&quot;: &quot;npm&quot;,
+    &quot;project.structure.last.edited&quot;: &quot;模块&quot;,
+    &quot;project.structure.proportion&quot;: &quot;0.15&quot;,
+    &quot;project.structure.side.proportion&quot;: &quot;0.2&quot;,
+    &quot;run.configurations.included.in.services&quot;: &quot;true&quot;,
+    &quot;settings.editor.selected.configurable&quot;: &quot;com.intellij.mcpserver.settings&quot;,
+    &quot;to.speed.mode.migration.done&quot;: &quot;true&quot;,
+    &quot;ts.external.directory.path&quot;: &quot;C:\\Users\\24053\\IdeaProjects\\Campus-Water-IQ\\frontend\\node_modules\\typescript\\lib&quot;,
+    &quot;vue.rearranger.settings.migration&quot;: &quot;true&quot;,
+    &quot;数据库脚本.iot_device_data.sql.executor&quot;: &quot;Run&quot;,
+    &quot;数据库脚本.iot_device_event.sql.executor&quot;: &quot;Run&quot;,
+    &quot;数据库脚本.sql.sql.executor&quot;: &quot;Run&quot;,
+    &quot;数据库脚本.virtual_device.sql.executor&quot;: &quot;Run&quot;
+  },
+  &quot;keyToStringList&quot;: {
+    &quot;RunConfigurationTargetLRU&quot;: [
+      &quot;c94d6d6c-3fd3-4714-a26c-88d275ecf7e7&quot;,
+      &quot;c94d6d6c-3fd3-4714-a26c-88d275ecf7e7/schema/\&quot;water\&quot;&quot;
+    ]
+  }
+}</component>
+  <component name="RecentsManager">
+    <key name="CopyFile.RECENT_KEYS">
+      <recent name="C:\Users\24053\IdeaProjects\Campus-Water-IQ\repair-service\src\main" />
+    </key>
+    <key name="MoveFile.RECENT_KEYS">
+      <recent name="C:\Users\24053\IdeaProjects\Campus-Water-IQ\repair-service\src\main" />
+    </key>
+    <key name="ExtractSuperBase.RECENT_KEYS">
+      <recent name="com.ncwu.iotservice.service.impl" />
+    </key>
+    <key name="MoveClassesOrPackagesDialog.RECENTS_KEY">
+      <recent name="com.ncwu.warningservice" />
+    </key>
+    <key name="CopyClassDialog.RECENTS_KEY">
+      <recent name="com.ncwu.authservice.controller" />
+      <recent name="" />
+      <recent name="emailservice" />
+      <recent name="com.ncwu.warningservice.exception" />
+    </key>
+  </component>
+  <component name="RunAnythingCache">
+    <option name="myCommands">
+      <command value="mvn clean" />
+      <command value="mvn compile" />
+      <command value="mvn clean compile" />
+      <command value="mvn install" />
+    </option>
+  </component>
+  <component name="RunDashboard">
+    <option name="configurationTypes">
+      <set>
+        <option value="MicronautRunConfigurationType" />
+        <option value="QuarkusRunConfigurationType" />
+        <option value="SpringBootApplicationConfigurationType" />
+      </set>
+    </option>
+  </component>
+  <component name="RunManager" selected="数据库脚本.sql.sql">
+    <configuration name="sql.sql" type="DatabaseScript" editBeforeRun="true" temporary="true" nameIsGenerated="true">
+      <script-file value="$PROJECT_DIR$/common/src/sql/sql.sql" />
+      <script-mode>FILE</script-mode>
+      <data-source id="c94d6d6c-3fd3-4714-a26c-88d275ecf7e7" />
+      <method v="2" />
+    </configuration>
+    <configuration name="IngestGroupApplication" type="SpringBootApplicationConfigurationType" factoryName="Spring Boot" nameIsGenerated="true">
+      <module name="ingest-group" />
+      <option name="SPRING_BOOT_MAIN_CLASS" value="com.ncwu.ingestgroup.IngestGroupApplication" />
+      <method v="2">
+        <option name="Make" enabled="true" />
+      </method>
+    </configuration>
+    <configuration name="IoTDeviceApplication" type="SpringBootApplicationConfigurationType" factoryName="Spring Boot" temporary="true" nameIsGenerated="true">
+      <module name="IoT-device" />
+      <option name="SPRING_BOOT_MAIN_CLASS" value="com.ncwu.iotdevice.IoTDeviceApplication" />
+      <extension name="coverage">
+        <pattern>
+          <option name="PATTERN" value="com.ncwu.iotdevice.*" />
+          <option name="ENABLED" value="true" />
+        </pattern>
+      </extension>
+      <method v="2">
+        <option name="Make" enabled="true" />
+      </method>
+    </configuration>
+    <configuration name="IoTServiceApplication" type="SpringBootApplicationConfigurationType" factoryName="Spring Boot" nameIsGenerated="true">
+      <module name="service" />
+      <option name="SPRING_BOOT_MAIN_CLASS" value="com.ncwu.iotservice.IoTServiceApplication" />
+      <method v="2">
+        <option name="Make" enabled="true" />
+      </method>
+    </configuration>
+    <configuration name="RepairServiceApplication" type="SpringBootApplicationConfigurationType" factoryName="Spring Boot" temporary="true" nameIsGenerated="true">
+      <module name="repair-service" />
+      <option name="SPRING_BOOT_MAIN_CLASS" value="com.ncwu.repairservice.RepairServiceApplication" />
+      <extension name="coverage">
+        <pattern>
+          <option name="PATTERN" value="com.ncwu.repairservice.*" />
+          <option name="ENABLED" value="true" />
+        </pattern>
+      </extension>
+      <method v="2">
+        <option name="Make" enabled="true" />
+      </method>
+    </configuration>
+    <configuration name="WarningServiceApplication" type="SpringBootApplicationConfigurationType" factoryName="Spring Boot" temporary="true" nameIsGenerated="true">
+      <module name="warning-service" />
+      <option name="SPRING_BOOT_MAIN_CLASS" value="com.ncwu.warningservice.WarningServiceApplication" />
+      <extension name="coverage">
+        <pattern>
+          <option name="PATTERN" value="com.ncwu.warningservice.*" />
+          <option name="ENABLED" value="true" />
+        </pattern>
+      </extension>
+      <method v="2">
+        <option name="Make" enabled="true" />
+      </method>
+    </configuration>
+    <configuration name="WaterGatewayApplication" type="SpringBootApplicationConfigurationType" factoryName="Spring Boot" temporary="true" nameIsGenerated="true">
+      <module name="water-gateway" />
+      <option name="SPRING_BOOT_MAIN_CLASS" value="com.ncwu.watergateway.WaterGatewayApplication" />
+      <extension name="coverage">
+        <pattern>
+          <option name="PATTERN" value="com.ncwu.watergateway.*" />
+          <option name="ENABLED" value="true" />
+        </pattern>
+      </extension>
+      <method v="2">
+        <option name="Make" enabled="true" />
+      </method>
+    </configuration>
+    <recent_temporary>
+      <list>
+        <item itemvalue="Spring Boot.IoTDeviceApplication" />
+        <item itemvalue="数据库脚本.sql.sql" />
+        <item itemvalue="Spring Boot.WaterGatewayApplication" />
+        <item itemvalue="Spring Boot.RepairServiceApplication" />
+        <item itemvalue="Spring Boot.WarningServiceApplication" />
+      </list>
+    </recent_temporary>
+  </component>
+  <component name="SharedIndexes">
+    <attachedChunks>
+      <set>
+        <option value="bundled-jdk-30f59d01ecdd-63390994e64e-intellij.indexing.shared.core-IU-262.8665.258" />
+        <option value="bundled-js-predefined-d6986cc7102b-4abd2a77f808-JavaScript-IU-262.8665.258" />
+      </set>
+    </attachedChunks>
+  </component>
+  <component name="TaskManager">
+    <task active="true" id="Default" summary="默认任务">
+      <changelist id="0ce7bfa8-bbc8-49f4-9b85-6ad9f6e323cf" name="更改" comment="" />
+      <created>1769846532779</created>
+      <option name="number" value="Default" />
+      <option name="presentableId" value="Default" />
+      <updated>1769846532779</updated>
+      <workItem from="1769846557578" duration="288000" />
+      <workItem from="1769846949158" duration="1688000" />
+      <workItem from="1769848659199" duration="32000" />
+      <workItem from="1769848704048" duration="112000" />
+      <workItem from="1769848834344" duration="634000" />
+      <workItem from="1769864449339" duration="1267000" />
+      <workItem from="1769865743583" duration="4405000" />
+      <workItem from="1769910691436" duration="51000" />
+      <workItem from="1769913621703" duration="3834000" />
+      <workItem from="1769917509884" duration="86000" />
+      <workItem from="1769917775309" duration="977000" />
+      <workItem from="1769918795294" duration="789000" />
+      <workItem from="1769919641732" duration="1354000" />
+      <workItem from="1769921015478" duration="655000" />
+      <workItem from="1769932233664" duration="2536000" />
+      <workItem from="1769934821077" duration="5427000" />
+      <workItem from="1769940310838" duration="1429000" />
+      <workItem from="1769941765339" duration="727000" />
+      <workItem from="1769993300177" duration="354000" />
+      <workItem from="1769993835313" duration="5790000" />
+      <workItem from="1770080163891" duration="4197000" />
+      <workItem from="1770104032236" duration="114000" />
+      <workItem from="1770112491825" duration="461000" />
+      <workItem from="1770112973528" duration="3862000" />
+      <workItem from="1770116898072" duration="1701000" />
+      <workItem from="1770205173326" duration="3690000" />
+      <workItem from="1770208957309" duration="5370000" />
+      <workItem from="1770254163345" duration="3679000" />
+      <workItem from="1770277234302" duration="6394000" />
+      <workItem from="1770363478710" duration="8041000" />
+      <workItem from="1770371567487" duration="2698000" />
+      <workItem from="1770429423856" duration="10775000" />
+      <workItem from="1770523343755" duration="399000" />
+      <workItem from="1771137932786" duration="230000" />
+      <workItem from="1771986972266" duration="4239000" />
+      <workItem from="1772062077280" duration="3712000" />
+      <workItem from="1772657462596" duration="304000" />
+      <workItem from="1772696342696" duration="3000" />
+      <workItem from="1772698194971" duration="1874000" />
+      <workItem from="1772714227474" duration="20000" />
+      <workItem from="1773382896249" duration="2928000" />
+      <workItem from="1773386224142" duration="3093000" />
+      <workItem from="1773389372450" duration="145000" />
+      <workItem from="1773389548537" duration="307000" />
+      <workItem from="1773455082554" duration="217000" />
+      <workItem from="1773455323212" duration="435000" />
+      <workItem from="1773455783714" duration="233000" />
+    </task>
+    <task id="LOCAL-00001" summary="更新部分参数">
+      <option name="closed" value="true" />
+      <created>1769864505342</created>
+      <option name="number" value="00001" />
+      <option name="presentableId" value="LOCAL-00001" />
+      <option name="project" value="LOCAL" />
+      <updated>1769864505342</updated>
+    </task>
+    <task id="LOCAL-00002" summary="水质打分跨语言集成Python">
+      <option name="closed" value="true" />
+      <created>1769921458664</created>
+      <option name="number" value="00002" />
+      <option name="presentableId" value="LOCAL-00002" />
+      <option name="project" value="LOCAL" />
+      <updated>1769921458664</updated>
+    </task>
+    <task id="LOCAL-00003" summary="实现MySQL binlog 的监听。&#10;修复python脚本路径硬编码的问题。">
+      <option name="closed" value="true" />
+      <created>1769941696462</created>
+      <option name="number" value="00003" />
+      <option name="presentableId" value="LOCAL-00003" />
+      <option name="project" value="LOCAL" />
+      <updated>1769941696462</updated>
+    </task>
+    <task id="LOCAL-00004" summary="新增邮件服务">
+      <option name="closed" value="true" />
+      <created>1770000338236</created>
+      <option name="number" value="00004" />
+      <option name="presentableId" value="LOCAL-00004" />
+      <option name="project" value="LOCAL" />
+      <updated>1770000338236</updated>
+    </task>
+    <task id="LOCAL-00005" summary="新增邮件服务至common-service.">
+      <option name="closed" value="true" />
+      <created>1770118183312</created>
+      <option name="number" value="00005" />
+      <option name="presentableId" value="LOCAL-00005" />
+      <option name="project" value="LOCAL" />
+      <updated>1770118183313</updated>
+    </task>
+    <task id="LOCAL-00006" summary="开发repair-service">
+      <option name="closed" value="true" />
+      <created>1770214273833</created>
+      <option name="number" value="00006" />
+      <option name="presentableId" value="LOCAL-00006" />
+      <option name="project" value="LOCAL" />
+      <updated>1770214273833</updated>
+    </task>
+    <task id="LOCAL-00007" summary="引入redission分布式锁">
+      <option name="closed" value="true" />
+      <created>1770267563746</created>
+      <option name="number" value="00007" />
+      <option name="presentableId" value="LOCAL-00007" />
+      <option name="project" value="LOCAL" />
+      <updated>1770267563746</updated>
+    </task>
+    <task id="LOCAL-00008" summary="对高频访问接口做redis缓存">
+      <option name="closed" value="true" />
+      <created>1770283496947</created>
+      <option name="number" value="00008" />
+      <option name="presentableId" value="LOCAL-00008" />
+      <option name="project" value="LOCAL" />
+      <updated>1770283496947</updated>
+    </task>
+    <task id="LOCAL-00009" summary="修复了一些问题">
+      <option name="closed" value="true" />
+      <created>1770371633642</created>
+      <option name="number" value="00009" />
+      <option name="presentableId" value="LOCAL-00009" />
+      <option name="project" value="LOCAL" />
+      <updated>1770371633642</updated>
+    </task>
+    <task id="LOCAL-00010" summary="优化报修单通知样式">
+      <option name="closed" value="true" />
+      <created>1770371984053</created>
+      <option name="number" value="00010" />
+      <option name="presentableId" value="LOCAL-00010" />
+      <option name="project" value="LOCAL" />
+      <updated>1770371984053</updated>
+    </task>
+    <task id="LOCAL-00011" summary="新增用户服务">
+      <option name="closed" value="true" />
+      <created>1770450843075</created>
+      <option name="number" value="00011" />
+      <option name="presentableId" value="LOCAL-00011" />
+      <option name="project" value="LOCAL" />
+      <updated>1770450843075</updated>
+    </task>
+    <task id="LOCAL-00012" summary="整理sql">
+      <option name="closed" value="true" />
+      <created>1770523427590</created>
+      <option name="number" value="00012" />
+      <option name="presentableId" value="LOCAL-00012" />
+      <option name="project" value="LOCAL" />
+      <updated>1770523427590</updated>
+    </task>
+    <task id="LOCAL-00013" summary="新增Excel工具，完成原始数据导出功能">
+      <option name="closed" value="true" />
+      <created>1773386696732</created>
+      <option name="number" value="00013" />
+      <option name="presentableId" value="LOCAL-00013" />
+      <option name="project" value="LOCAL" />
+      <updated>1773386696732</updated>
+    </task>
+    <task id="LOCAL-00014" summary="优化用水数据定时保存任务">
+      <option name="closed" value="true" />
+      <created>1773389675302</created>
+      <option name="number" value="00014" />
+      <option name="presentableId" value="LOCAL-00014" />
+      <option name="project" value="LOCAL" />
+      <updated>1773389675302</updated>
+    </task>
+    <option name="localTasksCounter" value="15" />
+    <servers />
+  </component>
+  <component name="TypeScriptGeneratedFilesManager">
+    <option name="version" value="3" />
+    <option name="exactExcludedFiles">
+      <list>
+        <option value="$PROJECT_DIR$/frontend/vite.config.js" />
+        <option value="$PROJECT_DIR$/frontend/vite.config.d.ts" />
+      </list>
+    </option>
+  </component>
+  <component name="UnknownFeatures">
+    <option featureType="dependencySupport" implementationName="java:org.springframework.security:spring-security-core" />
+    <option featureType="dependencySupport" implementationName="java:org.springframework:spring-core" />
+    <option featureType="dependencySupport" implementationName="java:org.apache.dubbo:dubbo" />
+    <option featureType="dependencySupport" implementationName="java:jakarta.validation:jakarta.validation-api" />
+    <option featureType="dependencySupport" implementationName="javascript:npm:vite" />
+    <option featureType="dependencySupport" implementationName="java:org.testng:testng" />
+    <option featureType="com.intellij.fileTypeFactory" implementationName="*.lua" />
+    <option featureType="dependencySupport" implementationName="java:io.projectreactor:reactor-core" />
+    <option featureType="dependencySupport" implementationName="java:org.springframework.data:spring-data-commons" />
+    <option featureType="dependencySupport" implementationName="executable:kubectl" />
+    <option featureType="com.intellij.fileTypeFactory" implementationName=".env" />
+    <option featureType="dependencySupport" implementationName="java:org.springframework.cloud:spring-cloud-context" />
+    <option featureType="dependencySupport" implementationName="java:org.hibernate.validator:hibernate-validator" />
+    <option featureType="dependencySupport" implementationName="java:javax.validation:validation-api" />
+    <option featureType="dependencySupport" implementationName="java:org.springframework:spring-webmvc" />
+    <option featureType="dependencySupport" implementationName="java:org.projectlombok:lombok" />
+    <option featureType="dependencySupport" implementationName="executable:docker" />
+    <option featureType="dependencySupport" implementationName="java:io.grpc:grpc-api" />
+    <option featureType="dependencySupport" implementationName="java:io.reactivex.rxjava3:rxjava" />
+    <option featureType="dependencySupport" implementationName="javascript:npm:vue" />
+    <option featureType="dependencySupport" implementationName="java:org.springframework:spring-messaging" />
+    <option featureType="dependencySupport" implementationName="java:org.springframework.boot:spring-boot" />
+  </component>
+  <component name="Vcs.Log.Tabs.Properties">
+    <option name="TAB_STATES">
+      <map>
+        <entry key="MAIN">
+          <value>
+            <State />
+          </value>
+        </entry>
+      </map>
+    </option>
+  </component>
+  <component name="VcsManagerConfiguration">
+    <MESSAGE value="更新部分参数" />
+    <MESSAGE value="水质打分跨语言集成Python" />
+    <MESSAGE value="实现MySQL binlog 的监听。&#10;修复python脚本路径硬编码的问题。" />
+    <MESSAGE value="新增邮件服务" />
+    <MESSAGE value="新增邮件服务至common-service." />
+    <MESSAGE value="开发repair-service" />
+    <MESSAGE value="引入redission分布式锁" />
+    <MESSAGE value="对高频访问接口做redis缓存" />
+    <MESSAGE value="修复了一些问题" />
+    <MESSAGE value="优化报修单通知样式" />
+    <MESSAGE value="新增用户服务" />
+    <MESSAGE value="整理sql" />
+    <MESSAGE value="新增Excel工具，完成原始数据导出功能" />
+    <MESSAGE value="优化用水数据定时保存任务" />
+    <option name="LAST_COMMIT_MESSAGE" value="优化用水数据定时保存任务" />
+  </component>
+  <component name="XDebuggerManager">
+    <watches-manager>
+      <configuration name="SpringBootApplicationConfigurationType">
+        <watch expression="line" />
+      </configuration>
+      <inline-watch fileUrl="file://$PROJECT_DIR$/IoT-service/service/src/main/java/com/ncwu/iotservice/service/impl/IoTDataServiceImpl.java" line="273">
+        <watch expression="pr" />
+      </inline-watch>
+    </watches-manager>
+  </component>
+  <component name="XSLT-Support.FileAssociations.UIState">
+    <expand />
+    <select />
+  </component>
+</project>

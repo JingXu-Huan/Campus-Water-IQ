@@ -87,6 +87,9 @@ services:
     container_name: campus-water-iot-service
     depends_on:
       - iot-device
+    environment:
+      <<: *service-environment
+      PYTHON_EXECUTABLE: ${PYTHON_EXECUTABLE:-python3}
     ports:
       - "18016:18016"
       - "20881:20881"

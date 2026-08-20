@@ -40,6 +40,15 @@ public class IoTDeviceServiceImpl extends ServiceImpl<IoTDeviceMapper, IotDevice
     }
 
     @Override
+    public com.ncwu.common.domain.vo.Result<Boolean> dissMissAllWarnings(Integer campus) {
+        if (campus == null || campus < 1 || campus > 3) {
+            return com.ncwu.common.domain.vo.Result.fail(false, "400", "校区参数无效");
+        }
+        ioTDeviceMapper.deleteByCampus(campus);
+        return com.ncwu.common.domain.vo.Result.ok(true);
+    }
+
+    @Override
     public com.ncwu.common.domain.vo.Result<Integer> getAllWarningsNum() {
         int cnt = ioTDeviceMapper.selectAllNums();
         return com.ncwu.common.domain.vo.Result.ok(cnt);

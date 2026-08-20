@@ -1,7 +1,7 @@
 import { useState } from 'react'
-import { useNavigate } from 'react-router-dom'
 import { useAuthStore } from '@/store/authStore'
-import { Droplets, Menu, X, HelpCircle, Book, MessageCircle, Mail, Phone, ChevronDown, ChevronRight, Search, LayoutDashboard, Activity, Map } from 'lucide-react'
+import { Droplets, Menu, X, HelpCircle, MessageCircle, Mail, Phone, ChevronDown, ChevronRight, Search } from 'lucide-react'
+import NavigationMenu from '@/components/NavigationMenu'
 
 // 常见问题数据
 const faqs = [
@@ -88,29 +88,11 @@ const contacts = [
 ]
 
 export default function Help() {
-  const navigate = useNavigate()
   const { nickname } = useAuthStore()
   const [sidebarOpen, setSidebarOpen] = useState(true)
-  const [activeMenu, setActiveMenu] = useState('help')
   const [searchKeyword, setSearchKeyword] = useState('')
   const [expandedCategory, setExpandedCategory] = useState<string>('账号问题')
   const [expandedQuestion, setExpandedQuestion] = useState<string>('')
-
-  const menuItems = [
-    { id: 'dashboard', label: '仪表盘', icon: LayoutDashboard, path: '/dashboard' },
-    { id: 'monitoring', label: '实时监测', icon: Activity, path: '/monitoring' },
-    { id: 'digital-twin', label: '数字孪生', icon: Map, path: '/digital-twin' },
-    { id: 'repair', label: '报修管理', icon: Book, path: '/repair' },
-    { id: 'help', label: '帮助中心', icon: HelpCircle, path: '/help' },
-  ]
-
-  const handleMenuClick = (item: typeof menuItems[0]) => {
-    if (item.path) {
-      navigate(item.path)
-    } else {
-      setActiveMenu(item.id)
-    }
-  }
 
   // 过滤搜索结果
   const filteredFaqs = searchKeyword 
@@ -123,9 +105,9 @@ export default function Help() {
     : faqs
 
   return (
-    <div className="h-screen bg-gradient-to-br from-slate-50 to-blue-50 flex overflow-hidden">
+    <div className="app-shell h-screen bg-gradient-to-br from-slate-50 to-blue-50 flex overflow-hidden">
       {/* 侧边栏 */}
-      <aside className={`${sidebarOpen ? 'w-64' : 'w-20'} bg-gradient-to-b from-primary-600 to-primary-800 shadow-xl transition-all duration-300 flex flex-col h-screen`}>
+      <aside className={`app-sidebar ${sidebarOpen ? 'w-64' : 'w-20'} bg-gradient-to-b from-primary-600 to-primary-800 shadow-xl transition-all duration-300 flex flex-col h-screen`}>
         <div className="p-4 border-b border-white/10">
           <div className="flex items-center gap-3">
             <div className="flex items-center justify-center w-10 h-10 bg-white/20 backdrop-blur-sm rounded-xl flex-shrink-0">
@@ -138,28 +120,7 @@ export default function Help() {
         </div>
 
         <nav className="flex-1 p-2 overflow-y-auto">
-          <ul className="space-y-1">
-            {menuItems.map((item) => {
-              const Icon = item.icon
-              return (
-                <li key={item.id}>
-                  <button
-                    onClick={() => handleMenuClick(item)}
-                    className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl transition-all duration-200 ${
-                      activeMenu === item.id
-                        ? 'bg-white/20 text-white border border-white/30 shadow-lg'
-                        : 'text-white/70 hover:bg-white/10 hover:text-white'
-                    }`}
-                  >
-                    <Icon className="w-5 h-5 flex-shrink-0" />
-                    {sidebarOpen && (
-                      <span className="font-medium">{item.label}</span>
-                    )}
-                  </button>
-                </li>
-              )
-            })}
-          </ul>
+          <NavigationMenu collapsed={!sidebarOpen}/>
         </nav>
 
         <div className="p-2 border-t border-white/10 flex-shrink-0">
@@ -178,7 +139,7 @@ export default function Help() {
       {/* 主内容区 */}
       <div className="flex-1 flex flex-col overflow-hidden">
         {/* 顶部导航 */}
-        <header className="bg-gradient-to-r from-primary-600 to-primary-800 shadow-lg">
+        <header className="app-header bg-gradient-to-r from-primary-600 to-primary-800 shadow-lg">
           <div className="px-6 py-4 flex items-center justify-between">
             <div className="flex items-center gap-4">
               <button

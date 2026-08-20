@@ -148,6 +148,15 @@ export const formatDate = (date: Date): string => {
     return `${year}-${month}-${day} ${hours}:${minutes}:${seconds}`
 }
 
+// 后端无数据时可能返回 {data: null}，不能对整个响应对象执行 Number()。
+const normalizeUsage = (response: any, fallback = 0): number => {
+    const value = response?.data !== null && response?.data !== undefined
+        ? response.data
+        : (typeof response === 'number' || typeof response === 'string' ? response : fallback)
+    const numeric = Number(value)
+    return Number.isFinite(numeric) && numeric >= 0 ? numeric : fallback
+}
+
 export interface UsageResponse {
     data: number | null
     yesterday?: number
@@ -322,12 +331,9 @@ export const iotApi = {
                 }).catch(() => ({data: 0}))
             ])
 
-            const todayValue = todayRes?.data ?? todayRes ?? 0
-            const yesterdayValue = yesterdayRes?.data ?? yesterdayRes ?? 0
-
             return {
-                data: Number(todayValue),
-                yesterday: Number(yesterdayValue)
+                data: normalizeUsage(todayRes),
+                yesterday: normalizeUsage(yesterdayRes)
             }
         } catch (error) {
             console.error('获取今日用水量失败:', error)
@@ -338,12 +344,12 @@ export const iotApi = {
     // 获取本月用水量
     getMonthUsage: async (school: number): Promise<UsageResponse> => {
         const now = new Date()
-        // 使用 UTC 获取本月开始，避免时区问题
-        const startOfMonth = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), 1))
+        // 后端按 Asia/Shanghai 解析 LocalDateTime，前端统一使用本地时间边界。
+        const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1)
         
         // 获取上月同期数据
-        const lastMonthStart = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth() - 1, 1))
-        const lastMonthNow = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth() - 1, now.getUTCDate(), now.getUTCHours(), now.getUTCMinutes()))
+        const lastMonthStart = new Date(now.getFullYear(), now.getMonth() - 1, 1)
+        const lastMonthNow = new Date(now.getFullYear(), now.getMonth() - 1, now.getDate(), now.getHours(), now.getMinutes(), now.getSeconds())
 
         try {
             const [monthRes, lastMonthRes] = await Promise.all([
@@ -355,12 +361,9 @@ export const iotApi = {
                 }).catch(() => ({data: null}))
             ])
 
-            const monthValue = monthRes?.data ?? monthRes ?? null
-            const lastMonthValue = lastMonthRes?.data ?? lastMonthRes ?? null
-
             return {
-                data: monthValue != null ? Number(monthValue) : null,
-                lastMonthSameDay: lastMonthValue != null ? Number(lastMonthValue) : null
+                data: normalizeUsage(monthRes),
+                lastMonthSameDay: normalizeUsage(lastMonthRes)
             }
         } catch (error) {
             console.error('获取本月用水量失败:', error)
@@ -1034,6 +1037,14 @@ export const iotApi = {
     // 清除告警
     dismissWarning: async (ids: string[]) => {
         const res = await iotEventApi.delete('/iot-event/dissMissWarning', { data: ids })
+        return res.data
+    },
+
+    // 清除当前校区的全部告警（页面只展示最近两条，不能只按页面列表删除）
+    dismissAllWarnings: async (campus: number) => {
+        const res = await iotEventApi.delete('/iot-event/dissMissAllWarnings', {
+            params: { campus }
+        })
         return res.data
     },
 

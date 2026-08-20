@@ -41,6 +41,14 @@ public class IoTEventController {
     }
 
     /**
+     * 清除当前校区的全部告警
+     */
+    @DeleteMapping("/dissMissAllWarnings")
+    public Result<Boolean> dissMissAllWarnings(@RequestParam Integer campus) {
+        return ioTDeviceService.dissMissAllWarnings(campus);
+    }
+
+    /**
      * 得到系统所有告警数量
      */
     @GetMapping("/getAllWarningNum")

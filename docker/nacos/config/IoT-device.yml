@@ -1,2 +1,16 @@
 server:
   port: ${IOT_DEVICE_PORT:18015}
+  # 本地开发默认值；时间单位为毫秒
+  meterReportFrequency: ${IOT_METER_REPORT_FREQUENCY:3000}
+  meterTimeOffset: ${IOT_METER_TIME_OFFSET:500}
+  waterQualityReportFrequency: ${IOT_WATER_QUALITY_REPORT_FREQUENCY:3000}
+  waterQualityReportTimeOffset: ${IOT_WATER_QUALITY_TIME_OFFSET:6000}
+  # 虚拟管网压力模型
+  p0: ${IOT_PRESSURE_P0:0.4}
+  step: ${IOT_PRESSURE_STEP:0.01}
+  pmin: ${IOT_PRESSURE_MIN:0.1}
+  pmax: ${IOT_PRESSURE_MAX:0.8}
+  pnotCredible: ${IOT_PRESSURE_NOT_CREDIBLE:0.01}
+  # 连续 n 个上报周期没有上报则判定离线
+  n: ${IOT_OFFLINE_CHECK_N:3}
+  wakeUpDormRate: ${IOT_WAKE_UP_DORM_RATE:0.5}

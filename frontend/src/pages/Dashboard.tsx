@@ -1,4 +1,4 @@
-import {useNavigate} from 'react-router-dom'
+import {useLocation, useNavigate} from 'react-router-dom'
 import {useAuthStore} from '@/store/authStore'
 import {
     Droplets,
@@ -6,11 +6,7 @@ import {
     User,
     BarChart3,
     AlertTriangle,
-    Settings,
-    LayoutDashboard,
     Activity,
-    Map,
-    FileText,
     HelpCircle,
     Menu,
     X,
@@ -22,10 +18,8 @@ import {
     Eye,
     EyeOff,
     Check,
-    Wrench,
     Sun,
     Lightbulb,
-    MessageCircle,
     Send,
     Bot,
     Loader2
@@ -36,12 +30,14 @@ import {aiApi} from '@/api/ai'
 import {authApi} from '@/api/auth'
 import {BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, LineChart, Line} from 'recharts'
 import repair from "@/api/repair.ts";
+import NavigationMenu from '@/components/NavigationMenu'
+import {getActiveNavigation} from '@/config/navigation'
 
 export default function Dashboard() {
     const navigate = useNavigate()
     const {clearAuth, uid, nickname, avatar, updateProfile} = useAuthStore()
     const [sidebarOpen, setSidebarOpen] = useState(true)
-    const [activeMenu, setActiveMenu] = useState('dashboard')
+    const {pathname} = useLocation()
     const [selectedCampus, setSelectedCampus] = useState('longzi')
 
     // Profile modal state
@@ -678,10 +674,9 @@ export default function Dashboard() {
 
     // 清除所有告警
     const dismissAllWarnings = async () => {
-        if (warnings.length === 0) return
+        if (!currentCampus || warnings.length === 0) return
         try {
-            const ids = warnings.map(w => w.id)
-            await iotApi.dismissWarning(ids)
+            await iotApi.dismissAllWarnings(currentCampus.schoolId)
             setWarnings([])
             setAlertCount(0)
         } catch (err) {
@@ -731,29 +726,13 @@ export default function Dashboard() {
         }
     }, [selectedCampus])
 
-    const menuItems = [
-        {id: 'dashboard', label: '仪表盘', icon: LayoutDashboard, path: '/dashboard'},
-        {id: 'monitoring', label: '实时监测', icon: Activity, path: '/monitoring'},
-        {id: 'digital-twin', label: '数字孪生', icon: Map, path: '/digital-twin'},
-        {id: 'repair', label: '报修管理', icon: Wrench, path: '/repair'},
-        {id: 'reports', label: '数据报表', icon: FileText, path: '/reports'},
-        {id: 'settings', label: '系统设置', icon: Settings, path: ''},
-        {id: 'help', label: '帮助中心', icon: HelpCircle, path: '/help'},
-    ]
-
-    const handleMenuClick = (item: typeof menuItems[0]) => {
-        if (item.path && item.path !== '/dashboard') {
-            navigate(item.path)
-        } else {
-            setActiveMenu(item.id)
-        }
-    }
+    const activeNavigation = getActiveNavigation(pathname)
 
     return (
         <div className="h-screen bg-gray-50 flex overflow-hidden">
             {/* Sidebar */}
             <aside
-                className={`${sidebarOpen ? 'w-64' : 'w-20'} bg-gradient-to-b from-primary-600 to-primary-800 shadow-xl transition-all duration-300 ease-in-out flex flex-col h-screen`}>
+                className={`app-sidebar ${sidebarOpen ? 'w-64' : 'w-20'} bg-gradient-to-b from-primary-600 to-primary-800 shadow-xl transition-all duration-300 ease-in-out flex flex-col h-screen`}>
                 {/* Sidebar Header */}
                 <div className="p-4 border-b border-white/10">
                     <div className="flex items-center gap-3">
@@ -769,28 +748,7 @@ export default function Dashboard() {
 
                 {/* Navigation Menu */}
                 <nav className="flex-1 p-2 overflow-y-auto">
-                    <ul className="space-y-1">
-                        {menuItems.map((item) => {
-                            const Icon = item.icon
-                            return (
-                                <li key={item.id}>
-                                    <button
-                                        onClick={() => handleMenuClick(item)}
-                                        className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl transition-all duration-200 ease-out ${
-                                            activeMenu === item.id
-                                                ? 'bg-white/20 text-white border border-white/30 shadow-lg'
-                                                : 'text-white hover:bg-white/10 active:scale-95 hover:text-white'
-                                        }`}
-                                    >
-                                        <Icon className="w-5 h-5 flex-shrink-0"/>
-                                        {sidebarOpen && (
-                                            <span className="font-medium">{item.label}</span>
-                                        )}
-                                    </button>
-                                </li>
-                            )
-                        })}
-                    </ul>
+                    <NavigationMenu collapsed={!sidebarOpen}/>
 
                     {/* Campus Selector in Sidebar */}
                     {sidebarOpen && (
@@ -867,7 +825,7 @@ export default function Dashboard() {
             {/* Main Content */}
             <div className="flex-1 flex flex-col bg-gray-50 dark:bg-gray-900">
                 {/* Top Header */}
-                <header className="bg-gradient-to-r from-primary-600 to-primary-800 shadow-lg">
+                <header className="app-header bg-gradient-to-r from-primary-600 to-primary-800 shadow-lg">
                     <div className="px-6 py-4 flex items-center justify-between">
                         <div className="flex items-center gap-4">
                             <button
@@ -877,7 +835,7 @@ export default function Dashboard() {
                                 {sidebarOpen ? <X className="w-5 h-5"/> : <Menu className="w-5 h-5"/>}
                             </button>
                             <h2 className="text-xl font-bold text-white">
-                                {menuItems.find(item => item.id === activeMenu)?.label || '仪表盘'}
+                                {activeNavigation.label}
                             </h2>
 
                             {/* Current Campus Indicator */}

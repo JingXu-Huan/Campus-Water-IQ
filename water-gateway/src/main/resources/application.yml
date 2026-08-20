@@ -16,27 +16,29 @@ spring:
     gateway:
       routes:
         - id: device
-          uri: lb://iot-device
+          # 本地 Docker 中同一 Nacos 服务名还注册了 Dubbo 端口 50052，
+          # 网关必须固定走 IoT-device 的 HTTP 端口，避免普通请求被送到 Dubbo。
+          uri: "${GATEWAY_DEVICE_URI:http://iot-device:18015}"
           predicates:
             - Path=/device/**,/simulator/**
         - id: service
-          uri: lb://IoT-service
+          uri: "${GATEWAY_IOT_SERVICE_URI:http://iot-service:18016}"
           predicates:
             - Path=/service/**,/Data/**
         - id: prediction
-          uri: lb://prediction-service
+          uri: "${GATEWAY_PREDICTION_URI:http://prediction-service:18017}"
           predicates:
             - Path=/prediction/**,/ai/**
         - id: warning
-          uri: lb://warning-service
+          uri: "${GATEWAY_WARNING_URI:http://warning-service:18018}"
           predicates:
             - Path=/warn/**
         - id: repair
-          uri: lb://repair-service
+          uri: "${GATEWAY_REPAIR_URI:http://repair-service:20000}"
           predicates:
             - Path=/operations/**,/iot-event/**,/user-report/**
         - id: auth
-          uri: lb://Auth-service
+          uri: "${GATEWAY_AUTH_URI:http://auth-service:18099}"
           predicates:
             - Path=/auth/**,/signup/**,/user/**
   main:

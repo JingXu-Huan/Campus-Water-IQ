@@ -1,20 +1,15 @@
 import { useState, useEffect } from 'react'
+import { useNavigate } from 'react-router-dom'
 import { useAuthStore } from '@/store/authStore'
 import { iotApi, generateDeviceId, generateWaterQualitySensorId, getBuildingConfig } from '@/api/iot'
 
-interface BuildingConfig {
-  educationStart: number
-  experimentStart: number
-  dormitoryStart: number
-  totalBuildings: number
-  floors: number
-  rooms: number
-}
-import { FileText, Download, RefreshCw, ChevronDown } from 'lucide-react'
+import { Droplets, User, Menu, X, FileText, Download, RefreshCw, ChevronDown } from 'lucide-react'
+import NavigationMenu from '@/components/NavigationMenu'
 
 export default function Reports() {
-  const { uid } = useAuthStore()
-  const [buildingConfig, setBuildingConfig] = useState<BuildingConfig | null>(null)
+  const { nickname } = useAuthStore()
+  const navigate = useNavigate()
+  const [sidebarOpen, setSidebarOpen] = useState(true)
   const [selectedDevice, setSelectedDevice] = useState('')
   const [loading, setLoading] = useState(false)
   const [message, setMessage] = useState('')
@@ -24,8 +19,6 @@ export default function Reports() {
     const fetchConfig = async () => {
       try {
         const config = await getBuildingConfig()
-        setBuildingConfig(config)
-        
         // 根据配置生成所有设备编码
         const allDevices: string[] = []
         
@@ -102,11 +95,51 @@ export default function Reports() {
   }
 
   return (
-    <div className="p-6">
-      <div className="max-w-2xl mx-auto">
-        <div className="bg-white rounded-xl shadow-sm p-6">
+    <div className="app-shell h-screen flex overflow-hidden">
+      <aside className={`app-sidebar ${sidebarOpen ? 'w-64' : 'w-20'} transition-all duration-300 flex flex-col h-screen`}>
+        <div className="p-4 border-b border-white/10 flex-shrink-0">
+          <div className="flex items-center gap-3">
+            <div className="app-brand-mark flex items-center justify-center w-10 h-10 rounded-xl flex-shrink-0">
+              <Droplets className="w-5 h-5 text-white" />
+            </div>
+            {sidebarOpen && <h1 className="text-lg font-semibold text-white">水务平台</h1>}
+          </div>
+        </div>
+        <nav className="flex-1 p-3 overflow-y-auto">
+          <p className="app-sidebar-label px-3 mb-2 text-xs font-medium uppercase">菜单</p>
+          <NavigationMenu collapsed={!sidebarOpen} />
+        </nav>
+        <div className="p-3 border-t border-white/10 flex-shrink-0">
+          <div className={`flex items-center gap-3 px-3 py-2.5 rounded-xl ${sidebarOpen ? '' : 'justify-center'}`}>
+            <div className="app-avatar w-9 h-9 rounded-full flex items-center justify-center">
+              <User className="w-4 h-4 text-white" />
+            </div>
+            {sidebarOpen && <span className="text-sm font-medium text-white truncate">{nickname || '用户'}</span>}
+          </div>
+        </div>
+      </aside>
+
+      <div className="flex-1 flex flex-col overflow-hidden">
+        <header className="app-header app-header-light flex-shrink-0">
+          <div className="px-6 py-4 flex items-center gap-4">
+            <button type="button" onClick={() => setSidebarOpen(!sidebarOpen)} className="app-header-action p-2 rounded-lg" aria-label="切换侧边栏">
+              {sidebarOpen ? <X className="w-5 h-5" /> : <Menu className="w-5 h-5" />}
+            </button>
+            <div>
+              <p className="app-eyebrow">DATA CENTER</p>
+              <h2 className="text-xl font-semibold text-slate-900">数据报表</h2>
+            </div>
+            <button type="button" onClick={() => navigate('/dashboard')} className="app-header-back ml-auto text-sm">
+              返回仪表盘
+            </button>
+          </div>
+        </header>
+
+        <main className="app-page flex-1 overflow-y-auto p-6">
+          <div className="max-w-3xl mx-auto">
+            <div className="app-card rounded-2xl p-6">
           <div className="flex items-center gap-3 mb-6">
-            <FileText className="w-6 h-6 text-primary-600" />
+            <div className="app-icon app-icon-blue"><FileText className="w-5 h-5" /></div>
             <h1 className="text-2xl font-bold text-gray-900">数据报表</h1>
           </div>
 
@@ -159,7 +192,9 @@ export default function Reports() {
               </p>
             )}
           </div>
-        </div>
+            </div>
+          </div>
+        </main>
       </div>
     </div>
   )

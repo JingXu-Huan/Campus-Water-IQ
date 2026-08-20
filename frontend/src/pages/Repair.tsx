@@ -3,9 +3,10 @@ import { useNavigate } from 'react-router-dom'
 import { useAuthStore } from '@/store/authStore'
 import { repairApi, RepairOrder, RepairStatus, statusLabels, severityLabels, severityColors, UserReportDTO } from '@/api/repair'
 import { 
-  Droplets, LayoutDashboard, Activity, Map, FileText, Settings, HelpCircle, 
+  Droplets, LayoutDashboard, Activity,
   Menu, X, RefreshCw, CheckCircle, Clock, AlertTriangle, Filter, Zap, Smile, Plus
 } from 'lucide-react'
+import NavigationMenu from '@/components/NavigationMenu'
 
 // 状态选项
 const STATUS_OPTIONS: { value: RepairStatus; label: string }[] = [
@@ -33,7 +34,6 @@ export default function Repair() {
   const { nickname } = useAuthStore()
   
   const [sidebarOpen, setSidebarOpen] = useState(true)
-  const [activeMenu, setActiveMenu] = useState('repair')
   const [loading, setLoading] = useState(false)
   const [refreshing, setRefreshing] = useState(false)
   
@@ -58,24 +58,6 @@ export default function Repair() {
     reportName: ''
   })
   const [submitting, setSubmitting] = useState(false)
-
-  // 菜单项
-  const menuItems = [
-    { id: 'dashboard', label: '仪表盘', icon: LayoutDashboard, path: '/dashboard' },
-    { id: 'monitoring', label: '实时监测', icon: Activity, path: '/monitoring' },
-    { id: 'digital-twin', label: '数字孪生', icon: Map, path: '/digital-twin' },
-    { id: 'repair', label: '报修管理', icon: FileText, path: '/repair' },
-    { id: 'settings', label: '系统设置', icon: Settings, path: '' },
-    { id: 'help', label: '帮助中心', icon: HelpCircle, path: '/help' },
-  ]
-
-  const handleMenuClick = (item: typeof menuItems[0]) => {
-    if (item.path && item.path !== '/repair') {
-      navigate(item.path)
-    } else if (item.id !== 'repair') {
-      setActiveMenu(item.id)
-    }
-  }
 
   // 获取报修单数据
   const fetchRepairOrders = async () => {
@@ -184,9 +166,9 @@ export default function Repair() {
   }, [selectedStatus])
 
   return (
-    <div className="h-screen bg-gray-50 flex overflow-hidden">
+    <div className="app-shell h-screen bg-gray-50 flex overflow-hidden">
       {/* 侧边栏 */}
-      <aside className={`${sidebarOpen ? 'w-64' : 'w-20'} bg-gradient-to-b from-primary-600 to-primary-800 shadow-xl transition-all duration-300 flex flex-col h-screen`}>
+      <aside className={`app-sidebar ${sidebarOpen ? 'w-64' : 'w-20'} bg-gradient-to-b from-primary-600 to-primary-800 shadow-xl transition-all duration-300 flex flex-col h-screen`}>
         {/* Logo区域 */}
         <div className="p-4 border-b border-white/10 flex-shrink-0">
           <div className="flex items-center gap-3">
@@ -210,28 +192,7 @@ export default function Repair() {
         {/* 导航菜单 */}
         <nav className="flex-1 p-2 overflow-y-auto">
           <p className="px-4 mb-2 text-xs font-medium text-white/40 uppercase">菜单</p>
-          <ul className="space-y-1">
-            {menuItems.map((item) => {
-              const Icon = item.icon
-              return (
-                <li key={item.id}>
-                  <button
-                    onClick={() => handleMenuClick(item)}
-                    className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl transition-all duration-200 ${
-                      activeMenu === item.id
-                        ? 'bg-white/20 text-white border border-white/30 shadow-lg'
-                        : 'text-white/70 hover:bg-white/10 hover:text-white'
-                    }`}
-                  >
-                    <Icon className="w-5 h-5 flex-shrink-0" />
-                    {sidebarOpen && (
-                      <span className="font-medium">{item.label}</span>
-                    )}
-                  </button>
-                </li>
-              )
-            })}
-          </ul>
+          <NavigationMenu collapsed={!sidebarOpen}/>
         </nav>
 
         {/* 用户信息 */}
@@ -252,7 +213,7 @@ export default function Repair() {
       {/* 主内容区 */}
       <div className="flex-1 flex flex-col overflow-hidden">
         {/* 顶部Header */}
-        <header className="bg-white shadow-sm border-b border-gray-200 flex-shrink-0">
+        <header className="app-header app-header-light bg-white shadow-sm border-b border-gray-200 flex-shrink-0">
           <div className="flex items-center justify-between px-6 py-4">
             <div className="flex items-center gap-4">
               <button

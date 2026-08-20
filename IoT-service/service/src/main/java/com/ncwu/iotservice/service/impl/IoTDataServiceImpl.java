@@ -42,6 +42,10 @@ import org.springframework.stereotype.Service;
 import java.io.BufferedReader;
 import java.io.IOException;
 import java.io.InputStreamReader;
+import java.io.InputStream;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.StandardCopyOption;
 import java.time.*;
 import java.time.format.DateTimeFormatter;
 import java.util.*;
@@ -181,15 +185,16 @@ public class IoTDataServiceImpl extends ServiceImpl<IoTDeviceDataMapper, IotDevi
             return getHistoricalSchoolUsageWithCache(school, startTime, endTime);
         }
 
-        RLock lock = redissonClient.getLock("SchoolUsageUpdateLock" + school);
+        String cacheKey = buildRealtimeSchoolUsageCacheKey(school, startTime, endTime);
+        RLock lock = redissonClient.getLock("SchoolUsageUpdateLock:" + cacheKey);
         Double res = null;
-        String json = redisTemplate.opsForValue().get("SchoolUsage:" + school);
+        String json = redisTemplate.opsForValue().get(cacheKey);
         if (json == null) {
             try {
                 if (lock.tryLock()) {
                     Result<Double> usage = getSchoolUsageFromDb(school, startTime, endTime);
                     res = usage.getData();
-                    setValueToCache(res, school);
+                    setValueToCache(res, cacheKey);
                 }
             } catch (Exception e) {
                 throw new RuntimeException(e);
@@ -211,7 +216,7 @@ public class IoTDataServiceImpl extends ServiceImpl<IoTDeviceDataMapper, IotDevi
                     try {
                         if (lock.tryLock()) {
                             Result<Double> usage = getSchoolUsageFromDb(school, startTime, endTime);
-                            setValueToCache(usage.getData(), school);
+                            setValueToCache(usage.getData(), cacheKey);
                         }
                     } catch (Exception e) {
                         throw new RuntimeException(e);
@@ -225,20 +230,22 @@ public class IoTDataServiceImpl extends ServiceImpl<IoTDeviceDataMapper, IotDevi
                 res = usageBO.getUsage();
             }
         }
-        if (res == null) {
+        if (res == null || !Double.isFinite(res) || res < 0) {
             return getSchoolUsageFromDb(school, startTime, endTime);
         }
         return Result.ok(res);
     }
 
     @Async
-    public void setValueToCache(Double data, int school) {
+    public void setValueToCache(Double data, String cacheKey) {
         LocalDateTime expireTime = LocalDateTime.now().plusSeconds(120);
-        SchoolUsageBO usageBO = new SchoolUsageBO(data, expireTime);
+        SchoolUsageBO usageBO = new SchoolUsageBO(
+                data != null && Double.isFinite(data) && data >= 0 ? data : 0.0,
+                expireTime);
         try {
             //序列化
             String json = objectMapper.writeValueAsString(usageBO);
-            redisTemplate.opsForValue().set("SchoolUsage:" + school, json);
+            redisTemplate.opsForValue().set(cacheKey, json);
         } catch (JsonProcessingException e) {
             throw new RuntimeException(e);
         }
@@ -279,17 +286,17 @@ public class IoTDataServiceImpl extends ServiceImpl<IoTDeviceDataMapper, IotDevi
         Double usage;
         List<FluxTable> tables = influxDBClient.getQueryApi().query(fluxQuery);
         if (tables.isEmpty()) {
-            return Result.ok(null);
+            return Result.ok(0.0);
         }
         usage = tables.stream()
                 .flatMap(table -> table.getRecords().stream())
                 .map(record -> (record.getValue() != null ? ((Number) record.getValue()).doubleValue() : null))
                 .filter(Objects::nonNull)
                 .findFirst()
-                .orElse(null);
-        // 负数说明数据异常，返回null
+                .orElse(0.0);
+        // 负数说明数据异常，按0降级
         if (usage != null && usage < 0) {
-            return Result.ok(null);
+            return Result.ok(0.0);
         }
         return Result.ok(usage);
     }
@@ -371,45 +378,43 @@ public class IoTDataServiceImpl extends ServiceImpl<IoTDeviceDataMapper, IotDevi
                     //不合格
                     return Result.ok(0.0);
                 } else {
-                    String pythonExecutable = "python3.12";
-                    String pythonScriptPath = Objects.requireNonNull(getClass().getClassLoader()
-                            .getResource("water_quality.py")).getPath();
-                    if (System.getProperty("os.name").toLowerCase().contains("windows")) {
-                        // 处理Windows路径中的URL编码
-                        pythonScriptPath = pythonScriptPath.replace("/", "\\");
-                        if (pythonScriptPath.startsWith("\\")) {
-                            pythonScriptPath = pythonScriptPath.substring(1);
-                        }
-                    }
-                    String[] cmd = {
-                            pythonExecutable,
-                            pythonScriptPath,
-                            String.valueOf(turbidityData),
-                            String.valueOf(phData),
-                            String.valueOf(chlorineData)
-                    };
-//                    System.out.println("Python命令: " + String.join(" ", cmd));
-                    ProcessBuilder processBuilder = new ProcessBuilder(cmd);
+                    String pythonExecutable = System.getenv().getOrDefault("PYTHON_EXECUTABLE", "python3");
+                    Path pythonScriptPath = null;
                     try {
-                        Process pr = processBuilder.start();
-                        BufferedReader reader = new BufferedReader(new InputStreamReader(pr.getInputStream()));
-//                        BufferedReader errorReader = new BufferedReader(new InputStreamReader(pr.getErrorStream()));
-                        String line;
-                        StringBuilder output = new StringBuilder();
-//                        StringBuilder errorOutput = new StringBuilder();
-                        // 读取标准输出
-                        while ((line = reader.readLine()) != null) {
-                            output.append(line);
+                        // Spring Boot fat jar 中的 classpath 资源不是普通文件，先释放到临时文件再交给 Python。
+                        try (InputStream script = getClass().getClassLoader().getResourceAsStream("water_quality.py")) {
+                            if (script == null) {
+                                throw new IOException("water_quality.py not found on classpath");
+                            }
+                            pythonScriptPath = Files.createTempFile("water-quality-", ".py");
+                            Files.copy(script, pythonScriptPath, StandardCopyOption.REPLACE_EXISTING);
                         }
-//                        // 读取错误输出
-//                        while ((line = errorReader.readLine()) != null) {
-//                            errorOutput.append(line).append("\n");
-//                        }
-//                        if (!errorOutput.isEmpty()) {
-//                            log.error("Python 错误输出: {}", errorOutput);
-//                        }
-                        pr.waitFor();
-                        String resultStr = output.toString().trim();
+
+                        String[] cmd = {
+                                pythonExecutable,
+                                pythonScriptPath.toString(),
+                                String.valueOf(turbidityData),
+                                String.valueOf(phData),
+                                String.valueOf(chlorineData)
+                        };
+                        ProcessBuilder processBuilder = new ProcessBuilder(cmd)
+                                .redirectErrorStream(true);
+                        Process pr = processBuilder.start();
+                        String resultStr;
+                        try (BufferedReader reader = new BufferedReader(new InputStreamReader(pr.getInputStream()))) {
+                            resultStr = reader.lines().collect(Collectors.joining("\n")).trim();
+                        }
+                        if (!pr.waitFor(15, TimeUnit.SECONDS)) {
+                            pr.destroyForcibly();
+                            log.error("Python 水质评分执行超时: {}", String.join(" ", cmd));
+                            return Result.fail(Double.NaN, ErrorCode.QUERY_FAILED_ERROR.code(),
+                                    "Python water quality calculation timed out");
+                        }
+                        if (pr.exitValue() != 0) {
+                            log.error("Python 水质评分执行失败，exitCode={}, output={}", pr.exitValue(), resultStr);
+                            return Result.fail(Double.NaN, ErrorCode.QUERY_FAILED_ERROR.code(),
+                                    "Python water quality calculation failed");
+                        }
                         try {
                             double result = keep2(Double.parseDouble(resultStr)) * 100;
                             redisTemplate.opsForValue().set("WaterQualityScore:" + deviceId, String.valueOf(result)
@@ -421,7 +426,19 @@ public class IoTDataServiceImpl extends ServiceImpl<IoTDeviceDataMapper, IotDevi
                                     "Cannot parse Python output: " + resultStr);
                         }
                     } catch (IOException | InterruptedException e) {
+                        if (e instanceof InterruptedException) {
+                            Thread.currentThread().interrupt();
+                        }
+                        log.error("Python 水质评分调用失败，executable={}", pythonExecutable, e);
                         return Result.fail(Double.NaN, ErrorCode.QUERY_FAILED_ERROR.code(), ErrorCode.QUERY_FAILED_ERROR.message());
+                    } finally {
+                        if (pythonScriptPath != null) {
+                            try {
+                                Files.deleteIfExists(pythonScriptPath);
+                            } catch (IOException e) {
+                                log.warn("删除临时 Python 脚本失败: {}", pythonScriptPath, e);
+                            }
+                        }
                     }
                 }
             }
@@ -844,7 +861,9 @@ public class IoTDataServiceImpl extends ServiceImpl<IoTDeviceDataMapper, IotDevi
         assert members != null;
         double n = members.size();
         members.forEach(id -> {
-            if (getWaterQualityScore(id).getData() <= 60) {
+            Double score = getWaterQualityScore(id).getData();
+            // Python 调用失败时返回 NaN，不能把 NaN 当成合格，否则页面会显示 100%。
+            if (score == null || !Double.isFinite(score) || score <= 60) {
                 cnt.getAndAdd(1);
             }
         });
@@ -997,12 +1016,15 @@ public class IoTDataServiceImpl extends ServiceImpl<IoTDeviceDataMapper, IotDevi
         String cachedData = redisTemplate.opsForValue().get(cacheKey);
         if (cachedData != null) {
             try {
-                return Result.ok(Double.valueOf(cachedData));
+                double cachedUsage = Double.parseDouble(cachedData);
+                if (Double.isFinite(cachedUsage) && cachedUsage >= 0) {
+                    return Result.ok(cachedUsage);
+                }
             } catch (NumberFormatException e) {
                 log.info("缓存数据格式异常，key: {}, value: {}", cacheKey, cachedData);
-                // 删除异常缓存数据
-                redisTemplate.delete(cacheKey);
             }
+            // 删除 null、NaN、负数和其他异常缓存，避免异常值持续返回。
+            redisTemplate.delete(cacheKey);
         }
 
         // 缓存未命中，使用分布式锁防止缓存击穿
@@ -1012,17 +1034,21 @@ public class IoTDataServiceImpl extends ServiceImpl<IoTDeviceDataMapper, IotDevi
                 // 双重检查，防止其他线程已经设置了缓存
                 cachedData = redisTemplate.opsForValue().get(cacheKey);
                 if (cachedData != null) {
-                    Double data = null;
                     try {
-                        data = Double.valueOf(cachedData);
+                        double data = Double.parseDouble(cachedData);
+                        if (Double.isFinite(data) && data >= 0) {
+                            return Result.ok(data);
+                        }
                     } catch (NumberFormatException e) {
-                        log.info("入参非数字");
+                        log.info("历史用水量缓存不是数字，key: {}, value: {}", cacheKey, cachedData);
                     }
-                    return Result.ok(data);
+                    redisTemplate.delete(cacheKey);
                 }
                 // 查询数据库并缓存结果
                 Result<Double> dbResult = getSchoolUsageFromDb(school, startTime, endTime);
-                redisTemplate.opsForValue().set(cacheKey, String.valueOf(dbResult.getData()), Duration.ofHours(2));
+                double usage = dbResult.getData() != null && Double.isFinite(dbResult.getData())
+                        && dbResult.getData() >= 0 ? dbResult.getData() : 0.0;
+                redisTemplate.opsForValue().set(cacheKey, String.valueOf(usage), Duration.ofHours(2));
                 return dbResult;
             }
         } catch (InterruptedException e) {
@@ -1035,9 +1061,15 @@ public class IoTDataServiceImpl extends ServiceImpl<IoTDeviceDataMapper, IotDevi
                 lock.unlock();
             }
         }
-        // 锁获取失败时，返回NaN（避免数据库压力）
-        log.warn("获取历史用水量锁失败，返回NaN，school: {}", school);
-        return Result.ok(Double.NaN);
+        // 锁获取失败时返回稳定的降级值，避免 NaN 传到前端。
+        log.warn("获取历史用水量锁失败，返回0，school: {}", school);
+        return Result.ok(0.0);
+    }
+
+    private String buildRealtimeSchoolUsageCacheKey(int school, String startTime, String endTime) {
+        return String.format("SchoolUsage:%d:%s:%s", school,
+                startTime.replaceAll("[:.]", "-"),
+                endTime.replaceAll("[:.]", "-"));
     }
 
     /**

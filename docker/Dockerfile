@@ -23,6 +23,11 @@ FROM eclipse-temurin:21-jre-jammy AS runtime
 
 ARG MODULE
 
+# The IoT score calculator invokes water_quality.py at runtime.
+RUN apt-get update \
+    && apt-get install -y --no-install-recommends python3 python3-numpy \
+    && rm -rf /var/lib/apt/lists/*
+
 RUN useradd --system --uid 10001 --create-home appuser
 WORKDIR /app
 COPY --from=build /workspace/app.jar /app/app.jar

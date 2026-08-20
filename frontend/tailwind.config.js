@@ -8,26 +8,26 @@ export default {
     extend: {
       colors: {
         primary: {
-          50: '#f0f9ff',
-          100: '#e0f2fe',
-          200: '#bae6fd',
-          300: '#7dd3fc',
-          400: '#38bdf8',
-          500: '#0ea5e9',
-          600: '#0284c7',
-          700: '#0369a1',
-          800: '#075985',
-          900: '#0c4a6e',
+          50: '#f0f7fb',
+          100: '#e0eef6',
+          200: '#bcd8e8',
+          300: '#8ebbd5',
+          400: '#5fa0c4',
+          500: '#3d83ad',
+          600: '#2f7098',
+          700: '#285d80',
+          800: '#214e6b',
+          900: '#1c4058',
         },
         water: {
-          light: '#e0f7fa',
-          DEFAULT: '#00bcd4',
-          dark: '#0097a7',
+          light: '#e4f3f7',
+          DEFAULT: '#4d9ab3',
+          dark: '#367d98',
         },
         brand: {
-          blue: '#3b82f6',
-          cyan: '#06b6d4',
-          teal: '#14b8a6',
+          blue: '#3d83ad',
+          cyan: '#5aa7b9',
+          teal: '#63a09d',
         }
       },
       boxShadow: {

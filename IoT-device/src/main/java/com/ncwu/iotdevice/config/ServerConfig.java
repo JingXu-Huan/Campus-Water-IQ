@@ -15,6 +15,8 @@ import org.springframework.stereotype.Component;
 @ConfigurationProperties(prefix = "server")
 @Data
 public class ServerConfig {
+    // IoT-device HTTP 服务端口
+    private int port;
     //水质传感器上报频率，以毫秒为单位
     private String waterQualityReportFrequency;
     //水质传感器上报偏移时间，以毫秒为单位

@@ -5,43 +5,22 @@
   </component>
   <component name="ChangeListManager">
     <list default="true" id="0ce7bfa8-bbc8-49f4-9b85-6ad9f6e323cf" name="更改" comment="优化用水数据定时保存任务">
-      <change afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/.idea/.cache/.Apifox_Helper/.toolWindow.db" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/.idea/.gitignore" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/.idea/ApifoxUploaderProjectSetting.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/ApifoxUploaderProjectSetting.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/.idea/GrepConsole.xml" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/.idea/IntelliLang.xml" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/.idea/betterCommentsSettings.xml" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/.idea/dataSources.xml" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/.idea/db-forest-config.xml" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/.idea/dictionaries/project.xml" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/.idea/inspectionProfiles/Project_Default.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/inspectionProfiles/Project_Default.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/.idea/material_theme_project_new.xml" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/.idea/misc.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/misc.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/.idea/mybatisx/templates.xml" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/.idea/sqldialects.xml" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/IoT-service/service/src/main/java/com/ncwu/iotservice/service/impl/IoTDataServiceImpl.java" beforeDir="false" afterPath="$PROJECT_DIR$/IoT-service/service/src/main/java/com/ncwu/iotservice/service/impl/IoTDataServiceImpl.java" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/docker-compose.services.yml" beforeDir="false" afterPath="$PROJECT_DIR$/docker-compose.services.yml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/docker/Dockerfile" beforeDir="false" afterPath="$PROJECT_DIR$/docker/Dockerfile" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/docker/nacos/config/IoT-device.yml" beforeDir="false" afterPath="$PROJECT_DIR$/docker/nacos/config/IoT-device.yml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/frontend/src/App.tsx" beforeDir="false" afterPath="$PROJECT_DIR$/frontend/src/App.tsx" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/IoT-device/src/main/java/com/ncwu/iotdevice/config/ServerConfig.java" beforeDir="false" afterPath="$PROJECT_DIR$/IoT-device/src/main/java/com/ncwu/iotdevice/config/ServerConfig.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/IoT-device/src/main/java/com/ncwu/iotdevice/controller/DeviceController.java" beforeDir="false" afterPath="$PROJECT_DIR$/IoT-device/src/main/java/com/ncwu/iotdevice/controller/DeviceController.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/auth-service/src/main/java/com/ncwu/authservice/config/proxy/WebClientConfig.java" beforeDir="false" afterPath="$PROJECT_DIR$/auth-service/src/main/java/com/ncwu/authservice/config/proxy/WebClientConfig.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/common/src/main/java/com/ncwu/common/domain/dto/UserReportDTO.java" beforeDir="false" afterPath="$PROJECT_DIR$/common/src/main/java/com/ncwu/common/domain/dto/UserReportDTO.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/frontend/package.json" beforeDir="false" afterPath="$PROJECT_DIR$/frontend/package.json" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/frontend/src/api/iot.ts" beforeDir="false" afterPath="$PROJECT_DIR$/frontend/src/api/iot.ts" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/frontend/src/api/repair.ts" beforeDir="false" afterPath="$PROJECT_DIR$/frontend/src/api/repair.ts" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/frontend/src/index.css" beforeDir="false" afterPath="$PROJECT_DIR$/frontend/src/index.css" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/frontend/src/pages/Dashboard.tsx" beforeDir="false" afterPath="$PROJECT_DIR$/frontend/src/pages/Dashboard.tsx" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/frontend/src/pages/DigitalTwin.tsx" beforeDir="false" afterPath="$PROJECT_DIR$/frontend/src/pages/DigitalTwin.tsx" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/frontend/src/pages/Help.tsx" beforeDir="false" afterPath="$PROJECT_DIR$/frontend/src/pages/Help.tsx" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/frontend/src/pages/Login.tsx" beforeDir="false" afterPath="$PROJECT_DIR$/frontend/src/pages/Login.tsx" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/frontend/src/pages/Monitoring.tsx" beforeDir="false" afterPath="$PROJECT_DIR$/frontend/src/pages/Monitoring.tsx" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/frontend/src/pages/Repair.tsx" beforeDir="false" afterPath="$PROJECT_DIR$/frontend/src/pages/Repair.tsx" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/frontend/src/pages/Reports.tsx" beforeDir="false" afterPath="$PROJECT_DIR$/frontend/src/pages/Reports.tsx" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/frontend/tailwind.config.js" beforeDir="false" afterPath="$PROJECT_DIR$/frontend/tailwind.config.js" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/frontend/tsconfig.node.tsbuildinfo" beforeDir="false" afterPath="$PROJECT_DIR$/frontend/tsconfig.node.tsbuildinfo" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/frontend/tsconfig.tsbuildinfo" beforeDir="false" afterPath="$PROJECT_DIR$/frontend/tsconfig.tsbuildinfo" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/repair-service/src/main/java/com/ncwu/repairservice/controller/IoTEventController.java" beforeDir="false" afterPath="$PROJECT_DIR$/repair-service/src/main/java/com/ncwu/repairservice/controller/IoTEventController.java" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/repair-service/src/main/java/com/ncwu/repairservice/mapper/IoTDeviceMapper.java" beforeDir="false" afterPath="$PROJECT_DIR$/repair-service/src/main/java/com/ncwu/repairservice/mapper/IoTDeviceMapper.java" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/repair-service/src/main/java/com/ncwu/repairservice/service/IoTDeviceService.java" beforeDir="false" afterPath="$PROJECT_DIR$/repair-service/src/main/java/com/ncwu/repairservice/service/IoTDeviceService.java" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/repair-service/src/main/java/com/ncwu/repairservice/service/impl/IoTDeviceServiceImpl.java" beforeDir="false" afterPath="$PROJECT_DIR$/repair-service/src/main/java/com/ncwu/repairservice/service/impl/IoTDeviceServiceImpl.java" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/water-gateway/src/main/resources/application.yml" beforeDir="false" afterPath="$PROJECT_DIR$/water-gateway/src/main/resources/application.yml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/frontend/vite.config.js" beforeDir="false" afterPath="$PROJECT_DIR$/frontend/vite.config.js" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/frontend/vite.config.ts" beforeDir="false" afterPath="$PROJECT_DIR$/frontend/vite.config.ts" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/repair-service/src/main/java/com/ncwu/repairservice/controller/UserReportController.java" beforeDir="false" afterPath="$PROJECT_DIR$/repair-service/src/main/java/com/ncwu/repairservice/controller/UserReportController.java" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
@@ -49,7 +28,7 @@
     <option name="LAST_RESOLUTION" value="IGNORE" />
   </component>
   <component name="EmbeddingIndexingInfo">
-    <option name="cachedIndexableFilesCount" value="371" />
+    <option name="cachedIndexableFilesCount" value="374" />
   </component>
   <component name="FileTemplateManagerImpl">
     <option name="RECENT_TEMPLATES">
@@ -70,6 +49,9 @@
     &quot;assignee&quot;: &quot;JingXu-Huan&quot;
   }
 }</component>
+  <component name="GithubDefaultAccount">
+    <option name="defaultAccountId" value="db08376d-9b53-4956-bf79-224b60068df2" />
+  </component>
   <component name="GithubPullRequestsUISettings">{
   &quot;selectedUrlAndAccountId&quot;: {
     &quot;url&quot;: &quot;https://github.com/JingXu-Huan/Campus-Water-IQ.git&quot;,
@@ -101,61 +83,61 @@
   </component>
   <component name="NextEditCompletionFeaturesState">
     <decayedCancelled>
-      <entry key="MS100" value="0.0018955694853653605" />
-      <entry key="MS500" value="0.8068088775817822" />
-      <entry key="S2" value="3.5012734159987735" />
-      <entry key="S5" value="6.127697564990931" />
-      <entry key="S10" value="9.171035838258616" />
-      <entry key="S30" value="13.49216417440631" />
-      <entry key="S60" value="15.09777030367786" />
-      <entry key="M2" value="16.0083783591636" />
-      <entry key="M5" value="16.593153507288577" />
-      <entry key="M10" value="16.794835763307017" />
-      <entry key="M15" value="16.862833830883222" />
-      <entry key="M30" value="16.9312211226144" />
-      <entry key="H1" value="16.96556146493828" />
-      <entry key="H2" value="16.982768439806744" />
-      <entry key="H4" value="16.99138114441338" />
-      <entry key="D1" value="16.998563096720073" />
-      <entry key="W1" value="16.99979471763461" />
+      <entry key="MS100" value="1.552198279561174" />
+      <entry key="MS500" value="3.4409202806789674" />
+      <entry key="S2" value="5.605124491408016" />
+      <entry key="S5" value="6.379612042495326" />
+      <entry key="S10" value="6.678217979957073" />
+      <entry key="S30" value="6.890043328656066" />
+      <entry key="S60" value="6.944677156464791" />
+      <entry key="M2" value="6.974839042359102" />
+      <entry key="M5" value="7.528775746687242" />
+      <entry key="M10" value="10.197139496641531" />
+      <entry key="M15" value="12.794033027053848" />
+      <entry key="M30" value="17.493679934674073" />
+      <entry key="H1" value="21.120502169854188" />
+      <entry key="H2" value="23.37961663954876" />
+      <entry key="H4" value="24.64123885986139" />
+      <entry key="D1" value="25.766483482382846" />
+      <entry key="W1" value="25.96646348949769" />
     </decayedCancelled>
     <decayedSelected>
-      <entry key="MS100" value="1.0000000000010891" />
-      <entry key="MS500" value="1.0040496144776796" />
-      <entry key="S2" value="1.2575842289089847" />
-      <entry key="S5" value="1.6995655200310478" />
-      <entry key="S10" value="2.1101418892734722" />
-      <entry key="S30" value="2.6176148660811824" />
-      <entry key="S60" value="2.7949763593355392" />
-      <entry key="M2" value="2.8937388958955603" />
-      <entry key="M5" value="2.956555461195877" />
-      <entry key="M10" value="2.9781175605684505" />
-      <entry key="M15" value="2.985375850556564" />
-      <entry key="M30" value="2.992669930773448" />
-      <entry key="H1" value="2.9963304542920812" />
-      <entry key="H2" value="2.9981640978099087" />
-      <entry key="H4" value="2.999081766375367" />
-      <entry key="D1" value="2.9998469218057306" />
-      <entry key="W1" value="2.9999781307249247" />
+      <entry key="MS100" value="0.0" />
+      <entry key="MS500" value="0.0" />
+      <entry key="S2" value="8.729330039371598E-231" />
+      <entry key="S5" value="1.7852093419269528E-92" />
+      <entry key="S10" value="2.506744068632453E-46" />
+      <entry key="S30" value="1.5587704294702986E-15" />
+      <entry key="S60" value="7.874810723570013E-8" />
+      <entry key="M2" value="5.608468744836321E-4" />
+      <entry key="M5" value="0.11500031339234608" />
+      <entry key="M10" value="0.6782143137047857" />
+      <entry key="M15" value="1.2253547345135896" />
+      <entry key="M30" value="2.2139077021588327" />
+      <entry key="H1" value="2.975838790872972" />
+      <entry key="H2" value="3.4501232377729463" />
+      <entry key="H4" value="3.714901284993881" />
+      <entry key="D1" value="3.9510076390971336" />
+      <entry key="W1" value="3.992964071053883" />
     </decayedSelected>
     <decayedShown>
-      <entry key="MS100" value="0.015836582891115888" />
-      <entry key="MS500" value="1.2207396936206394" />
-      <entry key="S2" value="4.416079473900543" />
-      <entry key="S5" value="7.558930692745182" />
-      <entry key="S10" value="11.088724633748948" />
-      <entry key="S30" value="16.02277550933554" />
-      <entry key="S60" value="17.845351903592558" />
-      <entry key="M2" value="18.87734451465737" />
-      <entry key="M5" value="19.53952742573975" />
-      <entry key="M10" value="19.767815889879852" />
-      <entry key="M15" value="19.8447742608595" />
-      <entry key="M30" value="19.922168086816512" />
-      <entry key="H1" value="19.961029117356365" />
-      <entry key="H2" value="19.98050080646605" />
-      <entry key="H4" value="19.990246962589115" />
-      <entry key="D1" value="19.99837401567757" />
-      <entry key="W1" value="19.999767704814243" />
+      <entry key="MS100" value="1.4955750934289118" />
+      <entry key="MS500" value="3.409774846280366" />
+      <entry key="S2" value="5.589415867072928" />
+      <entry key="S5" value="6.3720642624732955" />
+      <entry key="S10" value="6.67419381091782" />
+      <entry key="S30" value="6.888642095480199" />
+      <entry key="S60" value="6.943968857412325" />
+      <entry key="M2" value="6.97503955186487" />
+      <entry key="M5" value="7.643286819919956" />
+      <entry key="M10" value="10.874258287173117" />
+      <entry key="M15" value="14.018105548918882" />
+      <entry key="M30" value="19.706447539914233" />
+      <entry key="H1" value="24.095578489157138" />
+      <entry key="H2" value="26.82929873228808" />
+      <entry key="H4" value="28.355902846817536" />
+      <entry key="D1" value="29.717449085819187" />
+      <entry key="W1" value="29.959421492344646" />
     </decayedShown>
   </component>
   <component name="ProblemsViewState">
@@ -207,7 +189,7 @@
     &quot;codeWithMe.voiceChat.enabledByDefault&quot;: &quot;false&quot;,
     &quot;com.intellij.ml.llm.matterhorn.ej.ui.settings.DefaultModelSelectionForGA.v1&quot;: &quot;true&quot;,
     &quot;extract.method.default.visibility&quot;: &quot;private&quot;,
-    &quot;git-widget-placeholder&quot;: &quot;agent/local-docker-middleware&quot;,
+    &quot;git-widget-placeholder&quot;: &quot;master&quot;,
     &quot;ignore.virus.scanning.warn.message&quot;: &quot;true&quot;,
     &quot;junie.onboarding.icon.badge.shown&quot;: &quot;true&quot;,
     &quot;kotlin-language-version-configured&quot;: &quot;true&quot;,
@@ -274,7 +256,7 @@
       </set>
     </option>
   </component>
-  <component name="RunManager" selected="数据库脚本.sql.sql">
+  <component name="RunManager" selected="Spring Boot.PredictionServiceApplication">
     <configuration name="sql.sql" type="DatabaseScript" editBeforeRun="true" temporary="true" nameIsGenerated="true">
       <script-file value="$PROJECT_DIR$/common/src/sql/sql.sql" />
       <script-mode>FILE</script-mode>
@@ -308,12 +290,12 @@
         <option name="Make" enabled="true" />
       </method>
     </configuration>
-    <configuration name="RepairServiceApplication" type="SpringBootApplicationConfigurationType" factoryName="Spring Boot" temporary="true" nameIsGenerated="true">
-      <module name="repair-service" />
-      <option name="SPRING_BOOT_MAIN_CLASS" value="com.ncwu.repairservice.RepairServiceApplication" />
+    <configuration name="PredictionServiceApplication" type="SpringBootApplicationConfigurationType" factoryName="Spring Boot" temporary="true" nameIsGenerated="true">
+      <module name="prediction-service" />
+      <option name="SPRING_BOOT_MAIN_CLASS" value="com.ncwu.predictionservice.PredictionServiceApplication" />
       <extension name="coverage">
         <pattern>
-          <option name="PATTERN" value="com.ncwu.repairservice.*" />
+          <option name="PATTERN" value="com.ncwu.predictionservice.*" />
           <option name="ENABLED" value="true" />
         </pattern>
       </extension>
@@ -321,12 +303,12 @@
         <option name="Make" enabled="true" />
       </method>
     </configuration>
-    <configuration name="WarningServiceApplication" type="SpringBootApplicationConfigurationType" factoryName="Spring Boot" temporary="true" nameIsGenerated="true">
-      <module name="warning-service" />
-      <option name="SPRING_BOOT_MAIN_CLASS" value="com.ncwu.warningservice.WarningServiceApplication" />
+    <configuration name="RepairServiceApplication" type="SpringBootApplicationConfigurationType" factoryName="Spring Boot" temporary="true" nameIsGenerated="true">
+      <module name="repair-service" />
+      <option name="SPRING_BOOT_MAIN_CLASS" value="com.ncwu.repairservice.RepairServiceApplication" />
       <extension name="coverage">
         <pattern>
-          <option name="PATTERN" value="com.ncwu.warningservice.*" />
+          <option name="PATTERN" value="com.ncwu.repairservice.*" />
           <option name="ENABLED" value="true" />
         </pattern>
       </extension>
@@ -349,11 +331,11 @@
     </configuration>
     <recent_temporary>
       <list>
+        <item itemvalue="Spring Boot.PredictionServiceApplication" />
         <item itemvalue="Spring Boot.IoTDeviceApplication" />
         <item itemvalue="数据库脚本.sql.sql" />
         <item itemvalue="Spring Boot.WaterGatewayApplication" />
         <item itemvalue="Spring Boot.RepairServiceApplication" />
-        <item itemvalue="Spring Boot.WarningServiceApplication" />
       </list>
     </recent_temporary>
   </component>

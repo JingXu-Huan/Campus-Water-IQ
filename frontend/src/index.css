@@ -26,6 +26,32 @@ body {
   min-height: 100vh;
 }
 
+/* 浏览器禁用 background-image 时，保留渐变组件的可读性底色。 */
+.from-water { background-color: #00bcd4; }
+.from-primary-400 { background-color: #38bdf8; }
+.from-primary-500 { background-color: #0ea5e9; }
+.from-primary-600 { background-color: #0284c7; }
+.from-blue-50 { background-color: #eff6ff; }
+.from-blue-100 { background-color: #dbeafe; }
+.from-blue-400 { background-color: #60a5fa; }
+.from-emerald-50 { background-color: #ecfdf5; }
+.from-gray-50 { background-color: #f9fafb; }
+.from-green-100 { background-color: #dcfce7; }
+.from-green-400 { background-color: #4ade80; }
+.from-green-500 { background-color: #22c55e; }
+.from-green-600 { background-color: #16a34a; }
+.from-orange-50 { background-color: #fff7ed; }
+.from-orange-100 { background-color: #ffedd5; }
+.from-orange-400 { background-color: #fb923c; }
+.from-orange-500 { background-color: #f97316; }
+.from-orange-600 { background-color: #ea580c; }
+.from-purple-400 { background-color: #c084fc; }
+.from-red-400 { background-color: #f87171; }
+.from-slate-50 { background-color: #f8fafc; }
+.from-yellow-400 { background-color: #facc15; }
+.from-yellow-500 { background-color: #eab308; }
+.from-yellow-600 { background-color: #ca8a04; }
+
 /* 玻璃拟态卡片 */
 .glass-card {
   background: rgba(255, 255, 255, 0.88);
@@ -87,6 +113,22 @@ body {
   }
 }
 
+@keyframes fade-out {
+  from { opacity: 1; }
+  to { opacity: 0; }
+}
+
+@keyframes scale-out {
+  from {
+    opacity: 1;
+    transform: scale(1) translateY(0);
+  }
+  to {
+    opacity: 0;
+    transform: scale(0.97) translateY(6px);
+  }
+}
+
 @keyframes slide-up {
   from {
     opacity: 0;
@@ -115,6 +157,14 @@ body {
 
 .animate-scale-in {
   animation: scale-in 0.42s var(--ease-water) both;
+}
+
+.animate-fade-out {
+  animation: fade-out 0.22s ease-out both;
+}
+
+.animate-scale-out {
+  animation: scale-out 0.22s ease-in both;
 }
 
 .animate-slide-up {
@@ -173,6 +223,60 @@ body {
 .app-shell,
 .app-page {
   background: #edf6fb;
+}
+
+/* 内容区背景：用低对比度的水波、网格和几何环替代单一纯色。 */
+.app-page {
+  position: relative;
+  isolation: isolate;
+  overflow-x: hidden;
+  background-color: #edf6fb;
+  background-image:
+    radial-gradient(circle at 12% 18%, rgba(87, 165, 190, 0.12) 0 2px, transparent 2.5px),
+    radial-gradient(circle at 12% 18%, transparent 0 42px, rgba(87, 165, 190, 0.08) 43px 44px, transparent 45px),
+    repeating-linear-gradient(135deg, rgba(72, 140, 169, 0.035) 0 1px, transparent 1px 30px),
+    linear-gradient(135deg, rgba(255, 255, 255, 0.42), rgba(228, 242, 249, 0.25));
+}
+
+.app-page::before,
+.app-page::after {
+  content: '';
+  position: absolute;
+  pointer-events: none;
+  z-index: -1;
+}
+
+/* 右上角的同心水波，保持足够透明，不抢正文视觉焦点。 */
+.app-page::before {
+  width: 420px;
+  height: 420px;
+  top: -210px;
+  right: -150px;
+  border: 1px solid rgba(61, 131, 173, 0.16);
+  border-radius: 50%;
+  box-shadow:
+    0 0 0 34px rgba(61, 131, 173, 0.045),
+    0 0 0 68px rgba(61, 131, 173, 0.035),
+    0 0 0 102px rgba(61, 131, 173, 0.025);
+}
+
+/* 左下角的菱形叶片/水滴几何轮廓。 */
+.app-page::after {
+  width: 230px;
+  height: 230px;
+  left: -105px;
+  bottom: -110px;
+  border: 1px solid rgba(88, 157, 142, 0.16);
+  border-radius: 42% 58% 55% 45%;
+  transform: rotate(45deg);
+  box-shadow:
+    0 0 0 22px rgba(88, 157, 142, 0.035),
+    inset 28px 28px 0 rgba(255, 255, 255, 0.18);
+}
+
+.app-page > * {
+  position: relative;
+  z-index: 1;
 }
 
 .app-sidebar {

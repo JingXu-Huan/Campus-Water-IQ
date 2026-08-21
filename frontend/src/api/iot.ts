@@ -258,6 +258,23 @@ interface BuildingConfigResponse {
     rooms?: number
 }
 
+// IoT-device 当前从 Nacos 加载的运行配置（只读）
+export interface IotDeviceConfig {
+    port: number
+    meterReportFrequency: number
+    meterTimeOffset: number
+    waterQualityReportFrequency: number
+    waterQualityReportTimeOffset: number
+    p0: number
+    step: number
+    pmin: number
+    pmax: number
+    pnotCredible: number
+    n: number
+  wakeUpDormRate: number
+}
+
+
 // 获取楼宇配置（从后端获取）
 export const getBuildingConfig = async (): Promise<{
     educationStart: number
@@ -722,6 +739,40 @@ export const iotApi = {
             return {meterRunning: false, sensorRunning: false}
         }
     },
+
+    // 获取 IoT-device 当前生效的 Nacos 远端配置（只读）
+    getDeviceConfig: async (): Promise<IotDeviceConfig> => {
+        const res = await iotDeviceApi.get('/device/config') as any
+        const data = res?.data ?? res
+
+        if (!data || typeof data !== 'object') {
+            throw new Error('IoT-device 配置响应为空')
+        }
+
+        const toNumber = (value: unknown, name: string): number => {
+            const numberValue = Number(value)
+            if (!Number.isFinite(numberValue)) {
+                throw new Error(`IoT-device 配置 ${name} 无效`)
+            }
+            return numberValue
+        }
+
+        return {
+            port: toNumber(data.port, 'port'),
+            meterReportFrequency: toNumber(data.meterReportFrequency, 'meterReportFrequency'),
+            meterTimeOffset: toNumber(data.meterTimeOffset, 'meterTimeOffset'),
+            waterQualityReportFrequency: toNumber(data.waterQualityReportFrequency, 'waterQualityReportFrequency'),
+            waterQualityReportTimeOffset: toNumber(data.waterQualityReportTimeOffset, 'waterQualityReportTimeOffset'),
+            p0: toNumber(data.p0, 'p0'),
+            step: toNumber(data.step, 'step'),
+            pmin: toNumber(data.pmin, 'pmin'),
+            pmax: toNumber(data.pmax, 'pmax'),
+            pnotCredible: toNumber(data.pnotCredible, 'pnotCredible'),
+            n: toNumber(data.n, 'n'),
+            wakeUpDormRate: toNumber(data.wakeUpDormRate, 'wakeUpDormRate')
+        }
+    },
+
 
     // 开启所有水表
     startAllMeters: async (): Promise<{ success: boolean; message: string }> => {

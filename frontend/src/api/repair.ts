@@ -104,6 +104,7 @@ export interface UserReportDTO {
   desc?: string
   severity?: number
   reportName?: string
+  status?: RepairStatus
 }
 
 export const repairApi = {

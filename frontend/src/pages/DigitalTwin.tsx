@@ -1,11 +1,11 @@
 import { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useAuthStore } from '@/store/authStore'
-import { iotApi, generateDeviceId, generateWaterQualitySensorId } from '@/api/iot'
+import { iotApi, generateDeviceId, generateWaterQualitySensorId, type IotDeviceConfig } from '@/api/iot'
 import { 
   Droplets, User, Menu, X, Activity, LayoutDashboard, 
   Play, RotateCcw, Power, PowerOff, AlertCircle, CheckCircle,
-  RefreshCw, Cpu, ChevronDown, AlertTriangle
+  RefreshCw, Cpu, ChevronDown, AlertTriangle, Settings2, Cloud
 } from 'lucide-react'
 import NavigationMenu from '@/components/NavigationMenu'
 
@@ -17,6 +17,20 @@ const CAMPUS_OPTIONS = [
   { value: 2, label: '龙子湖校区' },
   { value: 3, label: '江淮校区' },
 ]
+
+const formatConfigNumber = (value: number, maximumFractionDigits = 8) =>
+  value.toLocaleString('zh-CN', { maximumFractionDigits })
+
+function ConfigMetric({ label, value, unit }: { label: string; value: string | number; unit?: string }) {
+  return (
+    <div className="rounded-xl border border-slate-100 bg-slate-50/80 p-3">
+      <p className="text-xs text-gray-500">{label}</p>
+      <p className="mt-1 text-base font-semibold text-gray-900">
+        {value} {unit && <span className="text-xs font-normal text-gray-500">{unit}</span>}
+      </p>
+    </div>
+  )
+}
 
 export default function DigitalTwin() {
   const navigate = useNavigate()
@@ -54,6 +68,11 @@ export default function DigitalTwin() {
     floors: 6,
     rooms: 10
   })
+
+  // IoT-device 从 Nacos 加载后的当前生效配置（只读）
+  const [deviceConfig, setDeviceConfig] = useState<IotDeviceConfig | null>(null)
+  const [deviceConfigLoading, setDeviceConfigLoading] = useState(false)
+  const [deviceConfigError, setDeviceConfigError] = useState<string | null>(null)
   
   // 下线选择状态 - 水表
   const [meterOfflineSelect, setMeterOfflineSelect] = useState({
@@ -119,6 +138,22 @@ export default function DigitalTwin() {
     }
   }
 
+  // 获取 IoT-device 当前生效的 Nacos 配置
+  const fetchDeviceConfig = async () => {
+    setDeviceConfigLoading(true)
+    setDeviceConfigError(null)
+    try {
+      const config = await iotApi.getDeviceConfig()
+      setDeviceConfig(config)
+    } catch (error) {
+      console.error('获取 IoT-device Nacos 配置失败:', error)
+      setDeviceConfig(null)
+      setDeviceConfigError('暂时无法读取 IoT-device 当前配置，请确认服务和 Nacos 连接正常。')
+    } finally {
+      setDeviceConfigLoading(false)
+    }
+  }
+
   // 获取模拟模式
   const fetchSimulatorMode = async () => {
     try {
@@ -135,6 +170,7 @@ export default function DigitalTwin() {
   useEffect(() => {
     fetchDeviceStatus()
     fetchBuildingConfig()
+    fetchDeviceConfig()
     fetchSimulatorMode()
     
     // 获取当前模拟季节
@@ -448,7 +484,7 @@ export default function DigitalTwin() {
               </div>
             </div>
             <button
-              onClick={() => { fetchDeviceStatus(); fetchBuildingConfig(); }}
+              onClick={() => { fetchDeviceStatus(); fetchBuildingConfig(); fetchDeviceConfig(); }}
               className="flex items-center gap-2 px-4 py-2 text-white/80 hover:text-white hover:bg-white/10 rounded-xl transition-all"
             >
               <RefreshCw className={`w-4 h-4 ${loading ? 'animate-spin' : ''}`} />
@@ -457,7 +493,8 @@ export default function DigitalTwin() {
           </div>
         </header>
 
-        <main className="flex-1 p-6 overflow-y-auto">
+        <main className="flex-1 overflow-y-auto p-4 sm:p-6">
+          <div className="mx-auto w-full max-w-[1680px]">
           {/* 消息提示 */}
           {message && (
             <div className={`mb-4 p-4 rounded-lg flex items-center gap-3 text-base font-medium border-2 ${
@@ -473,9 +510,9 @@ export default function DigitalTwin() {
 
           {/* 弹窗 */}
           {modal && (
-            <div className="fixed inset-0 z-50 flex items-center justify-center">
+            <div className="fixed inset-0 z-50 flex items-center justify-center animate-fade-in">
               <div className="absolute inset-0 bg-gray-900/60 backdrop-blur-sm" onClick={() => setModal(null)} />
-              <div className="relative bg-white rounded-2xl shadow-2xl p-8 max-w-md w-full mx-4 transform transition-all">
+              <div className="relative w-full max-w-md mx-4 rounded-3xl bg-white p-6 sm:p-8 shadow-2xl animate-scale-in">
                 <div className="text-center">
                   <div className={`mx-auto w-16 h-16 rounded-full flex items-center justify-center mb-4 ${
                     modal.type === 'success' ? 'bg-green-100' : 
@@ -511,9 +548,9 @@ export default function DigitalTwin() {
 
           {/* 确认弹窗 */}
           {confirmModal && (
-            <div className="fixed inset-0 z-50 flex items-center justify-center">
+            <div className="fixed inset-0 z-50 flex items-center justify-center animate-fade-in">
               <div className="absolute inset-0 bg-gray-900/60 backdrop-blur-sm" onClick={() => setConfirmModal(null)} />
-              <div className="relative bg-white rounded-2xl shadow-2xl p-8 max-w-md w-full mx-4 transform transition-all">
+              <div className="relative w-full max-w-md mx-4 rounded-3xl bg-white p-6 sm:p-8 shadow-2xl animate-scale-in">
                 <div className="text-center">
                   <div className="mx-auto w-16 h-16 rounded-full flex items-center justify-center mb-4 bg-amber-100">
                     <AlertTriangle className="w-8 h-8 text-amber-600" />
@@ -542,7 +579,7 @@ export default function DigitalTwin() {
           )}
 
           {/* 状态概览 */}
-          <div className="grid grid-cols-2 md:grid-cols-5 gap-4 mb-6">
+          <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-5 gap-4 mb-6">
             <div className="glass-card rounded-2xl p-5">
               <div className="flex items-center gap-3 mb-2">
                 <div className={`p-3 rounded-xl ${isInitialized ? 'bg-gradient-to-br from-green-400 to-green-600' : 'bg-gray-100'}`}>
@@ -601,9 +638,17 @@ export default function DigitalTwin() {
           </div>
 
           {/* 楼宇配置 */}
-          <div className="bg-white rounded-2xl p-6 shadow-lg shadow-gray-100/50 border border-gray-100 mb-6">
-            <h3 className="text-lg font-semibold text-gray-900 mb-4">楼宇配置</h3>
-            <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
+          <div className="bg-white rounded-3xl p-5 sm:p-6 shadow-lg shadow-gray-100/50 border border-gray-100 mb-6">
+            <div className="mb-5 flex flex-wrap items-end justify-between gap-2">
+              <div>
+                <h3 className="text-lg font-semibold text-gray-900">楼宇配置</h3>
+                <p className="mt-1 text-sm text-gray-500">初始化前可调整设备规模；初始化后锁定，防止设备拓扑不一致。</p>
+              </div>
+              <span className={`rounded-full px-3 py-1 text-xs font-medium ${isInitialized ? 'bg-slate-100 text-slate-600' : 'bg-emerald-50 text-emerald-700'}`}>
+                {isInitialized ? '已锁定' : '可编辑'}
+              </span>
+            </div>
+            <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-5 gap-4">
               <div>
                 <label className="block text-sm text-gray-500 mb-1">教学楼数量</label>
                 <input
@@ -670,14 +715,101 @@ export default function DigitalTwin() {
             </p>
           </div>
 
+          {/* IoT-device 运行参数：只读展示 Nacos 当前生效值 */}
+          <div className="bg-white rounded-3xl p-5 sm:p-6 shadow-lg shadow-gray-100/50 border border-gray-100 mb-6">
+            <div className="flex flex-wrap items-start justify-between gap-3 mb-5">
+              <div className="flex items-center gap-3">
+                <div className="p-3 bg-gradient-to-br from-slate-500 to-slate-700 rounded-xl">
+                  <Settings2 className="w-5 h-5 text-white" />
+                </div>
+                <div>
+                  <h3 className="text-lg font-semibold text-gray-900">IoT-device 运行参数</h3>
+                  <p className="text-xs text-gray-500 mt-1">只读展示当前实例已加载的生效值，不暴露 Nacos 凭据</p>
+                </div>
+              </div>
+              <div className="flex items-center gap-2">
+                <span className="inline-flex items-center gap-1.5 rounded-full bg-sky-50 px-2.5 py-1 text-xs font-medium text-sky-700">
+                  <Cloud className="w-3.5 h-3.5" /> Nacos 远端
+                </span>
+                <span className="rounded-full bg-slate-100 px-2.5 py-1 text-xs font-medium text-slate-600">只读</span>
+                <button
+                  type="button"
+                  onClick={fetchDeviceConfig}
+                  disabled={deviceConfigLoading}
+                  className="inline-flex items-center gap-1.5 rounded-lg border border-gray-200 px-3 py-1.5 text-xs text-gray-600 hover:bg-gray-50 disabled:cursor-not-allowed disabled:opacity-50"
+                >
+                  <RefreshCw className={`w-3.5 h-3.5 ${deviceConfigLoading ? 'animate-spin' : ''}`} />
+                  刷新配置
+                </button>
+              </div>
+            </div>
+
+            {deviceConfigError ? (
+              <div className="flex items-center gap-2 rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-700">
+                <AlertCircle className="w-4 h-4 flex-shrink-0" />
+                <span>{deviceConfigError}</span>
+              </div>
+            ) : deviceConfig ? (
+              <>
+                <div className="grid grid-cols-1 xl:grid-cols-3 gap-4">
+                  <div className="rounded-2xl border border-slate-100 bg-slate-50/50 p-4">
+                    <h4 className="mb-3 text-sm font-semibold text-gray-700">服务与上报</h4>
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                      <ConfigMetric label="HTTP 服务端口" value={deviceConfig.port} />
+                      <ConfigMetric label="离线判定阈值" value={deviceConfig.n} unit="个周期" />
+                      <ConfigMetric label="水表上报频率" value={formatConfigNumber(deviceConfig.meterReportFrequency)} unit="ms" />
+                      <ConfigMetric label="水表时间偏移" value={formatConfigNumber(deviceConfig.meterTimeOffset)} unit="ms" />
+                      <ConfigMetric label="水质上报频率" value={formatConfigNumber(deviceConfig.waterQualityReportFrequency)} unit="ms" />
+                      <ConfigMetric label="水质时间偏移" value={formatConfigNumber(deviceConfig.waterQualityReportTimeOffset)} unit="ms" />
+                    </div>
+                  </div>
+
+                  <div className="rounded-2xl border border-slate-100 bg-slate-50/50 p-4">
+                    <h4 className="mb-3 text-sm font-semibold text-gray-700">虚拟管网压力模型</h4>
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                      <ConfigMetric label="初始压力 p0" value={formatConfigNumber(deviceConfig.p0)} />
+                      <ConfigMetric label="离散步长 step" value={formatConfigNumber(deviceConfig.step)} />
+                      <ConfigMetric label="最小压力 pmin" value={formatConfigNumber(deviceConfig.pmin)} />
+                      <ConfigMetric label="最大压力 pmax" value={formatConfigNumber(deviceConfig.pmax)} />
+                      <ConfigMetric label="不可信数据概率" value={formatConfigNumber(deviceConfig.pnotCredible)} />
+                    </div>
+                  </div>
+
+                  <div className="rounded-2xl border border-slate-100 bg-slate-50/50 p-4">
+                    <h4 className="mb-3 text-sm font-semibold text-gray-700">行为参数</h4>
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                      <ConfigMetric
+                        label="早八宿舍起床比例"
+                        value={`${formatConfigNumber(deviceConfig.wakeUpDormRate * 100, 2)}%`}
+                      />
+                    </div>
+                  </div>
+                </div>
+                <p className="mt-4 rounded-xl bg-sky-50 px-3 py-2 text-xs text-sky-700">
+                  配置来源：Nacos 的 IoT-device.yml。请在 Nacos 控制台修改参数，待动态刷新后点击“刷新配置”查看实例生效值。
+                </p>
+              </>
+            ) : (
+              <div className="rounded-xl border border-gray-100 bg-gray-50 px-4 py-5 text-sm text-gray-500">
+                {deviceConfigLoading ? '正在读取 Nacos 配置…' : '尚未读取到 IoT-device 配置。'}
+              </div>
+            )}
+          </div>
+
           {/* 公共控制：初始化/重置 */}
-          <div className="bg-white rounded-2xl p-6 shadow-lg shadow-gray-100/50 border border-gray-100 mb-6">
-            <h3 className="text-lg font-semibold text-gray-900 mb-4">设备初始化与重置</h3>
-            <div className="grid grid-cols-2 gap-4 max-w-2xl">
+          <div className="bg-white rounded-3xl p-5 sm:p-6 shadow-lg shadow-gray-100/50 border border-gray-100 mb-6">
+            <div className="mb-5 flex flex-wrap items-end justify-between gap-2">
+              <div>
+                <h3 className="text-lg font-semibold text-gray-900">设备初始化与重置</h3>
+                <p className="mt-1 text-sm text-gray-500">首次使用先创建设备；重置会清空设备和运行数据。</p>
+              </div>
+              <span className="rounded-full bg-slate-100 px-3 py-1 text-xs font-medium text-slate-600">高风险操作</span>
+            </div>
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
               <button
                 onClick={handleInit}
                 disabled={loading || isInitialized}
-                className="flex flex-col items-center gap-2 p-5 bg-gradient-to-br from-blue-50 to-blue-100 hover:from-blue-100 hover:to-blue-200 rounded-2xl transition-all disabled:opacity-50 disabled:cursor-not-allowed border border-blue-200"
+                className="flex min-h-44 flex-col items-center justify-center gap-2 p-5 bg-gradient-to-br from-blue-50 to-blue-100 hover:from-blue-100 hover:to-blue-200 rounded-2xl transition-all hover:-translate-y-0.5 disabled:opacity-50 disabled:cursor-not-allowed border border-blue-200"
               >
                 <div className="p-3 bg-gradient-to-br from-blue-400 to-blue-600 rounded-xl shadow-lg shadow-blue-500/30">
                   <Cpu className="w-8 h-8 text-white" />
@@ -689,7 +821,7 @@ export default function DigitalTwin() {
               <button
                 onClick={handleReset}
                 disabled={loading || !isInitialized || isAnyTaskRunning}
-                className="flex flex-col items-center gap-2 p-5 bg-gradient-to-br from-orange-50 to-orange-100 hover:from-orange-100 hover:to-orange-200 rounded-2xl transition-all disabled:opacity-50 disabled:cursor-not-allowed border border-orange-200"
+                className="flex min-h-44 flex-col items-center justify-center gap-2 p-5 bg-gradient-to-br from-orange-50 to-orange-100 hover:from-orange-100 hover:to-orange-200 rounded-2xl transition-all hover:-translate-y-0.5 disabled:opacity-50 disabled:cursor-not-allowed border border-orange-200"
               >
                 <RotateCcw className="w-8 h-8 text-orange-600" />
                 <span className="font-medium text-orange-700">重置设备</span>
@@ -699,9 +831,9 @@ export default function DigitalTwin() {
           </div>
 
           {/* 水表控制卡片 - 可展开 */}
-          <div className="bg-white rounded-2xl shadow-lg shadow-gray-100/50 border border-gray-100 mb-4">
+          <div className="bg-white rounded-3xl shadow-lg shadow-gray-100/50 border border-gray-100 mb-4 overflow-hidden">
             <div 
-              className="flex items-center gap-3 p-4 cursor-pointer hover:bg-gray-50/50 transition-colors"
+              className="flex flex-col gap-3 p-4 cursor-pointer hover:bg-gray-50/50 transition-colors sm:flex-row sm:items-center sm:p-5"
               onClick={() => setMeterExpanded(!meterExpanded)}
             >
               <div className="p-3 bg-gradient-to-br from-blue-400 to-blue-600 rounded-xl">
@@ -713,7 +845,7 @@ export default function DigitalTwin() {
               }`}>
                 {isMetersRunning ? '运行中' : '已停止'}
               </span>
-              <div className="ml-auto flex items-center gap-2">
+              <div className="ml-auto flex w-full flex-wrap items-center justify-end gap-2 sm:w-auto">
                 <button
                   onClick={(e) => {
                     e.stopPropagation()
@@ -830,9 +962,9 @@ export default function DigitalTwin() {
           </div>
 
           {/* 传感器控制卡片 - 可展开 */}
-          <div className="bg-white rounded-2xl shadow-lg shadow-gray-100/50 border border-gray-100 mb-4">
+          <div className="bg-white rounded-3xl shadow-lg shadow-gray-100/50 border border-gray-100 mb-4 overflow-hidden">
             <div 
-              className="flex items-center gap-3 p-4 cursor-pointer hover:bg-gray-50/50 transition-colors"
+              className="flex flex-col gap-3 p-4 cursor-pointer hover:bg-gray-50/50 transition-colors sm:flex-row sm:items-center sm:p-5"
               onClick={() => setSensorExpanded(!sensorExpanded)}
             >
               <div className="p-3 bg-gradient-to-br from-purple-400 to-purple-600 rounded-xl">
@@ -844,7 +976,7 @@ export default function DigitalTwin() {
               }`}>
                 {isSensorsRunning ? '运行中' : '已停止'}
               </span>
-              <div className="ml-auto flex items-center gap-2">
+              <div className="ml-auto flex w-full flex-wrap items-center justify-end gap-2 sm:w-auto">
                 <button
                   onClick={(e) => {
                     e.stopPropagation()
@@ -954,8 +1086,17 @@ export default function DigitalTwin() {
           </div>
 
           {/* 阀门控制 */}
-          <div className="bg-white rounded-2xl p-6 shadow-lg shadow-gray-100/50 border border-gray-100 mb-6">
-            <h3 className="text-lg font-semibold text-gray-900 mb-4">阀门控制</h3>
+          <div className="bg-white rounded-3xl p-5 sm:p-6 shadow-lg shadow-gray-100/50 border border-gray-100 mb-6">
+            <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+              <div className="flex items-center gap-3">
+                <div className={`flex h-11 w-11 items-center justify-center rounded-xl ${isValvesOpen ? 'bg-orange-100 text-orange-600' : 'bg-emerald-100 text-emerald-600'}`}>
+                  {isValvesOpen ? <PowerOff className="w-5 h-5" /> : <Power className="w-5 h-5" />}
+                </div>
+                <div>
+                  <h3 className="text-lg font-semibold text-gray-900">阀门控制</h3>
+                  <p className="mt-1 text-sm text-gray-500">当前阀门：{isValvesOpen ? '开启，可正常供水' : '关闭，供水已暂停'}</p>
+                </div>
+              </div>
             <button
               onClick={handleToggleValves}
               disabled={loading || !isInitialized}
@@ -968,6 +1109,7 @@ export default function DigitalTwin() {
               {isValvesOpen ? <PowerOff className="w-5 h-5" /> : <Power className="w-5 h-5" />}
               <span className="font-medium">{isValvesOpen ? '关闭所有阀门' : '开启所有阀门'}</span>
             </button>
+            </div>
           </div>
 
           {/* 模拟模式 */}
@@ -1164,6 +1306,7 @@ export default function DigitalTwin() {
                 </div>
               </div>
             </div>
+          </div>
           </div>
         </main>
       </div>

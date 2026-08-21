@@ -5,6 +5,7 @@ import com.ncwu.common.domain.dto.UserReportDTO;
 import com.ncwu.common.domain.vo.Result;
 import com.ncwu.common.enums.ErrorCode;
 import com.ncwu.repairservice.entity.vo.UserReportVO;
+import com.ncwu.repairservice.mapper.DeviceRegistryMapper;
 import com.ncwu.repairservice.service.IDeviceReservationService;
 import com.ncwu.repairservice.tools.Utils;
 import lombok.RequiredArgsConstructor;
@@ -32,6 +33,7 @@ public class UserReportController {
 
     private final IDeviceReservationService deviceReservationService;
     private final StringRedisTemplate redisTemplate;
+    private final DeviceRegistryMapper deviceRegistryMapper;
 
     /**
      * 用户上报设备异常报修单
@@ -40,9 +42,14 @@ public class UserReportController {
     public Result<Boolean> userReport(@RequestBody @NotNull UserReportDTO userReportDTO) {
         String deviceCode = userReportDTO.getDeviceCode();
         //校验设备编码合法性
-        if (Utils.isUnValidDeviceId(List.of(deviceCode), redisTemplate))
+        boolean cachedDevice = !Utils.isUnValidDeviceId(List.of(deviceCode), redisTemplate);
+        if (!cachedDevice && !deviceRegistryMapper.existsByDeviceCode(deviceCode))
             return Result.fail(false, ErrorCode.PARAM_VALIDATION_ERROR.code(),
-                    ErrorCode.PARAM_VALIDATION_ERROR.message());
+                    "设备编号不存在，请检查后重试");
+        if (!cachedDevice) {
+            String registry = deviceCode.startsWith("1") ? "device:meter" : "device:sensor";
+            redisTemplate.opsForSet().add(registry, deviceCode);
+        }
         return deviceReservationService.addAReport(userReportDTO);
     }
 

@@ -45,6 +45,9 @@ export default function Repair() {
   // 模态框
   const [showStatusModal, setShowStatusModal] = useState(false)
   const [showAddModal, setShowAddModal] = useState(false)
+  const [closingModal, setClosingModal] = useState<'status' | 'add' | null>(null)
+  const [feedback, setFeedback] = useState<{ type: 'success' | 'error'; message: string } | null>(null)
+  const [closingFeedback, setClosingFeedback] = useState(false)
   const [selectedOrder, setSelectedOrder] = useState<RepairOrder | null>(null)
   const [newStatus, setNewStatus] = useState<RepairStatus>('CONFIRMED')
   const [updating, setUpdating] = useState(false)
@@ -55,9 +58,38 @@ export default function Repair() {
     contactInfo: '',
     desc: '',
     severity: 2,
-    reportName: ''
+    reportName: '',
+    status: 'DRAFT'
   })
   const [submitting, setSubmitting] = useState(false)
+
+  const closeModal = (modal: 'status' | 'add') => {
+    if (closingModal) return
+    setClosingModal(modal)
+    window.setTimeout(() => {
+      if (modal === 'status') setShowStatusModal(false)
+      else setShowAddModal(false)
+      setClosingModal(null)
+    }, 220)
+  }
+
+  const openAddModal = () => {
+    setClosingModal(null)
+    setShowAddModal(true)
+  }
+
+  const showFeedback = (type: 'success' | 'error', message: string) => {
+    setClosingFeedback(false)
+    setFeedback({ type, message })
+  }
+
+  const closeFeedback = () => {
+    setClosingFeedback(true)
+    window.setTimeout(() => {
+      setFeedback(null)
+      setClosingFeedback(false)
+    }, 220)
+  }
 
   // 获取报修单数据
   const fetchRepairOrders = async () => {
@@ -111,6 +143,7 @@ export default function Repair() {
   const handleOpenStatusModal = (order: RepairOrder) => {
     setSelectedOrder(order)
     setNewStatus(order.status as RepairStatus)
+    setClosingModal(null)
     setShowStatusModal(true)
   }
 
@@ -120,10 +153,12 @@ export default function Repair() {
     setUpdating(true)
     try {
       await repairApi.changeStatus(newStatus, selectedOrder.id)
-      setShowStatusModal(false)
+      closeModal('status')
+      showFeedback('success', '报修单状态已更新')
       handleRefresh()
     } catch (error) {
       console.error('修改状态失败:', error)
+      showFeedback('error', error instanceof Error ? error.message : '状态修改失败，请稍后重试')
     } finally {
       setUpdating(false)
     }
@@ -132,29 +167,30 @@ export default function Repair() {
   // 提交报修
   const handleSubmitReport = async () => {
     if (!reportForm.deviceCode) {
-      alert('请输入设备编号')
+      showFeedback('error', '请输入设备编号')
       return
     }
     if (!reportForm.desc) {
-      alert('请输入故障描述')
+      showFeedback('error', '请输入故障描述')
       return
     }
     setSubmitting(true)
     try {
       await repairApi.report(reportForm)
-      alert('报修提交成功！')
-      setShowAddModal(false)
+      closeModal('add')
+      showFeedback('success', '报修提交成功，运维人员会尽快处理')
       setReportForm({
         deviceCode: '',
         contactInfo: '',
         desc: '',
         severity: 2,
-        reportName: ''
+        reportName: '',
+        status: 'DRAFT'
       })
       handleRefresh()
     } catch (error: any) {
       console.error('提交报修失败:', error)
-      alert(error.message || '提交失败，请稍后重试')
+      showFeedback('error', error.message || '提交失败，请稍后重试')
     } finally {
       setSubmitting(false)
     }
@@ -234,7 +270,7 @@ export default function Repair() {
                 刷新
               </button>
               <button
-                onClick={() => setShowAddModal(true)}
+                onClick={openAddModal}
                 className="flex items-center gap-2 px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors"
               >
                 <Plus className="w-4 h-4" />
@@ -466,14 +502,14 @@ export default function Repair() {
 
       {/* 修改状态弹窗 */}
       {showStatusModal && (
-        <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 animate-fade-in">
-          <div className="bg-white rounded-3xl shadow-2xl w-full max-w-md mx-4 overflow-hidden animate-scale-in">
+        <div className={`fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 ${closingModal === 'status' ? 'animate-fade-out' : 'animate-fade-in'}`}>
+          <div className={`bg-white rounded-3xl shadow-2xl w-full max-w-md mx-4 overflow-hidden ${closingModal === 'status' ? 'animate-scale-out' : 'animate-scale-in'}`}>
             {/* 弹窗头部 */}
             <div className="px-6 py-5 bg-gradient-to-r from-primary-500 to-primary-600">
               <div className="flex items-center justify-between">
                 <h3 className="text-lg font-bold text-white">修改报修单状态</h3>
                 <button
-                  onClick={() => setShowStatusModal(false)}
+                  onClick={() => closeModal('status')}
                   className="p-1.5 rounded-lg bg-white/20 hover:bg-white/30 transition-colors"
                 >
                   <X className="w-5 h-5 text-white" />
@@ -529,7 +565,7 @@ export default function Repair() {
             
             <div className="px-6 py-4 bg-gray-50 border-t border-gray-100 flex justify-end gap-3">
               <button
-                onClick={() => setShowStatusModal(false)}
+                onClick={() => closeModal('status')}
                 className="px-5 py-2.5 text-gray-600 hover:bg-gray-200 rounded-xl transition-colors font-medium"
               >
                 取消
@@ -553,14 +589,14 @@ export default function Repair() {
 
       {/* 添加报修弹窗 */}
       {showAddModal && (
-        <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 animate-fade-in">
-          <div className="bg-white rounded-3xl shadow-2xl w-full max-w-md mx-4 overflow-hidden animate-scale-in">
+        <div className={`fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 ${closingModal === 'add' ? 'animate-fade-out' : 'animate-fade-in'}`}>
+          <div className={`bg-white rounded-3xl shadow-2xl w-full max-w-md mx-4 overflow-hidden ${closingModal === 'add' ? 'animate-scale-out' : 'animate-scale-in'}`}>
             {/* 弹窗头部 */}
             <div className="px-6 py-5 bg-gradient-to-r from-green-500 to-green-600">
               <div className="flex items-center justify-between">
                 <h3 className="text-lg font-bold text-white">添加报修</h3>
                 <button
-                  onClick={() => setShowAddModal(false)}
+                  onClick={() => closeModal('add')}
                   className="p-1.5 rounded-lg bg-white/20 hover:bg-white/30 transition-colors"
                 >
                   <X className="w-5 h-5 text-white" />
@@ -584,6 +620,7 @@ export default function Repair() {
                   placeholder="请输入设备编号"
                   className="w-full px-4 py-3 border border-gray-200 rounded-xl focus:ring-2 focus:ring-green-500 focus:border-transparent transition-all"
                 />
+                <p className="mt-2 text-xs text-gray-400">请输入平台已登记的设备编号，例如 120103003</p>
               </div>
 
               {/* 报修人 */}
@@ -660,7 +697,7 @@ export default function Repair() {
             
             <div className="px-6 py-4 bg-gray-50 border-t border-gray-100 flex justify-end gap-3">
               <button
-                onClick={() => setShowAddModal(false)}
+                onClick={() => closeModal('add')}
                 className="px-5 py-2.5 text-gray-600 hover:bg-gray-200 rounded-xl transition-colors font-medium"
               >
                 取消
@@ -678,6 +715,25 @@ export default function Repair() {
                 ) : '提交报修'}
               </button>
             </div>
+          </div>
+        </div>
+      )}
+
+      {/* 提交结果提示 */}
+      {feedback && (
+        <div className={`fixed inset-0 bg-slate-950/35 backdrop-blur-sm flex items-center justify-center z-[60] ${closingFeedback ? 'animate-fade-out' : 'animate-fade-in'}`}>
+          <div className={`w-full max-w-sm mx-4 rounded-3xl bg-white p-6 text-center shadow-2xl ${closingFeedback ? 'animate-scale-out' : 'animate-scale-in'}`}>
+            <div className={`mx-auto mb-4 flex h-14 w-14 items-center justify-center rounded-2xl ${feedback.type === 'success' ? 'bg-green-100 text-green-600' : 'bg-red-100 text-red-600'}`}>
+              {feedback.type === 'success' ? <CheckCircle className="h-7 w-7" /> : <AlertTriangle className="h-7 w-7" />}
+            </div>
+            <h3 className="text-lg font-bold text-gray-900">{feedback.type === 'success' ? '操作成功' : '操作失败'}</h3>
+            <p className="mt-2 text-sm leading-6 text-gray-500">{feedback.message}</p>
+            <button
+              onClick={closeFeedback}
+              className={`mt-6 w-full rounded-xl px-5 py-2.5 font-medium text-white transition-all ${feedback.type === 'success' ? 'bg-green-600 hover:bg-green-700' : 'bg-red-500 hover:bg-red-600'}`}
+            >
+              知道了
+            </button>
           </div>
         </div>
       )}

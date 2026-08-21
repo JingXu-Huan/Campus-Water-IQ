@@ -42,7 +42,7 @@ public class UserReportDTO implements Serializable {
 
     //严重程度
     @Min(1)
-    @Max(3)
+    @Max(4)
     int severity;
 
     //状态

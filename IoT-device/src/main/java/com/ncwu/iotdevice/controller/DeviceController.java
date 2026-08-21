@@ -7,6 +7,7 @@ import com.ncwu.common.enums.ErrorCode;
 import com.ncwu.common.enums.SuccessCode;
 import com.ncwu.common.domain.dto.IdsDTO;
 import com.ncwu.iotdevice.exception.DeviceRegisterException;
+import com.ncwu.iotdevice.config.ServerConfig;
 import com.ncwu.iotdevice.service.VirtualMeterDeviceService;
 import com.ncwu.iotdevice.service.VirtualWaterQualityDeviceService;
 import com.ncwu.iotdevice.utils.Utils;
@@ -40,6 +41,7 @@ public class DeviceController {
     private final VirtualWaterQualityDeviceService virtualWaterQualityDeviceService;
     private final Utils utils;
     private final StringRedisTemplate stringRedisTemplate;
+    private final ServerConfig serverConfig;
 
     /**
      * 初始化
@@ -186,6 +188,50 @@ public class DeviceController {
         private Boolean meterRunning;
         private Boolean sensorRunning;
     }
+
+    /**
+     * 获取 IoT-device 当前生效的远端配置。
+     *
+     * 配置由 Nacos 注入 ServerConfig，这里只读返回给数字孪生页面，
+     * 不允许前端直接修改，也不暴露 Nacos 连接信息。
+     */
+    @GetMapping("/config")
+    public Result<DeviceConfigVO> getDeviceConfig() {
+        DeviceConfigVO config = new DeviceConfigVO();
+        config.setPort(serverConfig.getPort());
+        config.setMeterReportFrequency(serverConfig.getMeterReportFrequency());
+        config.setMeterTimeOffset(serverConfig.getMeterTimeOffset());
+        config.setWaterQualityReportFrequency(serverConfig.getWaterQualityReportFrequency());
+        config.setWaterQualityReportTimeOffset(serverConfig.getWaterQualityReportTimeOffset());
+        config.setP0(serverConfig.getP0());
+        config.setStep(serverConfig.getStep());
+        config.setPmin(serverConfig.getPmin());
+        config.setPmax(serverConfig.getPmax());
+        config.setPnotCredible(serverConfig.getPnotCredible());
+        config.setN(serverConfig.getN());
+        config.setWakeUpDormRate(serverConfig.getWakeUpDormRate());
+        return Result.ok(config);
+    }
+
+    /**
+     * 数字孪生页面展示的 IoT-device 配置 VO。
+     */
+    @Data
+    public static class DeviceConfigVO {
+        private Integer port;
+        private String meterReportFrequency;
+        private String meterTimeOffset;
+        private String waterQualityReportFrequency;
+        private String waterQualityReportTimeOffset;
+        private Double p0;
+        private Double step;
+        private Double pmin;
+        private Double pmax;
+        private Double pnotCredible;
+        private Integer n;
+        private Double wakeUpDormRate;
+    }
+
 
     /**
      * 获取楼宇配置信息
